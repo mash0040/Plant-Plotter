@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import TrackingCalendar from '@/components/TrackingCalendar';
+import TrackingCalendar from '@/components/Tracker/TrackingCalendar';
 import DarkModeToggle from '@/components/DarkModeToggle';
 
 const mockData = {

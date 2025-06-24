@@ -1,5 +1,5 @@
 'use client';
-import GardenCard from '@/components/GardenCard';
+import GardenCard from '@/components/Gardens/GardenCard';
 import { useEffect, useState } from 'react';
 import { getGardens } from '@/lib/api';
 

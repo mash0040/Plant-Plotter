@@ -6,10 +6,10 @@ import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
 
 const navItems = [
-  { label: 'Home', href: '/', icon: '🏡' },
-  { label: 'My Gardens', href: '/gardens', icon: '🌱' },
-  { label: 'Garden Planner', href: '/garden', icon: '🪴' },
-  { label: 'Tracking', href: '/tracking', icon: '📅' },
+  { label: 'Home', href: '/' },
+  { label: 'My Gardens', href: '/gardens'},
+  { label: 'Garden Planner', href: '/garden'},
+  { label: 'Tracker', href: '/tracker'},
 ];
 
 export default function Navbar() {
@@ -43,7 +43,6 @@ export default function Navbar() {
                     : 'text-gray-700 hover:bg-gray-100 hover:text-green-700'
                 }`}
               >
-                <span>{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             </li>

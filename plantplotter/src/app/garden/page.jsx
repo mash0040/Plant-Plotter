@@ -1,11 +1,11 @@
 'use client';
 import React, { useState } from 'react';
-import GridWrapper from '@/components/GridWrapper';
-import Info from '@/components/Info';
-import SortableItem from '@/components/SortableItem';
+import GridWrapper from '@/components/Garden/GridWrapper';
+import Info from '@/components/Garden/Info';
+import SortableItem from '@/components/Garden/SortableItem';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
-import DraggablePlant from '@/components/DraggablePlant';
+import DraggablePlant from '@/components/Garden/DraggablePlant';
 
 export default function $Page() {
   const [plants, setPlants] = useState([]); // start empty
@@ -16,17 +16,6 @@ export default function $Page() {
   const scale = 50;
 
   const sensors = useSensors(useSensor(PointerSensor));
-
-  // const handleDragEnd = (event) => {
-  //   const { active, over } = event;
-  //   if (active.id !== over?.id) {
-  //     setPlants((items) => {
-  //       const oldIndex = items.findIndex((p) => p.id === active.id);
-  //       const newIndex = items.findIndex((p) => p.id === over?.id);
-  //       return arrayMove(items, oldIndex, newIndex);
-  //     });
-  //   }
-  // };
 
   const handleDragEnd = (event) => {
     const { active, delta } = event;
