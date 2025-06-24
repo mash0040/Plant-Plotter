@@ -17,16 +17,18 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-200">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-green-900 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="text-green-700 text-xl font-bold flex items-center gap-2">
-          <Image src="/logo.svg" alt="PlantPlotter Logo" width={32} height={32} /> <span>PlantPlotter</span>
+        <div className="text-green-100 text-xl font-bold flex items-center gap-2">
+          <Image src="/logo.svg" alt="PlantPlotter Logo" width={32} height={32} /> 
+          <span>PlantPlotter</span>
         </div>
 
         {/* Mobile menu toggle */}
         <button
-          className="md:hidden text-gray-600"
+          className="md:hidden text-white"
           onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
         >
           {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -39,8 +41,8 @@ export default function Navbar() {
                 href={item.href}
                 className={`flex items-center gap-1 px-3 py-2 rounded-md transition ${
                   pathname === item.href
-                    ? 'bg-green-100 text-green-700 font-semibold'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-green-700'
+                    ? 'bg-green-700 text-white font-semibold'
+                    : 'text-green-100 hover:bg-green-800 hover:text-white'
                 }`}
               >
                 <span>{item.label}</span>
@@ -52,7 +54,7 @@ export default function Navbar() {
 
       {/* Mobile menu drawer */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200 px-4 py-2 space-y-2">
+        <div className="md:hidden bg-green-800 border-t border-green-700 px-4 py-2 space-y-2">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -60,11 +62,11 @@ export default function Navbar() {
               onClick={() => setMenuOpen(false)}
               className={`block px-3 py-2 rounded-md text-sm ${
                 pathname === item.href
-                  ? 'bg-green-100 text-green-700 font-semibold'
-                  : 'text-gray-700 hover:bg-gray-100 hover:text-green-700'
+                  ? 'bg-green-700 text-white font-semibold'
+                  : 'text-green-100 hover:bg-green-700 hover:text-white'
               }`}
             >
-              {item.icon} {item.label}
+              {item.label}
             </Link>
           ))}
         </div>
