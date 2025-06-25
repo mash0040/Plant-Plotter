@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
 
@@ -15,11 +15,16 @@ const navItems = [
 export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-green-900 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="text-green-100 text-xl font-bold flex items-center gap-2">
+        <div className="text-white text-xl font-bold flex items-center gap-2">
           <Image src="/logo.svg" alt="PlantPlotter Logo" width={32} height={32} /> 
           <span>PlantPlotter</span>
         </div>
@@ -40,9 +45,9 @@ export default function Navbar() {
               <Link
                 href={item.href}
                 className={`flex items-center gap-1 px-3 py-2 rounded-md transition ${
-                  pathname === item.href
+                  mounted && pathname === item.href
                     ? 'bg-green-700 text-white font-semibold'
-                    : 'text-green-100 hover:bg-green-800 hover:text-white'
+                    : 'text-white hover:bg-green-800 hover:text-green-100'
                 }`}
               >
                 <span>{item.label}</span>
@@ -61,9 +66,9 @@ export default function Navbar() {
               href={item.href}
               onClick={() => setMenuOpen(false)}
               className={`block px-3 py-2 rounded-md text-sm ${
-                pathname === item.href
+                mounted && pathname === item.href
                   ? 'bg-green-700 text-white font-semibold'
-                  : 'text-green-100 hover:bg-green-700 hover:text-white'
+                  : 'text-white hover:bg-green-700 hover:text-green-100'
               }`}
             >
               {item.label}
