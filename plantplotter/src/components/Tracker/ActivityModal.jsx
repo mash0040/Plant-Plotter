@@ -1,12 +1,14 @@
 'use client';
 import React from 'react';
+import { getPlantsForGarden } from './Constants/ActivitiesData';
 
 export default function ActivityModal({ 
   isOpen, 
   formData, 
   onFormDataChange, 
   onSubmit, 
-  onClose 
+  onClose,
+  selectedGarden
 }) {
   if (!isOpen) return null;
 
@@ -21,25 +23,17 @@ export default function ActivityModal({
     });
   };
 
-  const plantOptions = [
-    'Tomatoes',
-    'Carrots',
-    'Basil',
-    'Lettuce',
-    'Peppers',
-    'Herbs',
-    'Cucumbers',
-    'Spinach',
-    'Radishes',
-    'Beans'
-  ];
+  const plantOptions = getPlantsForGarden(selectedGarden.id);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 max-w-md mx-4">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
           Add {formData.activity} Activity
         </h3>
+        <div className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex items-center">
+          <span>to {selectedGarden.icon} {selectedGarden.name}</span>
+        </div>
         
         <div className="space-y-4">
           <div>

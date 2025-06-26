@@ -2,7 +2,7 @@
 import React from 'react';
 import { Droplets, Sprout, Scissors } from 'lucide-react';
 
-export default function QuickActions({ onQuickAction }) {
+export default function QuickActions({ onQuickAction, selectedGarden }) {
   const actions = [
     { 
       id: 'planted', 
@@ -33,7 +33,12 @@ export default function QuickActions({ onQuickAction }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-      <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Quick Action</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-gray-900 dark:text-white">Quick Action</h3>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          for {selectedGarden.icon} {selectedGarden.name}
+        </div>
+      </div>
       <div className="space-y-2">
         {actions.map(action => {
           const IconComponent = action.icon;

@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getActivityColor } from './Constants/ActivitiesData';
 
 export default function TrackingCalendar({ selectedDate, onDateSelect, calendarData }) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -46,19 +47,8 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
     setShowMonthYearPicker(false);
   };
 
-  const getActivityColor = (activity) => {
-    switch (activity) {
-      case 'planted':
-        return 'bg-green-200 text-green-800';
-      case 'watered':
-        return 'bg-blue-200 text-blue-800';
-      case 'fertilized':
-        return 'bg-yellow-200 text-yellow-800';
-      case 'harvested':
-        return 'bg-red-200 text-red-800';
-      default:
-        return 'bg-gray-200 text-gray-800';
-    }
+  const getActivityColorClass = (activity) => {
+    return getActivityColor(activity);
   };
 
   const renderCalendar = () => {
@@ -105,7 +95,7 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
               {activities.slice(0, 2).map((activity, idx) => (
                 <div
                   key={idx}
-                  className={`text-xs px-1 py-0.5 rounded mb-1 ${getActivityColor(activity.activity)}`}
+                  className={`text-xs px-1 py-0.5 rounded mb-1 ${getActivityColorClass(activity.activity)}`}
                 >
                   {activity.plant}
                 </div>
