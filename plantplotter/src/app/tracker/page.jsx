@@ -1,35 +1,108 @@
 'use client';
-import { useState } from 'react';
-import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
+import React, { useState } from 'react';
+import { Sprout } from 'lucide-react';
+import GardenSelector from '@/components/Tracker/GardenSelector';
+import QuickActions from '@/components/Tracker/QuickActions';
 import TrackingCalendar from '@/components/Tracker/TrackingCalendar';
-import DarkModeToggle from '@/components/DarkModeToggle';
-
-const mockData = {
-  '2025-06-01': { water: true, fertilize: false, daysSincePlanted: 5, growDays: 60 },
-  '2025-06-03': { water: false, fertilize: true, daysSincePlanted: 7, growDays: 60 },
-  // Add more records as needed
-};
-
-function formatDate(date) {
-  return date.toISOString().split('T')[0];
-}
+import WeatherWidget from '@/components/Tracker/WeatherWidget';
+import TasksList from '@/components/Tracker/TasksList';
+import ActivityModal from '@/components/Tracker/ActivityModal';
+import { gardens, generateCalendarData, todayTasks, upcomingTasks } from '@/components/Tracker/Constants/TrackerData';
 
 export default function TrackingPage() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedGarden, setSelectedGarden] = useState(gardens[0]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  });
+  const [calendarData, setCalendarData] = useState(generateCalendarData());
+  const [completedTasks, setCompletedTasks] = useState(new Set());
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    activity: '',
+    plant: '',
+    notes: ''
+  });
 
-  const dateKey = formatDate(selectedDate);
-  const record = mockData[dateKey];
+  const handleTaskComplete = (taskId) => {
+    setCompletedTasks(prev => new Set([...prev, taskId]));
+  };
+
+  const handleQuickAction = (action) => {
+    setFormData({ ...formData, activity: action });
+    setShowForm(true);
+  };
+
+  const handleSubmitActivity = (activityData) => {
+    const newActivity = {
+      ...activityData,
+      time: new Date().toLocaleTimeString()
+    };
+    
+    const newCalendarData = { ...calendarData };
+    if (!newCalendarData[selectedDate]) {
+      newCalendarData[selectedDate] = [];
+    }
+    newCalendarData[selectedDate].push(newActivity);
+    setCalendarData(newCalendarData);
+    
+    setShowForm(false);
+    setFormData({ activity: '', plant: '', notes: '' });
+  };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">🌿 Garden Activity Tracker</h1>
-      <DarkModeToggle/>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="p-2 max-w-7xl mx-auto">
+        <div className="flex gap-6">
+          {/* Left Sidebar */}
+          <div className="w-64 space-y-6">
+            <GardenSelector 
+              gardens={gardens}
+              selectedGarden={selectedGarden}
+              onGardenSelect={setSelectedGarden}
+            />
+            <QuickActions onQuickAction={handleQuickAction} />
+          </div>
 
-      <div className="mt-6 p-4 bg-white shadow">
-        <h2 className="text-lg font-bold">🗓 {dateKey}</h2>
-        <TrackingCalendar/>
+          {/* Main Calendar */}
+          <div className="flex-1">
+            <TrackingCalendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              calendarData={calendarData}
+            />
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="w-80 space-y-6">
+            <WeatherWidget />
+            <TasksList
+              title="Today Tasks"
+              tasks={todayTasks}
+              completedTasks={completedTasks}
+              onTaskComplete={handleTaskComplete}
+            />
+            <TasksList
+              title="Upcoming Tasks"
+              tasks={upcomingTasks}
+              completedTasks={completedTasks}
+              onTaskComplete={handleTaskComplete}
+              showCheckboxes={true}
+            />
+          </div>
+        </div>
       </div>
+
+      {/* Activity Form Modal */}
+      {showForm && (
+        <ActivityModal
+          isOpen={showForm}
+          formData={formData}
+          onFormDataChange={setFormData}
+          onSubmit={handleSubmitActivity}
+          onClose={() => setShowForm(false)}
+        />
+      )}
     </div>
   );
 }

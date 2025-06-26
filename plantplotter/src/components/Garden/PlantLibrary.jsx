@@ -31,7 +31,7 @@ export default function PlantLibrary({
       
       {/* Sidebar */}
       <div className={`
-        fixed lg:relative top-auto lg:top-0 lg:left-0 z-50
+        fixed lg:relative top-auto lg:top-0 lg:left-0
         bg-white border-r border-gray-200 
         transform transition-transform duration-300 ease-in-out
         w-64 sm:w-72 lg:w-60
