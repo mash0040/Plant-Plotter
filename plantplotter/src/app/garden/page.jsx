@@ -1,122 +1,253 @@
 'use client';
-import React, { useState } from 'react';
-import GridWrapper from '@/components/Garden/GridWrapper';
-import Info from '@/components/Garden/Info';
-import SortableItem from '@/components/Garden/SortableItem';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
+import React, { useState, useEffect } from 'react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
+import PlantLibrary from '@/components/Garden/PlantLibrary';
+import GardenCanvas from '@/components/Garden/GardenCanvas';
+import ControlPanel from '@/components/Garden/ControlPanel';
 import DraggablePlant from '@/components/Garden/DraggablePlant';
+import SaveGardenModel from '@/components/Garden/SaveGardenModel';
+import LoadGardenModel from '@/components/Garden/LoadGardenModel';
+import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
+import { snapToGrid, checkPlantOverlap, isWithinBounds } from '@/components/Garden/Utils/GardenUtils';
+import { GardenService } from '@/components/Garden/Services/GardenService';
 
-export default function $Page() {
-  const [plants, setPlants] = useState([]); // start empty
-  const [plantInput, setPlantInput] = useState('');
+export default function GardenPlannerPage() {
+  const [dimensions, setDimensions] = useState({ width: 20, height: 12 });
+  const [gridSize, setGridSize] = useState(50);
+  const [showGrid, setShowGrid] = useState(true);
+  const [showRuler, setShowRuler] = useState(true);
+  const [placedPlants, setPlacedPlants] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeId, setActiveId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Garden state management
+  const [currentGarden, setCurrentGarden] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
 
-  const canvasWidth = 1000;
-  const canvasHeight = 600;
-  const scale = 50;
+  // Mock user ID - replace with actual auth
+  const userId = 'user-123';
 
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  // Track changes for unsaved indicator
+  useEffect(() => {
+    setHasUnsavedChanges(true);
+  }, [dimensions, gridSize, placedPlants]);
+
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
 
   const handleDragEnd = (event) => {
-    const { active, delta } = event;
+    const { active, over, delta } = event;
+    setActiveId(null);
 
-    setPlants((prev) =>
-      prev.map((plant) => {
+    if (!over || over.id !== 'garden-canvas') return;
+
+    const draggedData = active.data.current;
+
+    // Get the canvas element to calculate proper coordinates
+    const canvasElement = document.querySelector('[data-canvas="true"]');
+    if (!canvasElement) return;
+
+    const canvasRect = canvasElement.getBoundingClientRect();
+    
+    if (draggedData?.isFromLibrary) {
+      // For new plants from library - get the current mouse/touch position
+      const currentEvent = event.activatorEvent;
+      let currentX, currentY;
+
+      // Handle both mouse and touch events
+      if (currentEvent.type === 'mousedown') {
+        // For mouse events, we need to get the final position from the drag end
+        // Use the activator position plus the delta to get the final position
+        currentX = currentEvent.clientX + delta.x;
+        currentY = currentEvent.clientY + delta.y;
+      } else if (currentEvent.type === 'touchstart') {
+        // For touch events, similar approach
+        currentX = currentEvent.touches[0].clientX + delta.x;
+        currentY = currentEvent.touches[0].clientY + delta.y;
+      } else {
+        // Fallback - use the activator position
+        currentX = currentEvent.clientX + delta.x;
+        currentY = currentEvent.clientY + delta.y;
+      }
+      
+      // Get scroll offsets from the scroll container
+      const scrollContainer = canvasElement.closest('.overflow-auto');
+      const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+      const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+      
+      // Calculate position relative to canvas accounting for scroll
+      const relativeX = (currentX - canvasRect.left) + scrollLeft;
+      const relativeY = (currentY - canvasRect.top) + scrollTop;
+      
+      // Adjust for plant size to center the plant on the mouse cursor
+      const plantSize = (draggedData.size || 1) * gridSize;
+      const adjustedX = relativeX - (plantSize / 2);
+      const adjustedY = relativeY - (plantSize / 2);
+      
+      // Snap to grid and ensure it's not negative
+      const x = snapToGrid(Math.max(0, adjustedX), gridSize);
+      const y = snapToGrid(Math.max(0, adjustedY), gridSize);
+
+      const newPlant = {
+        ...draggedData,
+        id: `plant-${Date.now()}`,
+        plantId: draggedData.id,
+        x: x,
+        y: y,
+        isFromLibrary: false,
+        plantedDate: new Date()
+      };
+
+      // Check bounds and overlaps
+      if (isWithinBounds(newPlant, dimensions, gridSize) && 
+          !checkPlantOverlap(newPlant, placedPlants, gridSize)) {
+        setPlacedPlants(prev => [...prev, newPlant]);
+        // Close sidebar on mobile after placing
+        if (window.innerWidth < 1024) {
+          setSidebarOpen(false);
+        }
+      }
+    } else if (!draggedData?.isFromLibrary) {
+      // For existing plants being moved
+      setPlacedPlants(prev => prev.map(plant => {
         if (plant.id === active.id) {
-          const newX = (plant.x || 0) + delta.x;
-          const newY = (plant.y || 0) + delta.y;
-          return { ...plant, x: newX, y: newY };
+          const newX = snapToGrid(Math.max(0, (plant.x || 0) + delta.x), gridSize);
+          const newY = snapToGrid(Math.max(0, (plant.y || 0) + delta.y), gridSize);
+          
+          const updatedPlant = { ...plant, x: newX, y: newY };
+          
+          // Check if new position is valid
+          const otherPlants = prev.filter(p => p.id !== plant.id);
+          if (isWithinBounds(updatedPlant, dimensions, gridSize) && 
+              !checkPlantOverlap(updatedPlant, otherPlants, gridSize)) {
+            return updatedPlant;
+          }
         }
         return plant;
-      })
-    );
+      }));
+    }
   };
 
-  const handleAddPlant = () => {
-    if (!plantInput.trim()) return;
-    const emojiMap = {
-      tomato: '🍅',
-      carrot: '🥕',
-      strawberry: '🍓'
-    };
-    const name = plantInput.trim();
-    const emoji = emojiMap[name.toLowerCase()] || '🌿';
-    setPlants([...plants, { id: Date.now().toString(), name, emoji }]);
-    setPlantInput('');
+  const handlePlantRemove = (plantId) => {
+    setPlacedPlants(prev => prev.filter(p => p.id !== plantId));
   };
+
+  const handleSaveGarden = async (gardenName) => {
+    const gardenData = {
+      id: currentGarden?.id,
+      name: gardenName,
+      width: dimensions.width,
+      height: dimensions.height,
+      gridSize: gridSize,
+      plantedItems: placedPlants
+    };
+
+    try {
+      const savedGarden = await GardenService.saveGarden(gardenData);
+      setCurrentGarden(savedGarden);
+      setHasUnsavedChanges(false);
+      alert('Garden saved successfully!');
+    } catch (error) {
+      alert('Failed to save garden. Please try again.');
+    }
+  };
+
+  const handleLoadGarden = (gardenData) => {
+    setCurrentGarden(gardenData);
+    setDimensions({ width: gardenData.width, height: gardenData.height });
+    setGridSize(gardenData.gridSize);
+    setPlacedPlants(gardenData.placedPlants || []);
+    setHasUnsavedChanges(false);
+  };
+
+  const activePlant = activeId ? 
+    placedPlants.find(p => p.id === activeId) || 
+    PLANT_LIBRARY.find(p => `library-${p.id}` === activeId) : null;
 
   return (
-    <div className="flex h-screen p-6 gap-6">
-      <div className="w-80 flex flex-col">
-        <h1 className="text-2xl font-bold mb-4">PlantPlotter Masonry Grid</h1>
-        <div className="flex gap-2 mb-6">
-          <input
-            type="text"
-            placeholder="Add plant name (e.g. Tomato)"
-            value={plantInput}
-            onChange={(e) => setPlantInput(e.target.value)}
-            className="border rounded px-3 py-2 w-full"
+    <div className="flex h-full bg-gray-50 min-h-0">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <PlantLibrary
+          plants={PLANT_LIBRARY}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
+
+        <div className="flex-1 flex flex-col min-w-0">
+          <ControlPanel
+            dimensions={dimensions}
+            gridSize={gridSize}
+            showGrid={showGrid}
+            showRuler={showRuler}
+            onDimensionChange={setDimensions}
+            onGridSizeChange={setGridSize}
+            onToggleGrid={() => setShowGrid(!showGrid)}
+            onToggleRuler={() => setShowRuler(!showRuler)}
+            onSave={() => setShowSaveModal(true)}
+            onLoad={() => setShowLoadModal(true)}
+            hasUnsavedChanges={hasUnsavedChanges}
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           />
-          <button onClick={handleAddPlant} className="bg-green-600 text-white px-4 py-2 rounded">
-            Add
-          </button>
+
+          <GardenCanvas
+            dimensions={dimensions}
+            gridSize={gridSize}
+            showGrid={showGrid}
+            showRuler={showRuler}
+            placedPlants={placedPlants}
+            onPlantRemove={handlePlantRemove}
+          />
         </div>
-      </div>
 
-      <div  className="flex-1 flex flex-col gap-4">
-        <Info>
-          Drag and drop your plants! This grid allows custom size styling and sorting.
-        </Info>
-
-        <div
-          className="relative border bg-green-50 rounded"
-          style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }}
-        >
-          {/* Grid lines */}
-          {Array.from({ length: canvasWidth / scale }).map((_, i) => (
-            <div
-              key={`v-${i}`}
-              className="absolute top-0 h-full border-l border-gray-300"
-              style={{ left: `${i * scale}px`, width: '1px' }}
+        <DragOverlay>
+          {activePlant ? (
+            <DraggablePlant
+              plant={activePlant}
+              gridSize={gridSize}
+              isPlaced={false}
             />
-          ))}
-          {Array.from({ length: canvasHeight / scale }).map((_, i) => (
-            <div
-              key={`h-${i}`}
-              className="absolute left-0 w-full border-t border-gray-300"
-              style={{ top: `${i * scale}px`, height: '1px' }}
-            />
-          ))}
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
-          <GridWrapper $variablesizes>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={plants.map((p) => p.id)} strategy={rectSortingStrategy}>
-                {/* {plants.map((plant) => (
-                  <SortableItem key={plant.id} id={plant.id} label={`${plant.emoji} ${plant.name}`} />
-                ))} */}
-                {plants.map((plant) => (
-                  <DraggablePlant
-                    key={plant.id}
-                    id={plant.id}
-                    emoji={plant.emoji}
-                    name={plant.name}
-                    x={plant.x || 0}
-                    y={plant.y || 0}
-                    onMove={(id, newX, newY) => {
-                      setPlants((prev) =>
-                        prev.map((p) =>
-                          p.id === id ? { ...p, x: newX, y: newY } : p
-                        )
-                      );
-                    }}
-                  />
-                ))}
+      <SaveGardenModel
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={handleSaveGarden}
+        currentGarden={{
+          ...currentGarden,
+          width: dimensions.width,
+          height: dimensions.height,
+          gridSize: gridSize,
+          plantedItems: placedPlants
+        }}
+      />
 
-              </SortableContext>
-            </DndContext>
-          </GridWrapper>
-        </div>
-      </div>
+      <LoadGardenModel
+        isOpen={showLoadModal}
+        onClose={() => setShowLoadModal(false)}
+        onLoad={handleLoadGarden}
+        userId={userId}
+      />
     </div>
   );
 }
