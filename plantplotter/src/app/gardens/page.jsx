@@ -1,23 +1,80 @@
 'use client';
-import GardenCard from '@/components/Gardens/GardenCard';
 import { useEffect, useState } from 'react';
 import { getGardens } from '@/lib/api';
+import GardenList from '@/components/Gardens/GardenList';
+import GardenForm from '@/components/Gardens/GardenForm';
 
 export default function AllGardensPage() {
   const [gardens, setGardens] = useState([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedGarden, setSelectedGarden] = useState(null);
 
   useEffect(() => {
     getGardens().then(setGardens);
   }, []);
 
+  const handleAddNew = () => {
+    setSelectedGarden(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (garden) => {
+    setSelectedGarden(garden);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = (garden) => {
+    setGardens(prevGardens => 
+      prevGardens.filter(g => g.id !== garden.id)
+    );
+  };
+
+  const handleView = (garden) => {
+    console.log('View garden:', garden);
+    // Navigate to garden detail page or show modal
+  };
+
+  const handleSave = (gardenData) => {
+    if (selectedGarden) {
+      // Update existing garden
+      setGardens(prevGardens =>
+        prevGardens.map(g =>
+          g.id === selectedGarden.id ? { ...gardenData, id: selectedGarden.id } : g
+        )
+      );
+    } else {
+      // Add new garden
+      const newGarden = {
+        ...gardenData,
+        id: Date.now() // Simple ID generation
+      };
+      setGardens(prevGardens => [...prevGardens, newGarden]);
+    }
+    setIsFormOpen(false);
+    setSelectedGarden(null);
+  };
+
+  const handleClose = () => {
+    setIsFormOpen(false);
+    setSelectedGarden(null);
+  };
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Your Gardens</h1>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {gardens.map(garden => (
-          <GardenCard key={garden.id} garden={garden} />
-        ))}
-      </div>
-    </div>
+    <>
+      <GardenList
+        gardens={gardens}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        onAddNew={handleAddNew}
+      />
+
+      <GardenForm
+        garden={selectedGarden}
+        onSave={handleSave}
+        onClose={handleClose}
+        isOpen={isFormOpen}
+      />
+    </>
   );
 }

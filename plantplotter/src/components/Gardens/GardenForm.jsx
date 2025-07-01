@@ -1,0 +1,196 @@
+'use client';
+import { useState } from 'react';
+import { X, Save, Leaf } from 'lucide-react';
+
+export default function GardenForm({ garden, onSave, onClose, isOpen }) {
+  const [formData, setFormData] = useState({
+    name: garden?.name || '',
+    soilType: garden?.soilType || 'Loamy',
+    width: garden?.dimensions?.width || '',
+    height: garden?.dimensions?.height || '',
+    location: garden?.location || '',
+    status: garden?.status || 'Planning'
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const gardenData = {
+      ...garden,
+      name: formData.name,
+      soilType: formData.soilType,
+      dimensions: {
+        width: parseFloat(formData.width),
+        height: parseFloat(formData.height)
+      },
+      location: formData.location,
+      status: formData.status,
+      plantCount: garden?.plantCount || 0
+    };
+
+    setTimeout(() => {
+      onSave?.(gardenData);
+      setIsLoading(false);
+    }, 1000);
+  };
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <Leaf className="w-5 h-5 text-green-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-800">
+              {garden ? 'Edit Garden' : 'Create New Garden'}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+          >
+            <X className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Garden Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Garden Name
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              placeholder="Enter garden name"
+              className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
+              required
+            />
+          </div>
+
+          {/* Soil Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Soil Type
+            </label>
+            <select
+              value={formData.soilType}
+              onChange={(e) => handleChange('soilType', e.target.value)}
+              className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 transition-all"
+            >
+              <option value="Loamy">Loamy</option>
+              <option value="Clay">Clay</option>
+              <option value="Sandy">Sandy</option>
+              <option value="Silt">Silt</option>
+              <option value="Peat">Peat</option>
+              <option value="Chalk">Chalk</option>
+            </select>
+          </div>
+
+          {/* Dimensions */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Width (m)
+              </label>
+              <input
+                type="number"
+                value={formData.width}
+                onChange={(e) => handleChange('width', e.target.value)}
+                placeholder="0"
+                min="0"
+                step="0.1"
+                className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Height (m)
+              </label>
+              <input
+                type="number"
+                value={formData.height}
+                onChange={(e) => handleChange('height', e.target.value)}
+                placeholder="0"
+                min="0"
+                step="0.1"
+                className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Location
+            </label>
+            <input
+              type="text"
+              value={formData.location}
+              onChange={(e) => handleChange('location', e.target.value)}
+              placeholder="e.g., Backyard, Front yard, Balcony"
+              className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
+              required
+            />
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </label>
+            <select
+              value={formData.status}
+              onChange={(e) => handleChange('status', e.target.value)}
+              className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 transition-all"
+            >
+              <option value="Planning">Planning</option>
+              <option value="Active">Active</option>
+              <option value="Dormant">Dormant</option>
+            </select>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-all duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                'Saving...'
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  {garden ? 'Update Garden' : 'Create Garden'}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
