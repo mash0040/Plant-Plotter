@@ -47,13 +47,13 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between p-3 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
               <Leaf className="w-5 h-5 text-green-600" />
             </div>
             <h2 className="text-xl font-semibold text-gray-800">
-              {garden ? 'Edit Garden' : 'Create New Garden'}
+              {garden ? 'Edit Garden' : 'New Garden'}
             </h2>
           </div>
           <button
@@ -65,7 +65,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Garden Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
