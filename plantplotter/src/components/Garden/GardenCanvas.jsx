@@ -70,7 +70,7 @@ export default function GardenCanvas({
           {/* Garden Canvas */}
           <div
             ref={setNodeRef}
-            className="relative border-2 border-gray-400 bg-green-50"
+            className="relative border-2 border-gray-400 bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50"
             style={{
               width: canvasWidth,
               height: canvasHeight,

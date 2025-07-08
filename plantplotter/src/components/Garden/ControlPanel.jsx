@@ -25,7 +25,7 @@ export default function ControlPanel({
   };
 
   return (
-    <div className="bg-white border-b border-gray-200 p-2 sm:p-4">
+    <div className="bg-gray-50 border-b border-gray-200 p-2 sm:p-4">
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         {/* Left Section - Title and Mobile Menu */}
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -55,7 +55,7 @@ export default function ControlPanel({
             <button
               onClick={onToggleGrid}
               className={`p-1.5 rounded flex items-center gap-1 text-xs ${
-                showGrid ? 'bg-green-100 text-green-700' : 'hover:bg-gray-100'
+                showGrid ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'hover:bg-gray-100'
               }`}
             >
               <Grid className="w-4 h-4" />
@@ -64,7 +64,7 @@ export default function ControlPanel({
             <button
               onClick={onToggleRuler}
               className={`p-1.5 rounded flex items-center gap-1 text-xs ${
-                showRuler ? 'bg-green-100 text-green-700' : 'hover:bg-gray-100'
+                showRuler ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'hover:bg-gray-100'
               }`}
             >
               <Ruler className="w-4 h-4" />
@@ -83,7 +83,7 @@ export default function ControlPanel({
 
 
           {/* Dimension Controls Group */}
-          <div className="flex items-center gap-1 bg-gray-50 rounded p-1">
+          <div className="flex items-center gap-1 bg-gray-200 rounded p-1">
             <span className="text-xs font-medium hidden md:inline text-gray-600">Size:</span>
             <div className="flex items-center gap-0.5">
               <button onClick={() => adjustDimension('width', -1)} 
@@ -111,7 +111,7 @@ export default function ControlPanel({
           </div>
 
           {/* Grid Size Control Group */}
-          <div className="flex items-center gap-1 bg-gray-50 rounded p-1">
+          <div className="flex items-center gap-1 bg-gray-200 rounded p-1">
             <span className="text-xs font-medium hidden md:inline text-gray-600">Grid:</span>
             <button onClick={() => adjustGridSize(-5)} 
                     className="p-1 hover:bg-gray-100 rounded">

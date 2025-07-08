@@ -20,7 +20,7 @@ export default function PlantLibraryItem({ plant }) {
       {...listeners}
       {...attributes}
       className={`
-        flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-50 border border-gray-200
+        flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-100 border border-gray-200
         ${isDragging ? 'z-50' : ''}
       `}
     >
