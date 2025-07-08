@@ -13,7 +13,7 @@ import { GardenService } from '@/components/Garden/Services/GardenService';
 
 export default function GardenPlannerPage() {
   const [dimensions, setDimensions] = useState({ width: 20, height: 12 });
-  const [gridSize, setGridSize] = useState(50);
+  const [gridSize, setGridSize] = useState(40);
   const [showGrid, setShowGrid] = useState(true);
   const [showRuler, setShowRuler] = useState(true);
   const [placedPlants, setPlacedPlants] = useState([]);
@@ -177,7 +177,7 @@ export default function GardenPlannerPage() {
     PLANT_LIBRARY.find(p => `library-${p.id}` === activeId) : null;
 
   return (
-    <div className="flex h-full bg-gray-50 min-h-0">
+    <div className="flex h-full bg-gray-50 shadow-lg p-6">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

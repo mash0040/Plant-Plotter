@@ -108,7 +108,7 @@ export default function TrackingPage() {
   const filteredCalendarData = getActivitiesByGarden(calendarData, selectedGarden.id);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900">
       <div className="p-6 max-w-7xl mx-auto">
         <div className="flex gap-6">
           {/* Left Sidebar */}
