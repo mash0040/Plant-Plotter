@@ -195,13 +195,6 @@ export default function AllGardensPage() {
     setSelectedGarden(null);
   };
 
-  // Add a function to reset data (useful for development/testing)
-  const handleResetData = () => {
-    if (window.confirm('Reset all garden data? This will reload the demo data.')) {
-      localStorage.removeItem('gardens');
-      loadGardens();
-    }
-  };
 
   if (loading) {
     return (
