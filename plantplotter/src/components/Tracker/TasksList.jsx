@@ -13,7 +13,7 @@ export default function TasksList({
   // Empty state for today tasks (celebration)
   if (tasks.length === 0 && title === "Today Tasks") {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
         <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">{title}</h3>
         <div className="text-center py-6">
           <div className="text-4xl mb-3">🎉</div>
@@ -34,7 +34,7 @@ export default function TasksList({
   // Empty state for other task lists
   if (tasks.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
         <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">{title}</h3>
         <div className="text-center py-6">
           <div className="text-4xl mb-2">📋</div>
@@ -47,7 +47,7 @@ export default function TasksList({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
         <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">

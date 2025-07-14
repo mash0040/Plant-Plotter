@@ -12,7 +12,7 @@ export default function WeatherWidget() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
       <div className="flex items-center space-x-2 mb-3">
         <Sun className="w-5 h-5 text-yellow-500" />
         <h3 className="font-semibold text-gray-900 dark:text-white">Today Weather:</h3>

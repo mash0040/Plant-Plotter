@@ -115,7 +115,7 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
   const selectedDateActivities = calendarData[selectedDate] || [];
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -209,6 +209,13 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
           </div>
         )}
         
+        
+      </div>
+      
+      <div className="p-4">
+        <div className="grid grid-cols-7 gap-1">
+          {renderCalendar()}
+        </div>
         {/* Selected Date Details */}
         {selectedDateActivities.length > 0 && (
           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
@@ -227,12 +234,6 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
             </div>
           </div>
         )}
-      </div>
-      
-      <div className="p-4">
-        <div className="grid grid-cols-7 gap-1">
-          {renderCalendar()}
-        </div>
       </div>
     </div>
   );

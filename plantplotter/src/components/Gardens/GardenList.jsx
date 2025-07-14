@@ -1,8 +1,11 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Edit, Trash2, Eye, MapPin, Ruler } from 'lucide-react';
 
 export default function GardenList({ gardens = [], onEdit, onDelete, onView, onAddNew }) {
+  const router = useRouter();
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Active': return 'bg-green-100 text-green-800';
@@ -16,6 +19,17 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
     if (window.confirm(`Delete "${garden.name}"?`)) {
       onDelete?.(garden);
     }
+  };
+
+  const handleView = (garden) => {
+    // Navigate to garden detail page
+    router.push(`/gardens/${garden.id}`);
+  };
+
+  const handlePlannerOpen = (garden, e) => {
+    e.stopPropagation(); // Prevent card click
+    // Navigate to garden planner with garden ID
+    router.push(`/garden?id=${garden.id}`);
   };
 
   return (
@@ -43,7 +57,8 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
             {gardens.map((garden) => (
               <div
                 key={garden.id}
-                className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
+                onClick={() => handleView(garden)}
+                className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02] cursor-pointer"
               >
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-semibold text-gray-800">{garden.name}</h3>
@@ -75,29 +90,53 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
                       <span className="text-sm font-medium text-green-700">{garden.plantCount || 0} plants</span>
                     </div>
                   </div>
+
+                  {/* Recent Plants Preview */}
+                  {garden.plantedItems && garden.plantedItems.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <span className="text-xs text-gray-500 mb-2 block">Recent plants:</span>
+                      <div className="flex gap-1 flex-wrap">
+                        {garden.plantedItems.slice(0, 6).map((plant, index) => (
+                          <span key={index} className="text-lg" title={plant.name}>
+                            {plant.emoji}
+                          </span>
+                        ))}
+                        {garden.plantedItems.length > 6 && (
+                          <span className="text-xs text-gray-500 self-center">
+                            +{garden.plantedItems.length - 6} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => onView?.(garden)}
+                    onClick={(e) => handlePlannerOpen(garden, e)}
                     className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors duration-200 flex items-center justify-center gap-1"
                   >
                     <Eye className="w-4 h-4" />
-                    View
+                    Plan
                   </button>
                   <button
-                    onClick={() => onEdit?.(garden)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit?.(garden);
+                    }}
                     className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-1"
                   >
                     <Edit className="w-4 h-4" />
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(garden)}
-                    className="flex-1 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(garden);
+                    }}
+                    className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Delete
                   </button>
                 </div>
               </div>

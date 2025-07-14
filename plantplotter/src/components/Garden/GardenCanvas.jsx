@@ -18,7 +18,7 @@ export default function GardenCanvas({
   const canvasHeight = dimensions.height * gridSize;
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 p-2 sm:p-4">
+    <div className="flex-1 h-screen overflow-auto bg-white p-2 sm:p-4">
       <div className="inline-block min-w-full">
         {/* Top Ruler */}
         {showRuler && (

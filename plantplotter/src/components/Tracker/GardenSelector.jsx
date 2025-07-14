@@ -3,7 +3,7 @@ import React from 'react';
 
 export default function GardenSelector({ gardens, selectedGarden, onGardenSelect }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
       <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Gardens</h3>
       <div className="space-y-2">
         {gardens.map(garden => (

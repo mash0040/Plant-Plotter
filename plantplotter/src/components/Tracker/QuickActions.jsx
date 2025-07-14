@@ -32,7 +32,7 @@ export default function QuickActions({ onQuickAction, selectedGarden }) {
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
       <div className="flex flex-col items-left justify-between mb-3">
         <h3 className="font-semibold text-gray-900 dark:text-white">Quick Action</h3>
         <div className="text-xs text-gray-500 dark:text-gray-400">
