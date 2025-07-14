@@ -441,7 +441,7 @@ export default function GardenPlannerPage() {
     if (hasUnsavedChanges) {
       if (confirm('You have unsaved changes. Are you sure you want to leave?')) {
         if (gardenId) {
-          router.push(`/gardens/${gardenId}`);
+          router.push(`/gardens`);
         } else {
           router.push('/gardens');
         }

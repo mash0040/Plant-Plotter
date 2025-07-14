@@ -1,4 +1,5 @@
-'use client';
+// Note: The handleBackToGarden function should be updated in the parent component
+// to navigate to '/gardens' instead of '/gardens/{id}''use client';
 import { Plus, Minus, Grid, Ruler, Save, FolderOpen, Menu, ArrowLeft } from 'lucide-react';
 
 export default function ControlPanel({
@@ -26,6 +27,23 @@ export default function ControlPanel({
     onGridSizeChange(newSize);
   };
 
+  // Convert pixels to meters (assuming 40px = 1m as default scale)
+  const pixelsToMeters = (pixels) => {
+    return (pixels / 40).toFixed(1);
+  };
+
+  // Grid size options in meters
+  const getGridSizeInMeters = () => {
+    return pixelsToMeters(gridSize);
+  };
+
+  // Grid size label with both meters and feet
+  const getGridSizeLabel = () => {
+    const meters = parseFloat(getGridSizeInMeters());
+    const feet = (meters * 3.28084).toFixed(1);
+    return `${meters}m / ${feet}ft`;
+  };
+
   return (
     <div className="bg-white border-b border-gray-200">
       {/* Top Row - Garden Name and Navigation */}
@@ -36,7 +54,7 @@ export default function ControlPanel({
             <button 
               onClick={onBackClick}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-              title="Back to garden"
+              title="Back to gardens list"
             >
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
@@ -170,8 +188,8 @@ export default function ControlPanel({
             >
               <Minus className="w-3 h-3" />
             </button>
-            <span className="text-xs min-w-8 text-center font-medium text-gray-800">
-              {gridSize}px
+            <span className="text-xs min-w-16 text-center font-medium text-gray-800">
+              {getGridSizeLabel()}
             </span>
             <button 
               onClick={() => adjustGridSize(5)} 

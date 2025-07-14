@@ -17,27 +17,32 @@ export default function GardenCanvas({
   const canvasWidth = dimensions.width * gridSize;
   const canvasHeight = dimensions.height * gridSize;
 
+  // Convert grid units to meters (assuming 40px = 1m)
+  const gridUnitsToMeters = (gridUnits) => {
+    return gridUnits;
+  };
+
   return (
     <div className="flex-1 h-screen overflow-auto bg-white p-2 sm:p-4">
       <div className="inline-block min-w-full">
         {/* Top Ruler */}
         {showRuler && (
-          <div className="flex" style={{ marginLeft: showRuler ? '32px' : '0' }}>
+          <div className="flex" style={{ marginLeft: showRuler ? '48px' : '0' }}>
             <div 
-              className="h-8 bg-white border border-gray-300 border-b-2 border-b-gray-400 relative"
+              className="h-10 bg-white border border-gray-300 border-b-2 border-b-gray-400 relative"
               style={{ width: canvasWidth }}
             >
               {Array.from({ length: dimensions.width }, (_, i) => (
                 <div
                   key={i}
-                  className="absolute top-0 h-full border-l border-gray-300 flex items-center justify-center text-xs text-gray-600"
+                  className="absolute top-0 h-full border-l border-gray-300 flex items-center justify-center text-xs font-medium text-gray-700"
                   style={{ 
                     left: i * gridSize, 
                     width: gridSize,
                     fontSize: gridSize < 40 ? '10px' : '12px'
                   }}
                 >
-                  {i}
+                  {gridUnitsToMeters(i + 1)}m
                 </div>
               ))}
             </div>
@@ -48,20 +53,20 @@ export default function GardenCanvas({
           {/* Left Ruler */}
           {showRuler && (
             <div 
-              className="w-8 bg-white border border-gray-300 border-r-2 border-r-gray-400 relative"
+              className="w-12 bg-white border border-gray-300 border-r-2 border-r-gray-400 relative"
               style={{ height: canvasHeight }}
             >
               {Array.from({ length: dimensions.height }, (_, i) => (
                 <div
                   key={i}
-                  className="absolute left-0 w-full border-t border-gray-300 flex items-center justify-center text-xs text-gray-600"
+                  className="absolute left-0 w-full border-t border-gray-300 flex items-center justify-center text-xs font-medium text-gray-700"
                   style={{ 
                     top: i * gridSize, 
                     height: gridSize,
                     fontSize: gridSize < 40 ? '10px' : '12px'
                   }}
                 >
-                  {i}
+                  {gridUnitsToMeters(i + 1)}m
                 </div>
               ))}
             </div>
