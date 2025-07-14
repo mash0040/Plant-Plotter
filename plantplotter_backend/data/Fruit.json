@@ -1,0 +1,212 @@
+[
+  {
+    "id": 39,
+    "code": "FRU1",
+    "name": "Apple",
+    "scientificName": "Malus domestica",
+    "helps": [],
+    "helpedBy": [
+      "Clover",
+      "Chives",
+      "Garlic",
+      "Leeks",
+      "Nasturtium",
+      "Southernwood",
+      "Daffodils",
+      "Comfrey"
+    ],
+    "attracts": [],
+    "repels": [],
+    "avoid": [
+      "Cedar because of apple-cedar rust. walnut because its roots produce growth inhibitors that apple trees are sensitive to"
+    ],
+    "comments": "French marigold inhibits codling moth but also its insect enemies, and fails to reduce damage to apples."
+  },
+  {
+    "id": 40,
+    "code": "FRU2",
+    "name": "Apricot",
+    "scientificName": "Prunus armeniaca",
+    "helps": [],
+    "helpedBy": [],
+    "attracts": [],
+    "repels": [],
+    "avoid": [
+      "Peppers"
+    ],
+    "comments": "A fungus that peppers are prone to can infect apricot trees causing a lot of harm."
+  },
+  {
+    "id": 41,
+    "code": "FRU3",
+    "name": "Blueberries",
+    "scientificName": "Vaccinium spp.",
+    "helps": [],
+    "helpedBy": [
+      "Oak trees",
+      "Pine trees",
+      "Strawberries",
+      "Clover",
+      "Bay laurel",
+      "Dewberries",
+      "Yarrow"
+    ],
+    "attracts": [],
+    "repels": [],
+    "avoid": [
+      "Tomatoes"
+    ],
+    "comments": "Pine and oak trees create the acidic soil blueberries need. Strawberries and dewberries create healthy ground cover, clover fixes nitrogen for the blueberries' high needs, yarrow and bay laurel repel unhealthy insects. Each of the herbal companions listed also like the acidic soil the blueberry plant needs. "
+  },
+  {
+    "id": 42,
+    "code": "FRU4",
+    "name": "Fruit trees",
+    "scientificName": "Various",
+    "helps": [],
+    "helpedBy": [
+      "Alliums",
+      "Tansy",
+      "Nasturtiums",
+      "Marigolds",
+      "Marjoram",
+      "Lemon balm",
+      "Mustards",
+      "Dandelions",
+      "Borage"
+    ],
+    "attracts": [],
+    "repels": [],
+    "avoid": [],
+    "comments": ""
+  },
+  {
+    "id": 43,
+    "code": "FRU5",
+    "name": "Grapes",
+    "scientificName": "Vitis spp.",
+    "helps": [],
+    "helpedBy": [
+      "Hyssop",
+      "Basil",
+      "Beans",
+      "Chives",
+      "Geraniums",
+      "Mustards",
+      "Oregano",
+      "Clover",
+      "Peas",
+      "Blackberries"
+    ],
+    "attracts": [],
+    "repels": [],
+    "avoid": [
+      "Cabbage",
+      "Garlic",
+      "Radishes"
+    ],
+    "comments": ""
+  },
+  {
+    "id": 44,
+    "code": "FRU6",
+    "name": "Melon",
+    "scientificName": "Cucumis melo",
+    "helps": [],
+    "helpedBy": [
+      "Chamomile",
+      "Pigweed",
+      "Summer savoury",
+      "Sow thistle"
+    ],
+    "attracts": [],
+    "repels": [],
+    "avoid": [],
+    "comments": ""
+  },
+  {
+    "id": 45,
+    "code": "FRU7",
+    "name": "Passion fruit",
+    "scientificName": "Passiflora edulis",
+    "helps": [],
+    "helpedBy": [
+      "Potatoes",
+      "Beets",
+      "Swiss chard",
+      "Carrots",
+      "Spinach",
+      "Strawberries",
+      "Eggplants",
+      "Onions",
+      "Leeks",
+      "Lettuce"
+    ],
+    "attracts": [],
+    "repels": [],
+    "avoid": [
+      "Cucurbits",
+      "Maize",
+      "Cowpea",
+      "Sorghum",
+      "Okra",
+      "Sweet potatoes"
+    ],
+    "comments": ""
+  },
+  {
+    "id": 46,
+    "code": "FRU8",
+    "name": "Pears",
+    "scientificName": "Pyrus spp.",
+    "helps": [],
+    "helpedBy": [
+      "\"aromatic plants\""
+    ],
+    "attracts": [],
+    "repels": [],
+    "avoid": [],
+    "comments": ""
+  },
+  {
+    "id": 47,
+    "code": "FRU9",
+    "name": "Strawberries",
+    "scientificName": "Fragaria \u00d7 ananassa",
+    "helps": [
+      "Bush beans",
+      "Lettuce",
+      "Onions",
+      "Spinach",
+      "Passion fruit"
+    ],
+    "helpedBy": [
+      "Caraway",
+      "Bush beans",
+      "Lupin",
+      "Onions",
+      "Sage",
+      "Thyme",
+      "Borage"
+    ],
+    "attracts": [
+      "Slugs and snails."
+    ],
+    "repels": [],
+    "avoid": [
+      "Brassicas",
+      "Tomatoes",
+      "Potatoes",
+      "Eggplant",
+      "Peppers",
+      "Melons",
+      "Okra",
+      "Mint",
+      "Bush or bramble fruits",
+      "Stone fruits",
+      "Chrysanthemums",
+      "Roses"
+    ],
+    "comments": "Thyme planted and/or placed next to each other help grow more strawberries quickly."
+  }
+]
