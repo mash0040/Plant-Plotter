@@ -32,12 +32,13 @@ router.get('/gardens/:gardenId/advice', verifyToken, async (req, res) => {
     const tips = [];
     const warnings = [];
     const pests = [];
+    const relationships = [];
 
     for (const code of gardenPlantCodes) {
       const plant = companionLookup[code];
       if (!plant) continue;
 
-      // TIPS
+      // TIPS (helps & helped_by with garden matches)
       const helpedPlants = [...plant.helps, ...plant.helped_by];
       helpedPlants.forEach(companion => {
         if (gardenPlantCodes.includes(companion.toLowerCase())) {
@@ -72,9 +73,17 @@ router.get('/gardens/:gardenId/advice', verifyToken, async (req, res) => {
         attracts,
         repels
       });
+
+      // RELATIONSHIPS
+      relationships.push({
+        plant: capitalize(code),
+        helps: plant.helps.map(capitalize),
+        helped_by: plant.helped_by.map(capitalize),
+        avoid: plant.avoid.map(capitalize)
+      });
     }
 
-    res.json({ tips, warnings, pests });
+    res.json({ tips, warnings, pests, relationships });
 
   } catch (err) {
     console.error('Error generating advisory:', err);
