@@ -27,9 +27,9 @@ export default function ControlPanel({
   };
 
   return (
-    <div className="bg-white border-b border-gray-200 p-3 sm:p-4">
-      <div className="flex items-center justify-between gap-2 sm:gap-4">
-        {/* Left Section - Back Button, Mobile Menu, and Title */}
+    <div className="bg-white border-b border-gray-200">
+      {/* Top Row - Garden Name and Navigation */}
+      <div className="flex items-center justify-between p-3 sm:p-4">
         <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
           {/* Back Button */}
           {onBackClick && (
@@ -53,23 +53,24 @@ export default function ControlPanel({
             </button>
           )}
           
-          {/* Title and Status */}
-          <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-800 truncate">
-              {gardenName ? `${gardenName} - Planner` : 'Garden Planner'}
-            </h1>
-            {hasUnsavedChanges && (
-              <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded whitespace-nowrap flex-shrink-0">
-                Unsaved
-              </span>
-            )}
-          </div>
+          {/* Garden Title */}
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-800 truncate">
+            {gardenName ? `${gardenName} - Planner` : 'Garden Planner'}
+          </h1>
+          
+          {hasUnsavedChanges && (
+            <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded whitespace-nowrap flex-shrink-0 ml-2">
+              Unsaved
+            </span>
+          )}
         </div>
-        
-        {/* Right Section - Controls */}
-        <div className="flex items-center gap-1 sm:gap-2 text-sm flex-wrap">
+      </div>
+
+      {/* Bottom Row - Controls */}
+      <div className="px-3 sm:px-4 pb-3 border-t border-gray-100">
+        <div className="flex items-center justify-start gap-2 sm:gap-3 text-sm flex-wrap">
           {/* View Controls Group */}
-          <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+          <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 shadow-sm border border-gray-200">
             <button
               onClick={onToggleGrid}
               className={`p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
@@ -111,7 +112,7 @@ export default function ControlPanel({
           </div>
 
           {/* Size Controls Group */}
-          <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+          <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 shadow-sm border border-gray-200">
             <span className="text-xs font-medium text-gray-600 hidden md:inline px-1">Size:</span>
             
             {/* Width Controls */}
@@ -160,7 +161,7 @@ export default function ControlPanel({
           </div>
 
           {/* Grid Size Controls Group */}
-          <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+          <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 shadow-sm border border-gray-200">
             <span className="text-xs font-medium text-gray-600 hidden md:inline px-1">Grid:</span>
             <button 
               onClick={() => adjustGridSize(-5)} 

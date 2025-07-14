@@ -1,25 +1,72 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save, Leaf } from 'lucide-react';
 
 export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   const [formData, setFormData] = useState({
-    name: garden?.name || '',
-    soilType: garden?.soilType || 'Loamy',
-    width: garden?.dimensions?.width || '',
-    height: garden?.dimensions?.height || '',
-    location: garden?.location || '',
-    status: garden?.status || 'Planning'
+    name: '',
+    soilType: 'Loamy',
+    width: '',
+    height: '',
+    location: '',
+    status: 'Planning'
   });
 
   const [isLoading, setIsLoading] = useState(false);
+
+  // Update form data when garden prop changes
+  useEffect(() => {
+    console.log('GardenForm useEffect - isOpen:', isOpen, 'garden:', garden); // Debug log
+    
+    if (isOpen) {
+      if (garden) {
+        // Editing existing garden - populate with current data
+        console.log('Populating form with garden data:', garden); // Debug log
+        const newFormData = {
+          name: garden.name || '',
+          soilType: garden.soilType || 'Loamy',
+          width: garden.dimensions?.width?.toString() || '',
+          height: garden.dimensions?.height?.toString() || '',
+          location: garden.location || '',
+          status: garden.status || 'Planning'
+        };
+        console.log('Setting form data:', newFormData); // Debug log
+        setFormData(newFormData);
+      } else {
+        // Creating new garden - use default values
+        console.log('Setting default form values for new garden'); // Debug log
+        setFormData({
+          name: '',
+          soilType: 'Loamy',
+          width: '',
+          height: '',
+          location: '',
+          status: 'Planning'
+        });
+      }
+    }
+  }, [garden, isOpen]);
+
+  // Additional effect to ensure form is populated when component renders
+  useEffect(() => {
+    if (garden && isOpen && (!formData.name && garden.name)) {
+      console.log('Fallback: Re-populating form data'); // Debug log
+      setFormData({
+        name: garden.name || '',
+        soilType: garden.soilType || 'Loamy',
+        width: garden.dimensions?.width?.toString() || '',
+        height: garden.dimensions?.height?.toString() || '',
+        location: garden.location || '',
+        status: garden.status || 'Planning'
+      });
+    }
+  }, [garden, isOpen, formData.name]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     const gardenData = {
-      ...garden,
       name: formData.name,
       soilType: formData.soilType,
       dimensions: {
@@ -28,7 +75,8 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
       },
       location: formData.location,
       status: formData.status,
-      plantCount: garden?.plantCount || 0
+      plantCount: garden?.plantCount || 0,
+      plantedItems: garden?.plantedItems || []
     };
 
     setTimeout(() => {
@@ -164,6 +212,18 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               <option value="Dormant">Dormant</option>
             </select>
           </div>
+
+          {/* Garden Summary for Edit Mode */}
+          {garden && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <h4 className="font-medium text-sm text-green-800 mb-2">Current Garden Info:</h4>
+              <div className="text-sm text-green-700 space-y-1">
+                <p>• Plants: {garden.plantCount || 0} items</p>
+                <p>• Created: {garden.createdAt ? new Date(garden.createdAt).toLocaleDateString() : 'Unknown'}</p>
+                <p>• Last Updated: {garden.updatedAt ? new Date(garden.updatedAt).toLocaleDateString() : 'Unknown'}</p>
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">

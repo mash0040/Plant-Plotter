@@ -51,6 +51,23 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
     return getActivityColor(activity);
   };
 
+  // Function to truncate long plant names
+  const truncatePlantName = (name, maxLength = 8) => {
+    if (name.length <= maxLength) return name;
+    return name.substring(0, maxLength - 1) + '…';
+  };
+
+  // Function to get activity icon
+  const getActivityIcon = (activity) => {
+    switch (activity) {
+      case 'planted': return '🌱';
+      case 'watered': return '💧';
+      case 'fertilized': return '🌿';
+      case 'harvested': return '🌾';
+      default: return '📝';
+    }
+  };
+
   const renderCalendar = () => {
     const daysInMonth = getDaysInMonth(currentYear, currentDate.getMonth());
     const firstDay = getFirstDayOfMonth(currentYear, currentDate.getMonth());
@@ -60,7 +77,7 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
     // Day headers
     dayNames.forEach(day => {
       days.push(
-        <div key={day} className="p-2 text-center font-medium text-gray-600 dark:text-gray-400">
+        <div key={day} className="p-2 text-center font-medium text-gray-600 dark:text-gray-400 text-sm">
           {day}
         </div>
       );
@@ -68,7 +85,7 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
 
     // Empty cells for days before the first day of month
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="p-2"></div>);
+      days.push(<div key={`empty-${i}`} className="p-1"></div>);
     }
 
     // Days of the month
@@ -84,26 +101,44 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
       days.push(
         <div
           key={day}
-          className={`p-2 min-h-[60px] border border-gray-200 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors ${
-            isSelected ? 'bg-green-100 dark:bg-green-900' : ''
-          } ${isToday ? 'ring-2 ring-green-500' : ''}`}
+          className={`p-1 min-h-[80px] border border-gray-200 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors relative ${
+            isSelected ? 'bg-green-100 dark:bg-green-900 border-green-300' : ''
+          } ${isToday ? 'ring-2 ring-green-500 ring-inset' : ''}`}
           onClick={() => onDateSelect(dateStr)}
         >
-          <div className="font-medium">{day}</div>
+          {/* Day number */}
+          <div className={`text-sm font-medium mb-1 ${isToday ? 'text-green-600 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>
+            {day}
+          </div>
+          
+          {/* Activities */}
           {activities.length > 0 && (
-            <div className="mt-1">
+            <div className="space-y-1">
               {activities.slice(0, 2).map((activity, idx) => (
                 <div
                   key={idx}
-                  className={`text-xs px-1 py-0.5 rounded mb-1 ${getActivityColorClass(activity.activity)}`}
+                  className={`text-xs px-1.5 py-0.5 rounded-md flex items-center gap-1 ${getActivityColorClass(activity.activity)} truncate`}
+                  title={`${activity.activity} ${activity.plant} at ${activity.time}`}
                 >
-                  {activity.plant}
+                  <span className="text-xs">{getActivityIcon(activity.activity)}</span>
+                  <span className="truncate font-medium">
+                    {truncatePlantName(activity.plant, 6)}
+                  </span>
                 </div>
               ))}
+              
+              {/* More activities indicator */}
               {activities.length > 2 && (
-                <div className="text-xs text-gray-500">+{activities.length - 2} more</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-md text-center">
+                  +{activities.length - 2} more
+                </div>
               )}
             </div>
+          )}
+          
+          {/* Activity count dot for days with many activities */}
+          {activities.length > 3 && (
+            <div className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></div>
           )}
         </div>
       );
@@ -208,27 +243,62 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
             </div>
           </div>
         )}
-        
-        
       </div>
       
       <div className="p-4">
-        <div className="grid grid-cols-7 gap-1">
+        {/* Activity Legend */}
+        <div className="mb-4 flex flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-1">
+            <span>🌱</span>
+            <span className="text-gray-600 dark:text-gray-400">Planted</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>💧</span>
+            <span className="text-gray-600 dark:text-gray-400">Watered</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>🌿</span>
+            <span className="text-gray-600 dark:text-gray-400">Fertilized</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>🌾</span>
+            <span className="text-gray-600 dark:text-gray-400">Harvested</span>
+          </div>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="grid grid-cols-7 gap-1 mb-4">
           {renderCalendar()}
         </div>
+        
         {/* Selected Date Details */}
         {selectedDateActivities.length > 0 && (
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-              Activities for {selectedDate}:
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <span>📅</span>
+              Activities for {new Date(selectedDate).toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric' 
+              })}:
             </h4>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {selectedDateActivities.map((activity, idx) => (
-                <div key={idx} className="text-sm text-gray-600 dark:text-gray-300">
-                  <span className="capitalize font-medium">{activity.activity}</span> {activity.plant} at {activity.time}
-                  {activity.notes && (
-                    <div className="text-xs text-gray-500 mt-1">Note: {activity.notes}</div>
-                  )}
+                <div key={idx} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-600 rounded">
+                  <span className="text-lg">{getActivityIcon(activity.activity)}</span>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      <span className="capitalize">{activity.activity}</span> {activity.plant}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                      {activity.time}
+                    </div>
+                    {activity.notes && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 italic">
+                        "{activity.notes}"
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

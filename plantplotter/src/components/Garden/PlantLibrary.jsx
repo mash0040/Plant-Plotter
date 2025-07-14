@@ -122,7 +122,7 @@ export default function PlantLibrary({
         </div>
         
         {/* Search */}
-        <div className="p-4 border-b border-gray-200 bg-white lg:bg-gray-50">
+        <div className="p-4 border-b border-gray-200 bg-white">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input

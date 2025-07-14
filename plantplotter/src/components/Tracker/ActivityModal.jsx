@@ -1,6 +1,5 @@
 'use client';
 import React from 'react';
-import { getPlantsForGarden } from './Constants/ActivitiesData';
 
 export default function ActivityModal({ 
   isOpen, 
@@ -23,7 +22,63 @@ export default function ActivityModal({
     });
   };
 
-  const plantOptions = getPlantsForGarden(selectedGarden.id);
+  // Get plants from the selected garden's available plants (computed by data service)
+  const getPlantOptions = () => {
+    // Use the availablePlants array computed by the garden data service
+    if (selectedGarden.availablePlants && selectedGarden.availablePlants.length > 0) {
+      return selectedGarden.availablePlants;
+    }
+    
+    // Fallback to extracting from plantedItems if availablePlants is not available
+    const gardenPlants = [];
+    
+    if (selectedGarden.plantedItems && selectedGarden.plantedItems.length > 0) {
+      selectedGarden.plantedItems.forEach(item => {
+        if (item.name && !gardenPlants.includes(item.name)) {
+          gardenPlants.push(item.name);
+        }
+      });
+    }
+    
+    // Add fallback plants if no plants are found
+    if (gardenPlants.length === 0) {
+      const fallbackPlants = getFallbackPlants(selectedGarden.name, selectedGarden.location);
+      gardenPlants.push(...fallbackPlants);
+    }
+    
+    return gardenPlants.sort();
+  };
+
+  // Get fallback plants based on garden name/type
+  const getFallbackPlants = (gardenName = '', location = '') => {
+    const nameUpper = gardenName.toUpperCase();
+    const locationUpper = location.toUpperCase();
+    
+    if (nameUpper.includes('HERB') || nameUpper.includes('SPICE')) {
+      return ['Basil', 'Cilantro', 'Parsley', 'Mint', 'Oregano', 'Thyme', 'Rosemary', 'Sage', 'Chives'];
+    }
+    
+    if (nameUpper.includes('FRUIT') || nameUpper.includes('BERRY') || nameUpper.includes('ORCHARD')) {
+      return ['Strawberry', 'Blueberry', 'Raspberry', 'Apple Tree', 'Pear Tree', 'Cherry Tree', 'Peach Tree', 'Tomato'];
+    }
+    
+    if (nameUpper.includes('VEGETABLE') || nameUpper.includes('VEG')) {
+      return ['Tomato', 'Lettuce', 'Carrot', 'Pepper', 'Cucumber', 'Spinach', 'Radish', 'Broccoli', 'Kale', 'Onion', 'Bean', 'Pea'];
+    }
+    
+    if (nameUpper.includes('FLOWER') || nameUpper.includes('ROSE')) {
+      return ['Rose', 'Marigold', 'Nasturtium', 'Lavender', 'Sunflower', 'Petunia', 'Tulip', 'Daffodil'];
+    }
+    
+    if (locationUpper.includes('BALCONY') || locationUpper.includes('CONTAINER')) {
+      return ['Lettuce', 'Spinach', 'Radish', 'Cherry Tomato', 'Pepper', 'Basil', 'Parsley', 'Cilantro', 'Strawberry'];
+    }
+    
+    // Default mixed garden plants
+    return ['Tomato', 'Lettuce', 'Basil', 'Pepper', 'Carrot', 'Spinach', 'Cucumber', 'Herbs', 'Flowers'];
+  };
+
+  const plantOptions = getPlantOptions();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -51,6 +106,25 @@ export default function ActivityModal({
                 <option key={plant} value={plant}>{plant}</option>
               ))}
             </select>
+            {plantOptions.length === 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                No plants found in this garden. You can add plants through the Garden Planner.
+              </p>
+            )}
+          </div>
+          
+          {/* Custom plant input option */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Or enter custom plant name
+            </label>
+            <input
+              type="text"
+              value={formData.plant}
+              onChange={(e) => onFormDataChange({...formData, plant: e.target.value})}
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Type plant name..."
+            />
           </div>
           
           <div>

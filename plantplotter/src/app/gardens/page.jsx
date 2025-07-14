@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getGardens, createGarden, updateGarden, deleteGarden } from '@/lib/api';
+import gardenDataService from '@/lib/gardenDataService';
 import GardenList from '@/components/Gardens/GardenList';
 import GardenForm from '@/components/Gardens/GardenForm';
 import { CheckCircle } from 'lucide-react';
@@ -42,42 +42,13 @@ export default function AllGardensPage() {
     try {
       setLoading(true);
       
-      // Try to load from localStorage first
-      const localGardens = localStorage.getItem('gardens');
-      
-      if (localGardens && localGardens !== '[]') {
-        // If we have data in localStorage, use it
-        const parsedGardens = JSON.parse(localGardens);
-        console.log('Loaded gardens from localStorage:', parsedGardens);
-        setGardens(parsedGardens);
-      } else {
-        // If no localStorage data, load from API and save to localStorage
-        console.log('Loading gardens from API...');
-        const apiGardens = await getGardens();
-        console.log('API gardens loaded:', apiGardens);
-        
-        // Save to localStorage for future use
-        localStorage.setItem('gardens', JSON.stringify(apiGardens));
-        setGardens(apiGardens);
-      }
+      // Use the centralized garden data service
+      const gardens = await gardenDataService.getGardens();
+      console.log('Loaded gardens from data service:', gardens);
+      setGardens(gardens);
     } catch (error) {
       console.error('Failed to load gardens:', error);
-      
-      // If everything fails, try API one more time
-      try {
-        const apiGardens = await getGardens();
-        setGardens(apiGardens);
-        // Try to save to localStorage
-        try {
-          localStorage.setItem('gardens', JSON.stringify(apiGardens));
-        } catch (storageError) {
-          console.warn('Failed to save to localStorage:', storageError);
-        }
-      } catch (apiError) {
-        console.error('Failed to load from API:', apiError);
-        // Set empty array as fallback
-        setGardens([]);
-      }
+      setGardens([]);
     } finally {
       setLoading(false);
     }
@@ -89,24 +60,17 @@ export default function AllGardensPage() {
   };
 
   const handleEdit = (garden) => {
+    console.log('Editing garden:', garden); // Debug log
     setSelectedGarden(garden);
     setIsFormOpen(true);
   };
 
   const handleDelete = async (garden) => {
     try {
-      // Delete from localStorage
-      const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-      const updatedGardens = localGardens.filter(g => g.id !== garden.id);
-      localStorage.setItem('gardens', JSON.stringify(updatedGardens));
+      await gardenDataService.deleteGarden(garden.id);
       
-      // Update state
-      setGardens(prevGardens => 
-        prevGardens.filter(g => g.id !== garden.id)
-      );
-      
-      // TODO: Also delete from real API when backend is ready
-      // await deleteGarden(garden.id);
+      // Reload gardens to reflect the deletion
+      await loadGardens();
       
       setSuccessMessage(`"${garden.name}" deleted successfully!`);
       setShowSuccessMessage(true);
@@ -124,65 +88,37 @@ export default function AllGardensPage() {
 
   const handleSave = async (gardenData) => {
     try {
-      let savedGarden;
+      const isUpdate = selectedGarden !== null;
       
-      if (selectedGarden) {
+      if (isUpdate) {
         // Update existing garden
-        savedGarden = {
+        const updatedGarden = await gardenDataService.saveGarden({
           ...gardenData,
           id: selectedGarden.id,
-          updatedAt: new Date().toISOString(),
           createdAt: selectedGarden.createdAt,
           plantedItems: selectedGarden.plantedItems || []
-        };
+        }, true);
         
-        // Update in localStorage
-        const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-        const gardenIndex = localGardens.findIndex(g => g.id === selectedGarden.id);
-        if (gardenIndex >= 0) {
-          localGardens[gardenIndex] = savedGarden;
-          localStorage.setItem('gardens', JSON.stringify(localGardens));
-        }
-        
-        setGardens(prevGardens =>
-          prevGardens.map(g =>
-            g.id === selectedGarden.id ? savedGarden : g
-          )
-        );
-        
-        setSuccessMessage(`"${savedGarden.name}" updated successfully!`);
+        setSuccessMessage(`"${updatedGarden.name}" updated successfully!`);
       } else {
-        // Add new garden
-        savedGarden = {
+        // Create new garden
+        const newGarden = await gardenDataService.saveGarden({
           ...gardenData,
-          id: Date.now(), // Simple ID generation for demo
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
           plantCount: 0,
           plantedItems: []
-        };
+        }, false);
         
-        // Save to localStorage
-        const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-        localGardens.push(savedGarden);
-        localStorage.setItem('gardens', JSON.stringify(localGardens));
-        
-        setGardens(prevGardens => [...prevGardens, savedGarden]);
-        setSuccessMessage(`"${savedGarden.name}" created successfully!`);
+        setSuccessMessage(`"${newGarden.name}" created successfully!`);
       }
+      
+      // Reload gardens to reflect the changes
+      await loadGardens();
       
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
       
       setIsFormOpen(false);
       setSelectedGarden(null);
-      
-      // TODO: Replace with real API calls when backend is ready
-      // if (selectedGarden) {
-      //   await updateGarden(selectedGarden.id, gardenData);
-      // } else {
-      //   await createGarden(gardenData);
-      // }
       
     } catch (error) {
       console.error('Failed to save garden:', error);

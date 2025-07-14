@@ -8,7 +8,6 @@ import WeatherWidget from '@/components/Tracker/WeatherWidget';
 import TasksList from '@/components/Tracker/TasksList';
 import ActivityModal from '@/components/Tracker/ActivityModal';
 import { 
-  gardens, 
   generateCalendarData, 
   addActivity,
   getActivitiesByGarden
@@ -16,12 +15,14 @@ import {
 import { 
   getTodayTasks, 
   getUpcomingTasks, 
-  completeTask ,
+  completeTask,
   resetTaskDatabase
 } from '@/components/Tracker/Constants/TaskData';
+import gardenDataService, { subscribeToGardenChanges } from '@/lib/gardenDataService';
 
 export default function TrackingPage() {
-  const [selectedGarden, setSelectedGarden] = useState(gardens[0]);
+  const [gardens, setGardens] = useState([]);
+  const [selectedGarden, setSelectedGarden] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
@@ -39,14 +40,48 @@ export default function TrackingPage() {
   const [todayTasks, setTodayTasks] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
 
-  // Load tasks when component mounts or garden changes
+  // Load gardens from the centralized data service
   useEffect(() => {
-    // Reset task database to ensure we have current dates (useful for development)
-    resetTaskDatabase();
-    loadTasks();
+    loadGardens();
+    
+    // Subscribe to garden data changes
+    const unsubscribe = subscribeToGardenChanges(() => {
+      loadGardens();
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
+  // Load tasks when garden changes
+  useEffect(() => {
+    if (selectedGarden) {
+      resetTaskDatabase();
+      loadTasks();
+    }
   }, [selectedGarden]);
 
+  const loadGardens = async () => {
+    try {
+      // Use the centralized garden data service
+      const gardens = await gardenDataService.getGardensForTracker();
+      console.log('Loaded gardens from data service:', gardens);
+      
+      setGardens(gardens);
+      if (gardens.length > 0 && !selectedGarden) {
+        setSelectedGarden(gardens[0]);
+      }
+    } catch (error) {
+      console.error('Failed to load gardens:', error);
+      setGardens([]);
+    }
+  };
+
+  // Helper function is no longer needed as it's handled by the data service
+  // const getGardenIcon = () => { ... } - removed
+
   const loadTasks = () => {
+    if (!selectedGarden) return;
+    
     console.log('Loading tasks for garden:', selectedGarden.name, selectedGarden.id);
     const today = getTodayTasks(selectedGarden.id);
     const upcoming = getUpcomingTasks(selectedGarden.id);
@@ -82,6 +117,8 @@ export default function TrackingPage() {
   };
 
   const handleQuickAction = (action) => {
+    if (!selectedGarden) return;
+    
     setFormData({ 
       activity: action, 
       plant: '', 
@@ -92,6 +129,8 @@ export default function TrackingPage() {
   };
 
   const handleSubmitActivity = (activityData) => {
+    if (!selectedGarden) return;
+    
     const newActivityData = {
       ...activityData,
       gardenId: selectedGarden.id
@@ -105,7 +144,44 @@ export default function TrackingPage() {
   };
 
   // Filter calendar data by selected garden
-  const filteredCalendarData = getActivitiesByGarden(calendarData, selectedGarden.id);
+  const filteredCalendarData = selectedGarden ? 
+    getActivitiesByGarden(calendarData, selectedGarden.id) : {};
+
+  // Show empty state if no gardens
+  if (gardens.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center p-8 bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-green-100 max-w-md mx-4">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Sprout className="w-8 h-8 text-green-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">No gardens found</h3>
+          <p className="text-gray-600 mb-6">
+            You need to create at least one garden before you can start tracking activities.
+          </p>
+          <a
+            href="/gardens"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+          >
+            <Sprout className="w-5 h-5" />
+            Create Your First Garden
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state if gardens are loaded but no garden is selected
+  if (!selectedGarden) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading garden data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900">
@@ -154,7 +230,7 @@ export default function TrackingPage() {
       </div>
 
       {/* Activity Form Modal */}
-      {showForm && (
+      {showForm && selectedGarden && (
         <ActivityModal
           isOpen={showForm}
           formData={formData}
