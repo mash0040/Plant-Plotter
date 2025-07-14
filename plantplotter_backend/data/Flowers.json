@@ -1,0 +1,442 @@
+[
+  {
+    "id": 78,
+    "code": "FLO1",
+    "name": "Alyssum",
+    "scientificName": "Lobularia maritima",
+    "helps": [
+      "Lettuce"
+    ],
+    "helpedBy": [],
+    "attracts": [
+      "Syrphidae and most beneficial insects"
+    ],
+    "repels": [
+      "Aphids"
+    ],
+    "avoid": [],
+    "comments": "Because they attract syrphidae they help reduce aphids through predation."
+  },
+  {
+    "id": 79,
+    "code": "FLO2",
+    "name": "Baby's breath",
+    "scientificName": "Gypsophila paniculata",
+    "helps": [],
+    "helpedBy": [],
+    "attracts": [
+      "Syrphidae"
+    ],
+    "repels": [
+      "Aphids"
+    ],
+    "avoid": [],
+    "comments": "Because they attract Syrphidae, they help reduce aphids through predation."
+  },
+  {
+    "id": 80,
+    "code": "FLO3",
+    "name": "Bee balm",
+    "scientificName": "Monarda spp.",
+    "helps": [
+      "Tomato"
+    ],
+    "helpedBy": [],
+    "attracts": [
+      "Bees"
+    ],
+    "repels": [],
+    "avoid": [],
+    "comments": ""
+  },
+  {
+    "id": 81,
+    "code": "FLO4",
+    "name": "Californian poppy",
+    "scientificName": "Eschscholzia californica",
+    "helps": [],
+    "helpedBy": [],
+    "attracts": [
+      "Syrphidae"
+    ],
+    "repels": [
+      "Aphids"
+    ],
+    "avoid": [],
+    "comments": "Because they attract Syrphidae, they help reduce aphids through predation."
+  },
+  {
+    "id": 82,
+    "code": "FLO5",
+    "name": "Dianthus",
+    "scientificName": "Dianthus caryophyllus",
+    "helps": [
+      "Roses",
+      "Lavender",
+      "Echinacea",
+      "Aster",
+      "Foxglove"
+    ],
+    "helpedBy": [],
+    "attracts": [],
+    "repels": [
+      "Slugs"
+    ],
+    "avoid": [],
+    "comments": ""
+  },
+  {
+    "id": 83,
+    "code": "FLO6",
+    "name": "Geraniums",
+    "scientificName": "Pelargonium spp.",
+    "helps": [
+      "Roses",
+      "Corn",
+      "Peppers",
+      "Grapes"
+    ],
+    "helpedBy": [],
+    "attracts": [],
+    "repels": [
+      "Leafhoppers",
+      "Japanese beetles"
+    ],
+    "avoid": [
+      "Tomatoes",
+      "Tobacco",
+      "Eggplants and other nightshades"
+    ],
+    "comments": "A trap crop, attracting pests away from roses and grape vines, distracts beet leafhoppers, carrier of the curly top virus, keep away from solanaceous plants like eggplant, and tobacco"
+  },
+  {
+    "id": 84,
+    "code": "FLO7",
+    "name": "Larkspur",
+    "scientificName": "Delphinium spp.",
+    "helps": [
+      "Beans",
+      "Cabbage"
+    ],
+    "helpedBy": [],
+    "attracts": [],
+    "repels": [],
+    "avoid": [
+      "\n"
+    ],
+    "comments": ""
+  },
+  {
+    "id": 85,
+    "code": "FLO8",
+    "name": "Lupin",
+    "scientificName": "Lupinus",
+    "helps": [
+      "Cucurbits",
+      "Brassica",
+      "Lettuce",
+      "Rosemary",
+      "Dill",
+      "Strawberry",
+      "Rose"
+    ],
+    "helpedBy": [
+      "Summer savory",
+      "Rose"
+    ],
+    "attracts": [
+      "Honeybees"
+    ],
+    "repels": [],
+    "avoid": [
+      "Tomatoes and other solanaceae"
+    ],
+    "comments": "This wildflower is a legume, hosting bacteria that fixes nitrogen in the soil, fertilizing it for neighboring plants. Same with marigold, planting nearby roses causes them to grow vigorously."
+  },
+  {
+    "id": 86,
+    "code": "FLO9",
+    "name": "Marigold",
+    "scientificName": "Tagetes patula, T. erecta, T. minuta",
+    "helps": [
+      "Most plants",
+      "Especially tomatoes and peppers",
+      "Cucumbers",
+      "Gourds",
+      "Squash",
+      "Potatoes",
+      "Roses",
+      "Alliums",
+      "Brassicas",
+      "Zucchini"
+    ],
+    "helpedBy": [
+      "Rose"
+    ],
+    "attracts": [
+      "Snails and slugs."
+    ],
+    "repels": [
+      "Root-knot nematodes",
+      "Beet leaf hoppers",
+      "Cucumber beetle",
+      "Squash bug",
+      "Onion fly",
+      "Cabbage root fly"
+    ],
+    "avoid": [],
+    "comments": "Marigolds are a wonder-drug of the companion plant world, invoking the saying \"plant them everywhere in your garden\". French marigolds (T. patula) produce a pesticidal chemical from their roots, so strong it lasts years after they are gone. Mexican marigolds (T. erecta) do the same, but are so strong they will inhibit the growth of some more tender herbs. Stinking Roger (T. minuta) has also been found effective against certain perennial weeds. Same with lupin, planting nearby roses causes them to grow vigorously."
+  },
+  {
+    "id": 87,
+    "code": "FLO10",
+    "name": "Nasturtium",
+    "scientificName": "Tropaeolum majus",
+    "helps": [
+      "Beans",
+      "Squash",
+      "Tomatoes",
+      "Fruit trees",
+      "Brassicas",
+      "Radish cucumbers"
+    ],
+    "helpedBy": [],
+    "attracts": [
+      "Predatory insects"
+    ],
+    "repels": [
+      "Aphids",
+      "Asparagus beetle",
+      "Cabbage looper",
+      "Cabbage worm",
+      "Carrot fly",
+      "Cabbage weevil",
+      "Colorado potato beetle squash bug",
+      "Japanese beetle",
+      "Mexican bean beetle",
+      "Striped pumpkin beetles",
+      "Whitefly",
+      "Cucumber beetles flea beetle"
+    ],
+    "avoid": [
+      "Cauliflower"
+    ],
+    "comments": "Trap crops for aphids, is among the best at attracting predatory insects, deters many pests of cucurbits"
+  },
+  {
+    "id": 88,
+    "code": "FLO11",
+    "name": "Pansy",
+    "scientificName": "Viola x wittrockiana",
+    "helps": [
+      "Alliums",
+      "Onions",
+      "Roses"
+    ],
+    "helpedBy": [
+      "Roses"
+    ],
+    "attracts": [],
+    "repels": [
+      "Bees",
+      "Butterflies",
+      "Ants"
+    ],
+    "avoid": [
+      "Awith aphids",
+      "Snails",
+      "Slugs",
+      "White butterfly"
+    ],
+    "comments": "A good and nice-smelling flower that really attracts ants. It is like the viola plant, but has two or three colors in flowers. Helps alliums and onions, which repels the white butterfly."
+  },
+  {
+    "id": 89,
+    "code": "FLO12",
+    "name": "Petunia",
+    "scientificName": "Petunia x hybrida",
+    "helps": [
+      "Csquash",
+      "Pumpkins",
+      "Cucumbers",
+      "Asparagus"
+    ],
+    "helpedBy": [],
+    "attracts": [],
+    "repels": [
+      "Leafhoppers",
+      "Japanese beetles",
+      "Aphids",
+      "Asparagus beetle"
+    ],
+    "avoid": [],
+    "comments": "Is a trap crop almost identical to geraniums in function"
+  },
+  {
+    "id": 90,
+    "code": "FLO13",
+    "name": "Phacelia",
+    "scientificName": "Phacelia tanacetifolia",
+    "helps": [
+      "Plants which are prone to aphids",
+      "Especially lettuce",
+      "Tomato",
+      "Rose"
+    ],
+    "helpedBy": [],
+    "attracts": [
+      "Hoverfly"
+    ],
+    "repels": [],
+    "avoid": [],
+    "comments": "This plant attracts hoverflies and is good around plants which are prone to aphids."
+  },
+  {
+    "id": 91,
+    "code": "FLO14",
+    "name": "Rose",
+    "scientificName": "Rosa spp.",
+    "helps": [],
+    "helpedBy": [
+      "Chives",
+      "Garlic",
+      "Marigolds"
+    ],
+    "attracts": [],
+    "repels": [],
+    "avoid": [],
+    "comments": ""
+  },
+  {
+    "id": 92,
+    "code": "FLO15",
+    "name": "Sunflower",
+    "scientificName": "Helianthus annuus",
+    "helps": [
+      "Peppers",
+      "Corn",
+      "Cucumber",
+      "Soybeans",
+      "Tomatoes",
+      "Swan plant"
+    ],
+    "helpedBy": [
+      "Swan plant"
+    ],
+    "attracts": [],
+    "repels": [
+      "Aphids"
+    ],
+    "avoid": [
+      "Pole beans"
+    ],
+    "comments": "Was grown as a companion for corn (maize) before modern Europeans arrived in the Americas, supposedly increases their production, ants herd aphids onto sunflowers, keeping them off neighboring plants. Works as a trap plant for thrips keeping them off of bell peppers. Planting near swan plants help sunflowers grow rapidly."
+  },
+  {
+    "id": 93,
+    "code": "FLO16",
+    "name": "Swan plant",
+    "scientificName": "Gomphocarpus physocarpus, Asclepias physocarpa, milkweed",
+    "helps": [
+      "Sunflower"
+    ],
+    "helpedBy": [
+      "Sunflower",
+      "Basil"
+    ],
+    "attracts": [
+      "Monarch butterfly"
+    ],
+    "repels": [
+      "Aphids"
+    ],
+    "avoid": [
+      "Plants that attracts aphids and spider mites"
+    ],
+    "comments": "Attracts the monarch butterfly during spring and summer. Basil repels pests that attracts by the swan plant like aphids."
+  },
+  {
+    "id": 94,
+    "code": "FLO17",
+    "name": "Sweet pea",
+    "scientificName": "Lathyrus odoratus",
+    "helps": [
+      "Sweet alyssum",
+      "Lobelia",
+      "Roses",
+      "Lavender",
+      "Catmint\n"
+    ],
+    "helpedBy": [
+      "Brassica",
+      "Spinach",
+      "Silverbeet and salads"
+    ],
+    "attracts": [
+      "Bees",
+      "Butterflies"
+    ],
+    "repels": [],
+    "avoid": [
+      "Aphids"
+    ],
+    "comments": "An annual climbing plant, which is like the edible pea. Makes a good decoration in your garden or fence."
+  },
+  {
+    "id": 95,
+    "code": "FLO18",
+    "name": "Tansy",
+    "scientificName": "Tanacetum vulgare",
+    "helps": [
+      "Beans",
+      "Cucumbers",
+      "Squash",
+      "Etc.",
+      "Raspberries and relatives",
+      "Roses",
+      "Corn",
+      "Fruit trees"
+    ],
+    "helpedBy": [],
+    "attracts": [
+      "Ladybugs",
+      "Honeybees"
+    ],
+    "repels": [
+      "Fichneumonid wasps",
+      "Ants",
+      "Japanese beetles",
+      "Cabbage butterfly",
+      "Cabbage maggot",
+      "Asparagus beetle",
+      "Carrot fly",
+      "Striped cucumber beetles",
+      "Colorado potato beetle",
+      "Cutworm",
+      "Flea beetle",
+      "Flies",
+      "Imported cabbageworm",
+      "Squash bugs"
+    ],
+    "avoid": [],
+    "comments": "Toxic to people and many animals; do not plant it where livestock browse. Is reputed to repel herbivorous insects."
+  },
+  {
+    "id": 96,
+    "code": "FLO19",
+    "name": "Zinnia",
+    "scientificName": "Zinnia",
+    "helps": [
+      "Beans",
+      "Tomatoes",
+      "Peppers"
+    ],
+    "helpedBy": [],
+    "attracts": [],
+    "repels": [
+      "Whiteflies"
+    ],
+    "avoid": [],
+    "comments": "Attracts hummingbirds that eat whiteflies, attracts pollinators"
+  }
+]

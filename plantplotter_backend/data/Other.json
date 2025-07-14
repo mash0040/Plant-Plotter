@@ -1,0 +1,68 @@
+[
+  {
+    "id": 97,
+    "code": "OTH1",
+    "name": "Alfalfa",
+    "scientificName": "Medicago sativa",
+    "helps": [
+      "Cotton"
+    ],
+    "helpedBy": [],
+    "attracts": [
+      "Assassin bug",
+      "Big-eyed bug",
+      "Ladybug",
+      "Parasitic wasps"
+    ],
+    "repels": [
+      "Lygus bugs"
+    ],
+    "avoid": [
+      "Tomatoes",
+      "Fava beans"
+    ],
+    "comments": "Used by farmers to reduce cotton pests, a good crop to improve soil; fixes nitrogen. Alfalfa has some allelopathic effects to tomato seedlings."
+  },
+  {
+    "id": 98,
+    "code": "OTH2",
+    "name": "Peanut",
+    "scientificName": "Arachis hypogaea",
+    "helps": [
+      "Beans",
+      "Corn",
+      "Cucumber",
+      "Eggplant",
+      "Lettuce",
+      "Marigold",
+      "Melon and sunflower"
+    ],
+    "helpedBy": [],
+    "attracts": [],
+    "repels": [],
+    "avoid": [],
+    "comments": "Peanuts encourage growth of corn and squash"
+  },
+  {
+    "id": 99,
+    "code": "OTH3",
+    "name": "Walnut tree",
+    "scientificName": "Juglans spp.",
+    "helps": [
+      "Mpoa pratensis."
+    ],
+    "helpedBy": [
+      "Esacrifice plant",
+      "Hairy vetch",
+      "Crownvetch",
+      "Sericea lespedeza"
+    ],
+    "attracts": [],
+    "repels": [],
+    "avoid": [
+      "Apple trees",
+      "Grasses"
+    ],
+    "comments": "Black walnut is harmful to the growth of all nightshade plants, including Datura or Jimson weed, eggplant, mandrake, deadly nightshade or belladonna, capsicum (paprika, chile pepper), potato, tomato, and petunia."
+  }
+]
