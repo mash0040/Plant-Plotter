@@ -5,3 +5,10 @@
 @import "tailwindcss/preflight";
 @import "tailwindcss/utilities";
 @import "tailwindcss";
+
+
+@layer base {
+  button {
+    @apply cursor-pointer;
+  }
+}
