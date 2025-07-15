@@ -213,20 +213,23 @@ export default function GardenPlannerPage() {
         
         // Set garden data
         setCurrentGarden(garden);
-        setDimensions(garden.dimensions || { width: 20, height: 12 });
+        setDimensions({
+        width: garden.dimensions?.width ?? 20,
+        height: garden.dimensions?.height ?? 12
+  });
         
         // Convert planted items to the planner format
         if (garden.plantedItems && garden.plantedItems.length > 0) {
           const convertedPlants = garden.plantedItems.map(item => ({
-            id: `plant-${item.id}`,
+          id: `plant-${item.id ?? crypto.randomUUID()}`,
             plantId: item.plantId,
             name: item.name,
             emoji: item.emoji,
             size: item.size,
             category: item.category,
-            x: item.xPosition * gridSize, // Convert grid units to pixels
-            y: item.yPosition * gridSize,
-            plantedDate: new Date(item.plantedDate),
+            x: typeof item.xPosition === 'number' ? item.xPosition * gridSize : 0, 
+            y: typeof item.yPosition === 'number' ? item.yPosition * gridSize : 0,
+            plantedDate: item.plantedDate ? new Date(item.plantedDate) : null,
             notes: item.notes,
             isFromLibrary: false
           }));
@@ -414,6 +417,10 @@ export default function GardenPlannerPage() {
   };
 
   const handleLoadGarden = (gardenData) => {
+   if(!gardenData){
+    alert("Garden not found. Fill your data here");
+    return;
+   }
     setCurrentGarden(gardenData);
     setDimensions({ width: gardenData.width, height: gardenData.height });
     setGridSize(gardenData.gridSize);
@@ -428,7 +435,7 @@ export default function GardenPlannerPage() {
       category: item.category,
       x: item.xPosition * gardenData.gridSize,
       y: item.yPosition * gardenData.gridSize,
-      plantedDate: new Date(item.plantedDate),
+      plantedDate: item.plantedDate ? new Date(item.plantedDate) : null,
       notes: item.notes,
       isFromLibrary: false
     }));
