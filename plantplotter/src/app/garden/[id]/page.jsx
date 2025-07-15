@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Settings, Menu, X, Heart, AlertTriangle } from 'lucide-react';
 import { getGardenById } from '@/lib/api';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
+import GardenForm from '@/components/Gardens/GardenForm'; 
 
 export default function GardenDetailPage() {
   const params = useParams();
@@ -12,6 +13,7 @@ export default function GardenDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false); 
 
   useEffect(() => {
     const loadGarden = async () => {
@@ -61,9 +63,43 @@ export default function GardenDetailPage() {
     router.push(`/garden?id=${garden.id}`);
   };
 
-  const handleEditBasicInfo = () => {
-    // Navigate back to gardens page with edit mode for this garden
-    router.push(`/gardens?edit=${garden.id}`);
+  const handleEditBasicInfo = (e) => {
+    e?.stopPropagation();
+    setShowEditForm(true);
+  };
+
+  // Add the missing save handler
+  const handleSaveGarden = (updatedGardenData) => {
+    // Update the garden in localStorage
+    const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+    const gardenIndex = localGardens.findIndex(g => g.id == garden.id);
+    
+    if (gardenIndex !== -1) {
+      // Update existing garden
+      const updatedGarden = {
+        ...localGardens[gardenIndex],
+        ...updatedGardenData,
+        id: garden.id, // Keep the same ID
+        updatedAt: new Date().toISOString(),
+        // Preserve existing planted items
+        plantedItems: garden.plantedItems || [],
+        plantCount: garden.plantCount || 0
+      };
+      
+      localGardens[gardenIndex] = updatedGarden;
+      localStorage.setItem('gardens', JSON.stringify(localGardens));
+      
+      // Update the current garden state
+      setGarden(updatedGarden);
+    }
+    
+    // Close the form
+    setShowEditForm(false);
+  };
+
+  // Add the missing close handler
+  const handleCloseForm = () => {
+    setShowEditForm(false);
   };
 
   // Calculate companion plant suggestions based on planted items
@@ -160,6 +196,14 @@ export default function GardenDetailPage() {
 
   return (
     <div className="min-h-screen overflow-auto shadow-lg bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50">
+      {/* Garden Form Popup - Add this */}
+      <GardenForm
+        garden={garden}
+        onSave={handleSaveGarden}
+        onClose={handleCloseForm}
+        isOpen={showEditForm}
+      />
+
       {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
         <div 

@@ -42,7 +42,7 @@ export default function GardenCanvas({
                     fontSize: gridSize < 40 ? '10px' : '12px'
                   }}
                 >
-                  {gridUnitsToMeters(i + 1)}m
+                  {gridUnitsToMeters(i + 1)}
                 </div>
               ))}
             </div>
@@ -66,7 +66,7 @@ export default function GardenCanvas({
                     fontSize: gridSize < 40 ? '10px' : '12px'
                   }}
                 >
-                  {gridUnitsToMeters(i + 1)}m
+                  {gridUnitsToMeters(i + 1)}
                 </div>
               ))}
             </div>

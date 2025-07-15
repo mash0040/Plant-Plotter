@@ -23,7 +23,7 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
 
   const handleView = (garden) => {
     // Navigate to garden detail page
-    router.push(`/gardens/${garden.id}`);
+    router.push(`/garden/${garden.id}`);
   };
 
   const handlePlannerOpen = (garden, e) => {

@@ -1,6 +1,6 @@
-// Note: The handleBackToGarden function should be updated in the parent component
-// to navigate to '/gardens' instead of '/gardens/{id}''use client';
+'use client';
 import { Plus, Minus, Grid, Ruler, Save, FolderOpen, Menu, ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
 
 export default function ControlPanel({
   dimensions,
@@ -17,31 +17,113 @@ export default function ControlPanel({
   gardenName,
   onBackClick
 }) {
+  const [unit, setUnit] = useState('metric'); // 'metric' or 'imperial'
+  const [inputValues, setInputValues] = useState({
+    width: dimensions.width.toString(),
+    height: dimensions.height.toString(),
+    grid: (gridSize / 40).toFixed(1) // Convert px to meters
+  });
+
+  // Conversion functions
+  const metersToFeet = (meters) => (meters * 3.28084).toFixed(2);
+  const feetToMeters = (feet) => (feet / 3.28084);
+  const pixelsToMeters = (pixels) => (pixels / 40);
+  const metersToPixels = (meters) => Math.round(meters * 40);
+
+  // Get display values based on current unit
+  const getDisplayValue = (meters, precision = 1) => {
+    if (unit === 'metric') {
+      return parseFloat(meters).toFixed(precision);
+    } else {
+      return metersToFeet(meters);
+    }
+  };
+
+  const getUnitLabel = () => unit === 'metric' ? 'm' : 'ft';
+
+  // Handle unit toggle
+  const toggleUnit = () => {
+    const newUnit = unit === 'metric' ? 'imperial' : 'metric';
+    setUnit(newUnit);
+    
+    // Update input values for display
+    if (newUnit === 'imperial') {
+      setInputValues({
+        width: metersToFeet(dimensions.width),
+        height: metersToFeet(dimensions.height),
+        grid: metersToFeet(pixelsToMeters(gridSize))
+      });
+    } else {
+      setInputValues({
+        width: dimensions.width.toString(),
+        height: dimensions.height.toString(),
+        grid: pixelsToMeters(gridSize).toFixed(1)
+      });
+    }
+  };
+
+  // Handle input changes
+  const handleInputChange = (field, value) => {
+    setInputValues(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle input blur (when user finishes typing)
+  const handleInputBlur = (field, value) => {
+    const numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue <= 0) return;
+
+    if (field === 'width' || field === 'height') {
+      const metersValue = unit === 'imperial' ? feetToMeters(numValue) : numValue;
+      const clampedValue = Math.max(1, Math.min(50, Math.round(metersValue)));
+      
+      onDimensionChange({
+        ...dimensions,
+        [field]: clampedValue
+      });
+      
+      // Update input to show clamped value
+      setInputValues(prev => ({
+        ...prev,
+        [field]: unit === 'imperial' ? metersToFeet(clampedValue) : clampedValue.toString()
+      }));
+    } else if (field === 'grid') {
+      const metersValue = unit === 'imperial' ? feetToMeters(numValue) : numValue;
+      const pixelValue = metersToPixels(metersValue);
+      const clampedPixelValue = Math.max(20, Math.min(100, pixelValue));
+      
+      onGridSizeChange(clampedPixelValue);
+      
+      // Update input to show clamped value
+      const clampedMetersValue = pixelsToMeters(clampedPixelValue);
+      setInputValues(prev => ({
+        ...prev,
+        grid: unit === 'imperial' ? metersToFeet(clampedMetersValue) : clampedMetersValue.toFixed(1)
+      }));
+    }
+  };
+
+  // Handle +/- buttons
   const adjustDimension = (type, delta) => {
     const newValue = Math.max(1, Math.min(50, dimensions[type] + delta));
     onDimensionChange({ ...dimensions, [type]: newValue });
+    
+    // Update input values
+    setInputValues(prev => ({
+      ...prev,
+      [type]: unit === 'imperial' ? metersToFeet(newValue) : newValue.toString()
+    }));
   };
 
   const adjustGridSize = (delta) => {
     const newSize = Math.max(20, Math.min(100, gridSize + delta));
     onGridSizeChange(newSize);
-  };
-
-  // Convert pixels to meters (assuming 40px = 1m as default scale)
-  const pixelsToMeters = (pixels) => {
-    return (pixels / 40).toFixed(1);
-  };
-
-  // Grid size options in meters
-  const getGridSizeInMeters = () => {
-    return pixelsToMeters(gridSize);
-  };
-
-  // Grid size label with both meters and feet
-  const getGridSizeLabel = () => {
-    const meters = parseFloat(getGridSizeInMeters());
-    const feet = (meters * 3.28084).toFixed(1);
-    return `${meters}m / ${feet}ft`;
+    
+    // Update input values
+    const metersValue = pixelsToMeters(newSize);
+    setInputValues(prev => ({
+      ...prev,
+      grid: unit === 'imperial' ? metersToFeet(metersValue) : metersValue.toFixed(1)
+    }));
   };
 
   return (
@@ -87,8 +169,8 @@ export default function ControlPanel({
       {/* Bottom Row - Controls */}
       <div className="px-3 sm:px-4 pb-3 border-t border-gray-100">
         <div className="flex items-center justify-start gap-2 sm:gap-3 text-sm flex-wrap">
-          {/* View Controls Group */}
-          <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 shadow-sm border border-gray-200">
+          {/* View Controls Group - Same height as others */}
+          <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
             <button
               onClick={onToggleGrid}
               className={`p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
@@ -129,8 +211,19 @@ export default function ControlPanel({
             </button>
           </div>
 
-          {/* Size Controls Group */}
-          <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 shadow-sm border border-gray-200">
+          {/* Unit Toggle - Same height */}
+          <div className="flex items-center bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+            <button
+              onClick={toggleUnit}
+              className="px-2 py-1.5 rounded text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-700"
+              title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
+            >
+              {unit === 'metric' ? 'Metric (m)' : 'Imperial (ft)'}
+            </button>
+          </div>
+
+          {/* Size Controls Group - Same height */}
+          <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
             <span className="text-xs font-medium text-gray-600 hidden md:inline px-1">Size:</span>
             
             {/* Width Controls */}
@@ -142,9 +235,16 @@ export default function ControlPanel({
               >
                 <Minus className="w-3 h-3" />
               </button>
-              <span className="text-xs min-w-6 text-center font-medium text-gray-800">
-                {dimensions.width}
-              </span>
+              <input
+                type="number"
+                value={inputValues.width}
+                onChange={(e) => handleInputChange('width', e.target.value)}
+                onBlur={(e) => handleInputBlur('width', e.target.value)}
+                className="w-12 px-1 py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                step={unit === 'imperial' ? '0.1' : '1'}
+                min="1"
+              />
+              <span className="text-xs text-gray-500">{getUnitLabel()}</span>
               <button 
                 onClick={() => adjustDimension('width', 1)} 
                 className="p-1 hover:bg-gray-100 rounded text-gray-600"
@@ -165,9 +265,16 @@ export default function ControlPanel({
               >
                 <Minus className="w-3 h-3" />
               </button>
-              <span className="text-xs min-w-6 text-center font-medium text-gray-800">
-                {dimensions.height}
-              </span>
+              <input
+                type="number"
+                value={inputValues.height}
+                onChange={(e) => handleInputChange('height', e.target.value)}
+                onBlur={(e) => handleInputBlur('height', e.target.value)}
+                className="w-12 px-1 py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                step={unit === 'imperial' ? '0.1' : '1'}
+                min="1"
+              />
+              <span className="text-xs text-gray-500">{getUnitLabel()}</span>
               <button 
                 onClick={() => adjustDimension('height', 1)} 
                 className="p-1 hover:bg-gray-100 rounded text-gray-600"
@@ -178,8 +285,8 @@ export default function ControlPanel({
             </div>
           </div>
 
-          {/* Grid Size Controls Group */}
-          <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 shadow-sm border border-gray-200">
+          {/* Grid Size Controls Group - Same height */}
+          <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
             <span className="text-xs font-medium text-gray-600 hidden md:inline px-1">Grid:</span>
             <button 
               onClick={() => adjustGridSize(-5)} 
@@ -188,9 +295,16 @@ export default function ControlPanel({
             >
               <Minus className="w-3 h-3" />
             </button>
-            <span className="text-xs min-w-16 text-center font-medium text-gray-800">
-              {getGridSizeLabel()}
-            </span>
+            <input
+              type="number"
+              value={inputValues.grid}
+              onChange={(e) => handleInputChange('grid', e.target.value)}
+              onBlur={(e) => handleInputBlur('grid', e.target.value)}
+              className="w-12 px-1 py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              step="0.1"
+              min="0.5"
+            />
+            <span className="text-xs text-gray-500">{getUnitLabel()}</span>
             <button 
               onClick={() => adjustGridSize(5)} 
               className="p-1 hover:bg-gray-100 rounded text-gray-600"

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, Leaf } from 'lucide-react';
 
 export default function GardenForm({ garden, onSave, onClose, isOpen }) {
+  const [unit, setUnit] = useState('metric'); // 'metric' or 'imperial'
   const [formData, setFormData] = useState({
     name: '',
     soilType: 'Loamy',
@@ -13,6 +14,36 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+
+  // Conversion functions
+  const metersToFeet = (meters) => (meters * 3.28084).toFixed(2);
+  const feetToMeters = (feet) => (feet / 3.28084);
+
+  // Get unit label
+  const getUnitLabel = () => unit === 'metric' ? 'm' : 'ft';
+
+  // Handle unit toggle
+  const toggleUnit = () => {
+    const newUnit = unit === 'metric' ? 'imperial' : 'metric';
+    setUnit(newUnit);
+    
+    // Convert existing values
+    if (formData.width && formData.height) {
+      if (newUnit === 'imperial') {
+        setFormData(prev => ({
+          ...prev,
+          width: metersToFeet(parseFloat(prev.width)),
+          height: metersToFeet(parseFloat(prev.height))
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          width: feetToMeters(parseFloat(prev.width)).toFixed(1),
+          height: feetToMeters(parseFloat(prev.height)).toFixed(1)
+        }));
+      }
+    }
+  };
 
   // Update form data when garden prop changes
   useEffect(() => {
@@ -32,6 +63,15 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         };
         console.log('Setting form data:', newFormData); // Debug log
         setFormData(newFormData);
+        
+        // Convert to current unit if needed
+        if (unit === 'imperial' && newFormData.width && newFormData.height) {
+          setFormData(prev => ({
+            ...prev,
+            width: metersToFeet(parseFloat(newFormData.width)),
+            height: metersToFeet(parseFloat(newFormData.height))
+          }));
+        }
       } else {
         // Creating new garden - use default values
         console.log('Setting default form values for new garden'); // Debug log
@@ -45,33 +85,45 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         });
       }
     }
-  }, [garden, isOpen]);
+  }, [garden, isOpen, unit]);
 
   // Additional effect to ensure form is populated when component renders
   useEffect(() => {
     if (garden && isOpen && (!formData.name && garden.name)) {
       console.log('Fallback: Re-populating form data'); // Debug log
-      setFormData({
+      const newFormData = {
         name: garden.name || '',
         soilType: garden.soilType || 'Loamy',
         width: garden.dimensions?.width?.toString() || '',
         height: garden.dimensions?.height?.toString() || '',
         location: garden.location || '',
         status: garden.status || 'Planning'
-      });
+      };
+      
+      // Convert to current unit if needed
+      if (unit === 'imperial' && newFormData.width && newFormData.height) {
+        newFormData.width = metersToFeet(parseFloat(newFormData.width));
+        newFormData.height = metersToFeet(parseFloat(newFormData.height));
+      }
+      
+      setFormData(newFormData);
     }
-  }, [garden, isOpen, formData.name]);
+  }, [garden, isOpen, formData.name, unit]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Convert dimensions to meters for storage
+    const widthInMeters = unit === 'imperial' ? feetToMeters(parseFloat(formData.width)) : parseFloat(formData.width);
+    const heightInMeters = unit === 'imperial' ? feetToMeters(parseFloat(formData.height)) : parseFloat(formData.height);
+
     const gardenData = {
       name: formData.name,
       soilType: formData.soilType,
       dimensions: {
-        width: parseFloat(formData.width),
-        height: parseFloat(formData.height)
+        width: Math.round(widthInMeters * 10) / 10, // Round to 1 decimal place
+        height: Math.round(heightInMeters * 10) / 10
       },
       location: formData.location,
       status: formData.status,
@@ -148,11 +200,26 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
             </select>
           </div>
 
+          {/* Unit Toggle */}
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">
+              Dimensions
+            </label>
+            <button
+              type="button"
+              onClick={toggleUnit}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-200"
+              title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
+            >
+              {unit === 'metric' ? 'Metric (m)' : 'Imperial (ft)'}
+            </button>
+          </div>
+
           {/* Dimensions */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Width (m)
+                Width ({getUnitLabel()})
               </label>
               <input
                 type="number"
@@ -160,14 +227,14 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
                 onChange={(e) => handleChange('width', e.target.value)}
                 placeholder="0"
                 min="0"
-                step="0.1"
+                step={unit === 'imperial' ? '0.1' : '1'}
                 className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Height (m)
+                Height ({getUnitLabel()})
               </label>
               <input
                 type="number"
@@ -175,7 +242,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
                 onChange={(e) => handleChange('height', e.target.value)}
                 placeholder="0"
                 min="0"
-                step="0.1"
+                step={unit === 'imperial' ? '0.1' : '1'}
                 className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 required
               />
