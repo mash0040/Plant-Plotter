@@ -10,7 +10,7 @@ export default function LoginPage() {
         {/* Decorative elements */}
         <div className="absolute top-10 left-10 opacity-10">
           <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
-      </div>
+        </div>
       <div className="absolute bottom-20 right-20 opacity-10">
         <Sprout className="w-24 h-24 text-emerald-600 transform -rotate-12" />
       </div>

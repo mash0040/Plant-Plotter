@@ -156,7 +156,7 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Garden Tracking Calendar
           </h2>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 relative">
             <button 
               onClick={goToPreviousMonth}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
@@ -164,19 +164,78 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
               <ChevronLeft className="w-4 h-4" />
             </button>
             
-            <button
-              onClick={() => {
-                setTempYear(currentYear);
-                setTempMonth(currentDate.getMonth());
-                setShowMonthYearPicker(!showMonthYearPicker);
-              }}
-              className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center space-x-1"
-            >
-              <span className="font-medium text-gray-900 dark:text-white">
-                {currentMonth} {currentYear}
-              </span>
-              <ChevronDown className="w-4 h-4" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setTempYear(currentYear);
+                  setTempMonth(currentDate.getMonth());
+                  setShowMonthYearPicker(!showMonthYearPicker);
+                }}
+                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center space-x-1"
+              >
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {currentMonth} {currentYear}
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {/* Month/Year Picker - Now positioned below the button */}
+              {showMonthYearPicker && (
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 min-w-[280px]">
+                  <div className="flex space-x-4 mb-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Year
+                      </label>
+                      <select
+                        value={tempYear}
+                        onChange={(e) => setTempYear(parseInt(e.target.value))}
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                      >
+                        {Array.from({ length: 10 }, (_, i) => {
+                          const year = new Date().getFullYear() - 5 + i;
+                          return (
+                            <option key={year} value={year}>
+                              {year}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Month
+                      </label>
+                      <select
+                        value={tempMonth}
+                        onChange={(e) => setTempMonth(parseInt(e.target.value))}
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                      >
+                        {months.map((month, index) => (
+                          <option key={index} value={index}>
+                            {month}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-center space-x-2">
+                    <button
+                      onClick={handleMonthYearSelect}
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                    >
+                      Go
+                    </button>
+                    <button
+                      onClick={() => setShowMonthYearPicker(false)}
+                      className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             
             <button 
               onClick={goToNextMonth}
@@ -186,63 +245,6 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
             </button>
           </div>
         </div>
-
-        {/* Month/Year Picker */}
-        {showMonthYearPicker && (
-          <div className="absolute z-10 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 right-4">
-            <div className="flex space-x-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Year
-                </label>
-                <select
-                  value={tempYear}
-                  onChange={(e) => setTempYear(parseInt(e.target.value))}
-                  className="p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
-                >
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const year = new Date().getFullYear() - 5 + i;
-                    return (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Month
-                </label>
-                <select
-                  value={tempMonth}
-                  onChange={(e) => setTempMonth(parseInt(e.target.value))}
-                  className="p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
-                >
-                  {months.map((month, index) => (
-                    <option key={index} value={index}>
-                      {month}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleMonthYearSelect}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-              >
-                Go
-              </button>
-              <button
-                onClick={() => setShowMonthYearPicker(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
       </div>
       
       <div className="p-4">

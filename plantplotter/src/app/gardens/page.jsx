@@ -159,7 +159,6 @@ export default function AllGardensPage() {
         </div>
       )}
 
-
       <GardenList
         gardens={gardens}
         onEdit={handleEdit}

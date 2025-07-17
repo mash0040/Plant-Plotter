@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit, Trash2, Eye, MapPin, Ruler } from 'lucide-react';
+import { Leaf, Plus, Edit, Trash2, Eye, MapPin, Ruler } from 'lucide-react';
 
 export default function GardenList({ gardens = [], onEdit, onDelete, onView, onAddNew }) {
   const router = useRouter();
@@ -35,9 +35,12 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-100">
           <div className="flex justify-between items-center">
+            {/* Decorative elements */}
+            <div className="absolute top-10 left-10 opacity-10">
+              <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
+            </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">My Gardens</h1>
               <p className="text-gray-600">Manage and track your garden spaces</p>
