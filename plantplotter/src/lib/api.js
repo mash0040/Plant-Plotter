@@ -1,8 +1,11 @@
-// Enhanced Mock API functions with fuller garden layouts (10+ plants each)
+// Enhanced Mock API functions with User IDs for proper demo data
+// lib/api.js
+
 export async function getGardens() {
   return [
     {
       id: 1,
+      userId: 1, // Demo user ID
       name: "Main Vegetable Garden",
       description: "Large productive vegetable garden with diverse crops and companion planting",
       soilType: "Loamy",
@@ -197,6 +200,7 @@ export async function getGardens() {
     },
     {
       id: 2,
+      userId: 1, // Demo user ID
       name: "Mixed Berry & Flower Garden",
       description: "Diverse garden combining berry bushes, flowers, and companion herbs",
       soilType: "Sandy Loam",
@@ -367,6 +371,7 @@ export async function getGardens() {
     },
     {
       id: 3,
+      userId: 1, // Demo user ID
       name: "Culinary Herb Collection",
       description: "Comprehensive herb garden with cooking essentials and specialty varieties",
       soilType: "Well-drained Loam",
@@ -525,6 +530,7 @@ export async function getGardens() {
     },
     {
       id: 4,
+      userId: 1, // Demo user ID
       name: "Young Orchard",
       description: "Developing fruit tree collection with understory plantings",
       soilType: "Clay Loam",
@@ -671,6 +677,7 @@ export async function getGardens() {
     },
     {
       id: 5,
+      userId: 1, // Demo user ID
       name: "Intensive Container Garden",
       description: "Maximized small-space gardening with succession planting",
       soilType: "Premium Potting Mix",
@@ -850,8 +857,43 @@ export async function getGardens() {
           notes: "Trailing variety in hanging container"
         }
       ]
+    },
+    // Gardens for other users (admin/regular users would see empty gardens)
+    {
+      id: 6,
+      userId: 2, // Admin user ID
+      name: "Admin Test Garden",
+      description: "Empty garden for admin user testing",
+      soilType: "Loamy",
+      dimensions: { width: 10, height: 8 },
+      location: "Test Location",
+      status: "Planning",
+      plantCount: 0,
+      createdAt: "2024-12-01T10:00:00Z",
+      updatedAt: "2024-12-01T10:00:00Z",
+      plantedItems: []
+    },
+    {
+      id: 7,
+      userId: 3, // Regular user ID
+      name: "My First Garden",
+      description: "Starter garden for regular user",
+      soilType: "Loamy",
+      dimensions: { width: 8, height: 6 },
+      location: "Backyard",
+      status: "Planning",
+      plantCount: 0,
+      createdAt: "2024-12-01T12:00:00Z",
+      updatedAt: "2024-12-01T12:00:00Z",
+      plantedItems: []
     }
   ];
+}
+
+// Function to get gardens by user ID (for proper filtering)
+export async function getGardensByUserId(userId) {
+  const allGardens = await getGardens();
+  return allGardens.filter(garden => garden.userId === userId);
 }
 
 export async function getGardenById(id) {
@@ -905,6 +947,31 @@ export async function createGarden(gardenData) {
   };
 }
 
+// User mapping for demo purposes
+export const USER_MAP = {
+  1: { // Demo user - gets rich sample data
+    id: 1,
+    name: 'Demo User',
+    email: 'demo@plantplotter.com',
+    role: 'user',
+    isDemo: true
+  },
+  2: { // Admin user - gets empty gardens
+    id: 2,
+    name: 'Admin User',
+    email: 'admin@plantplotter.com',
+    role: 'admin',
+    isDemo: false
+  },
+  3: { // Regular user - gets empty gardens
+    id: 3,
+    name: 'Regular User',
+    email: 'user@example.com',
+    role: 'user',
+    isDemo: false
+  }
+};
+
 // Additional helper functions for garden management
 export async function getGardensByStatus(status) {
   const gardens = await getGardens();
@@ -953,3 +1020,27 @@ export async function getPlantStatistics() {
 
   return stats;
 }
+
+// Mock user authentication for demo purposes
+export async function getUserById(userId) {
+  return USER_MAP[userId] || null;
+}
+
+// Get demo user data specifically
+export async function getDemoUserGardens() {
+  return getGardensByUserId(1); // Demo user has userId = 1
+}
+
+// Get gardens based on user type
+export async function getGardensForUser(user) {
+  if (user.isDemo || user.email === 'demo@plantplotter.com') {
+    // Demo user gets rich sample data (userId = 1)
+    return getGardensByUserId(1);
+  } else {
+    // Regular/admin users get their own gardens (which would be empty for new users)
+    return getGardensByUserId(user.id);
+  }
+}
+
+// Export updated function for backward compatibility
+export { getGardens as getApiGardens };

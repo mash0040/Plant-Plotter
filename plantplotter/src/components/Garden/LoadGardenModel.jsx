@@ -1,9 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { X, Calendar, Trash2 } from 'lucide-react';
-import { GardenService } from '@/components/Garden/Services/GardenService';
+import gardenDataService from '@/lib/gardenDataService';
 
-export default function LoadGardenModel({ isOpen, onClose, onLoad, userId }) {
+export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const [gardens, setGardens] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +16,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad, userId }) {
   const loadGardens = async () => {
     setLoading(true);
     try {
-      const userGardens = await GardenService.getUserGardens(userId);
+      const userGardens = await gardenDataService.getGardens();
       setGardens(userGardens);
     } catch (error) {
       console.error('Failed to load gardens:', error);
@@ -27,11 +27,12 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad, userId }) {
 
   const handleLoad = async (garden) => {
     try {
-      const fullGarden = await GardenService.loadGarden(garden.id);
+      const fullGarden = await gardenDataService.getGardenById(garden.id);
       onLoad(fullGarden);
       onClose();
     } catch (error) {
       console.error('Failed to load garden:', error);
+      alert('Failed to load garden. Please try again.');
     }
   };
 
@@ -39,10 +40,11 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad, userId }) {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this garden?')) {
       try {
-        await GardenService.deleteGarden(gardenId);
+        await gardenDataService.deleteGarden(gardenId);
         setGardens(prev => prev.filter(g => g.id !== gardenId));
       } catch (error) {
         console.error('Failed to delete garden:', error);
+        alert('Failed to delete garden. Please try again.');
       }
     }
   };
@@ -60,10 +62,17 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad, userId }) {
         </div>
 
         {loading ? (
-          <div className="text-center py-8">Loading gardens...</div>
+          <div className="text-center py-8">
+            <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading gardens...</p>
+          </div>
         ) : gardens.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            No saved gardens found. Create your first garden!
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">🌱</span>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-800 mb-2">No saved gardens found</h4>
+            <p className="text-gray-600">Create your first garden to get started!</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -71,21 +80,29 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad, userId }) {
               <div
                 key={garden.id}
                 onClick={() => handleLoad(garden)}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between transition-colors"
               >
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{garden.name}</h4>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-gray-900 truncate">{garden.name}</h4>
                   <div className="text-sm text-gray-600 mt-1">
-                    {garden.width}×{garden.height} units • {garden.plantedItems?.length || 0} plants
+                    {garden.dimensions?.width || garden.width}×{garden.dimensions?.height || garden.height} units • {garden.plantedItems?.length || 0} plants
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(garden.updatedAt).toLocaleDateString()}
+                  <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(garden.updatedAt || garden.createdAt).toLocaleDateString()}
+                    </div>
+                    {garden.location && (
+                      <span>📍 {garden.location}</span>
+                    )}
+                    {garden.soilType && (
+                      <span>🌱 {garden.soilType}</span>
+                    )}
                   </div>
                 </div>
                 <button
                   onClick={(e) => handleDelete(garden.id, e)}
-                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-4"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
