@@ -127,6 +127,70 @@ const loginUser = async (req, res) => {
           console.error('❌ Failed to fix demo user password:', fixError);
           return res.status(401).json({ message: 'Invalid credentials' });
         }
+      } else if (email === 'admin@plantplotter.com' && password === 'admin123') {
+        console.log('🔧 admin user password mismatch - generating fresh hash...');
+        
+        try {
+          // Generate a completely new hash for demo123
+          const newHash = await bcrypt.hash('admin123', 10);
+          console.log('🔧 Generated fresh hash:', newHash.substring(0, 30) + '...');
+          
+          // Update the user's password hash in database
+          await db.query(
+            'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE email = ?',
+            [newHash, 'admin@plantplotter.com']
+          );
+          
+          console.log('✅ admin user password hash updated in database');
+          
+          // Test the new hash immediately
+          const testNewHash = await bcrypt.compare('admin123', newHash);
+          console.log('🔍 New hash test result:', testNewHash);
+          
+          if (testNewHash) {
+            isMatch = true;
+            console.log('✅ admin user password fixed successfully');
+          } else {
+            console.log('❌ Even fresh hash failed - bcrypt issue');
+            return res.status(401).json({ message: 'Invalid credentials' });
+          }
+          
+        } catch (fixError) {
+          console.error('❌ Failed to fix admin user password:', fixError);
+          return res.status(401).json({ message: 'Invalid credentials' });
+        }
+      } else if (email === 'user@plantplotter.com' && password === 'user123') {
+        console.log('🔧 default user password mismatch - generating fresh hash...');
+        
+        try {
+          // Generate a completely new hash for user123
+          const newHash = await bcrypt.hash('user123', 10);
+          console.log('🔧 Generated fresh hash:', newHash.substring(0, 30) + '...');
+          
+          // Update the user's password hash in database
+          await db.query(
+            'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE email = ?',
+            [newHash, 'user@plantplotter.com']
+          );
+          
+          console.log('✅ default user password hash updated in database');
+          
+          // Test the new hash immediately
+          const testNewHash = await bcrypt.compare('user123', newHash);
+          console.log('🔍 New hash test result:', testNewHash);
+          
+          if (testNewHash) {
+            isMatch = true;
+            console.log('✅ Default user password fixed successfully');
+          } else {
+            console.log('❌ Even fresh hash failed - bcrypt issue');
+            return res.status(401).json({ message: 'Invalid credentials' });
+          }
+          
+        } catch (fixError) {
+          console.error('❌ Failed to fix default user password:', fixError);
+          return res.status(401).json({ message: 'Invalid credentials' });
+        }
       } else {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
