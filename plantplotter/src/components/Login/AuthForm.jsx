@@ -1,66 +1,40 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function AuthForm() {
   const router = useRouter();
+  const { login, loading, error } = useAuth(); 
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    setIsSubmitting(true);
+    setLocalError('');
 
     try {
-      // Simulate API call - replace with your actual authentication logic
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For demo purposes, any email/password combination works
-      // In production, replace this with your actual authentication
-      if (email && password) {
-        // Create user object
-        const userData = {
-          id: Date.now().toString(),
-          name: email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1),
-          email: email,
-          avatar: null,
-          createdAt: new Date().toISOString(),
-          preferences: {
-            theme: 'light',
-            notifications: true,
-            units: 'metric'
-          }
-        };
-
-        // Store user data and auth token
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('authToken', 'demo-token-' + Date.now());
-
-        // Trigger a storage event to update navbar
-        window.dispatchEvent(new Event('storage'));
-
-        // Redirect to gardens page
-        router.push('/gardens');
-      } else {
-        throw new Error('Please enter both email and password');
-      }
+      await login(email, password);      
+      router.push('/gardens');
     } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
-      setIsLoading(false);
+      setLocalError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    setIsSubmitting(true);
+    setLocalError('');
 
     try {
       // Simulate API call for password reset
@@ -75,13 +49,12 @@ export default function AuthForm() {
         throw new Error('Please enter your email address');
       }
     } catch (err) {
-      setError(err.message || 'Failed to send reset link. Please try again.');
+      setLocalError(err.message || 'Failed to send reset link. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  // Quick login demo function
   const handleDemoLogin = () => {
     setEmail('demo@plantplotter.com');
     setPassword('demo123');
@@ -93,6 +66,8 @@ export default function AuthForm() {
       }
     }, 100);
   };
+
+  const displayError = localError || error;
 
   if (showForgotPassword) {
     return (
@@ -106,9 +81,10 @@ export default function AuthForm() {
           </p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-red-600 text-sm">{error}</p>
+        {displayError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+            <p className="text-red-600 text-sm">{displayError}</p>
           </div>
         )}
 
@@ -124,24 +100,26 @@ export default function AuthForm() {
               value={resetEmail}
               onChange={(e) => setResetEmail(e.target.value)}
               required
+              disabled={isSubmitting}
             />
           </div>
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSubmitting}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg hover:shadow-xl"
           >
-            {isLoading ? 'Sending...' : 'Send Reset Link'}
+            {isSubmitting ? 'Sending...' : 'Send Reset Link'}
           </button>
 
           <button
             type="button"
             onClick={() => {
               setShowForgotPassword(false);
-              setError('');
+              setLocalError('');
             }}
             className="w-full text-gray-600 hover:text-green-600 font-medium py-2 transition-colors"
+            disabled={isSubmitting}
           >
             Back to Login
           </button>
@@ -152,9 +130,10 @@ export default function AuthForm() {
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <p className="text-red-600 text-sm">{error}</p>
+      {displayError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <p className="text-red-600 text-sm">{displayError}</p>
         </div>
       )}
 
@@ -166,7 +145,8 @@ export default function AuthForm() {
         <button
           type="button"
           onClick={handleDemoLogin}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+          disabled={isSubmitting || loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
         >
           Try Demo Login
         </button>
@@ -194,6 +174,7 @@ export default function AuthForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isSubmitting || loading}
             />
           </div>
 
@@ -208,11 +189,13 @@ export default function AuthForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={isSubmitting || loading}
             />
             <button
               type="button"
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
               onClick={() => setShowPassword(!showPassword)}
+              disabled={isSubmitting || loading}
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
@@ -228,6 +211,7 @@ export default function AuthForm() {
             type="button"
             onClick={() => setShowForgotPassword(true)}
             className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors"
+            disabled={isSubmitting || loading}
           >
             Forgot password?
           </button>
@@ -235,10 +219,17 @@ export default function AuthForm() {
 
         <button
           type="submit"
-          disabled={isLoading}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg hover:shadow-xl"
+          disabled={isSubmitting || loading}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center"
         >
-          {isLoading ? 'Signing in...' : 'Sign In'}
+          {isSubmitting || loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Signing in...
+            </>
+          ) : (
+            'Sign In'
+          )}
         </button>
       </form>
 

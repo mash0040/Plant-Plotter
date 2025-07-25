@@ -2,42 +2,52 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Settings, Menu, X, Heart, AlertTriangle } from 'lucide-react';
-import { getGardenById } from '@/lib/api';
-import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
+import apiClient from '@/lib/api';
 import GardenForm from '@/components/Gardens/GardenForm'; 
 
 export default function GardenDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [garden, setGarden] = useState(null);
+  const [plantLibrary, setPlantLibrary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false); 
 
+  // Single useEffect to load both garden and plant library data
   useEffect(() => {
-    const loadGarden = async () => {
+    const loadData = async () => {
       try {
-        // Try to load from localStorage first (for demo/saved gardens)
-        const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-        const localGarden = localGardens.find(g => g.id == params.id);
+        // Load garden data
+        const gardenData = await apiClient.getGarden(params.id);
         
-        if (localGarden) {
-          setGarden(localGarden);
-        } else {
-          // Fallback to API mock data
-          const gardenData = await getGardenById(params.id);
-          setGarden(gardenData);
-        }
+        // Load plant library from backend
+        const plantLibraryData = await apiClient.getPlantLibrary();
+        
+        setGarden(gardenData);
+        setPlantLibrary(plantLibraryData);
+        
       } catch (error) {
-        console.error('Failed to load garden:', error);
+        console.error('Failed to load data:', error);
+        
+        // Try localStorage fallback for garden
+        try {
+          const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+          const localGarden = localGardens.find(g => g.id == params.id);
+          if (localGarden) {
+            setGarden(localGarden);
+          }
+        } catch (localError) {
+          console.error('Failed to load from localStorage:', localError);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     if (params.id) {
-      loadGarden();
+      loadData();
     }
   }, [params.id]);
 
@@ -59,7 +69,6 @@ export default function GardenDetailPage() {
   }, [mobileMenuOpen]);
 
   const handleOpenGardenPlanner = () => {
-    // Navigate to garden planner with this garden's ID
     router.push(`/garden?id=${garden.id}`);
   };
 
@@ -68,62 +77,226 @@ export default function GardenDetailPage() {
     setShowEditForm(true);
   };
 
-  // Add the missing save handler
-  const handleSaveGarden = (updatedGardenData) => {
-    // Update the garden in localStorage
-    const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-    const gardenIndex = localGardens.findIndex(g => g.id == garden.id);
-    
-    if (gardenIndex !== -1) {
-      // Update existing garden
-      const updatedGarden = {
-        ...localGardens[gardenIndex],
+  const handleSaveGarden = async (updatedGardenData) => {
+    try {
+      const updatedGarden = await apiClient.updateGarden(garden.id, {
         ...updatedGardenData,
-        id: garden.id, // Keep the same ID
-        updatedAt: new Date().toISOString(),
-        // Preserve existing planted items
         plantedItems: garden.plantedItems || [],
         plantCount: garden.plantCount || 0
-      };
+      });
       
-      localGardens[gardenIndex] = updatedGarden;
-      localStorage.setItem('gardens', JSON.stringify(localGardens));
-      
-      // Update the current garden state
       setGarden(updatedGarden);
+      
+      // Also update localStorage as fallback
+      const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+      const gardenIndex = localGardens.findIndex(g => g.id == garden.id);
+      
+      if (gardenIndex !== -1) {
+        localGardens[gardenIndex] = updatedGarden;
+        localStorage.setItem('gardens', JSON.stringify(localGardens));
+      }
+    } catch (error) {
+      console.error('Failed to update garden:', error);
+      // Fallback to localStorage only
+      const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+      const gardenIndex = localGardens.findIndex(g => g.id == garden.id);
+      
+      if (gardenIndex !== -1) {
+        const updatedGarden = {
+          ...localGardens[gardenIndex],
+          ...updatedGardenData,
+          id: garden.id,
+          updatedAt: new Date().toISOString(),
+          plantedItems: garden.plantedItems || [],
+          plantCount: garden.plantCount || 0
+        };
+        
+        localGardens[gardenIndex] = updatedGarden;
+        localStorage.setItem('gardens', JSON.stringify(localGardens));
+        setGarden(updatedGarden);
+      }
     }
     
-    // Close the form
     setShowEditForm(false);
   };
 
-  // Add the missing close handler
   const handleCloseForm = () => {
     setShowEditForm(false);
   };
 
-  // Calculate companion plant suggestions based on planted items
+  // Clean companion plant suggestions with name-based mapping
   const getCompanionSuggestions = () => {
-    if (!garden?.plantedItems || garden.plantedItems.length === 0) {
+    if (!garden?.plantedItems || garden.plantedItems.length === 0 || !plantLibrary.length) {
       return { companions: [], avoid: [] };
     }
 
+    // Map plant names to plant library IDs
+    const mapPlantNameToId = (plantName) => {
+      const nameToIdMap = {
+        // VEGETABLES
+        'alliums': 'alliums', 'allium': 'alliums', 'onion family': 'alliums',
+        'asparagus': 'asparagus',
+        'bush beans': 'beans_bush', 'beans bush': 'beans_bush',
+        'pole beans': 'beans_pole', 'beans pole': 'beans_pole', 'climbing beans': 'beans_pole',
+        'fava beans': 'beans_fava', 'beans fava': 'beans_fava', 'broad beans': 'beans_fava',
+        'beets': 'beets', 'beet': 'beets', 'beetroot': 'beets',
+        'brassicas': 'brassicas', 'brassica': 'brassicas', 'cabbage family': 'brassicas',
+        'broccoli': 'broccoli',
+        'brussels sprouts': 'brussels_sprouts', 'brussels sprout': 'brussels_sprouts',
+        'cabbage': 'cabbage',
+        'carrot': 'carrot', 'carrots': 'carrot',
+        'cauliflower': 'cauliflower',
+        'celery': 'celery',
+        'chard': 'chard', 'swiss chard': 'chard',
+        'corn': 'corn', 'maize': 'corn', 'sweet corn': 'corn',
+        'cucumber': 'cucumber', 'cucumbers': 'cucumber',
+        'cucurbits': 'cucurbits', 'squash family': 'cucurbits',
+        'eggplant': 'eggplant', 'aubergine': 'eggplant',
+        'kohlrabi': 'kohlrabi',
+        'leek': 'leek', 'leeks': 'leek',
+        'legumes': 'legumes', 'legume': 'legumes', 'beans and peas': 'legumes',
+        'lettuce': 'lettuce', 'leafy greens': 'lettuce',
+        'mustard': 'mustard', 'mustard greens': 'mustard',
+        'nightshades': 'nightshades', 'nightshade': 'nightshades', 'tomato family': 'nightshades',
+        'okra': 'okra',
+        'onion': 'onion', 'onions': 'onion',
+        'parsnip': 'parsnip', 'parsnips': 'parsnip',
+        'peas': 'peas', 'pea': 'peas', 'garden peas': 'peas',
+        'pepper': 'pepper', 'bell pepper': 'pepper', 'sweet pepper': 'pepper', 'peppers': 'pepper', 'bell peppers': 'pepper',
+        'potato': 'potato', 'potatoes': 'potato',
+        'pumpkin': 'pumpkin', 'pumpkins': 'pumpkin',
+        'radish': 'radish', 'radishes': 'radish',
+        'soybean': 'soybean', 'soybeans': 'soybean', 'soy': 'soybean',
+        'spinach': 'spinach',
+        'squash': 'squash', 'summer squash': 'squash', 'zucchini': 'squash', 'courgette': 'squash',
+        'sweet potato': 'sweet_potato', 'sweet potatoes': 'sweet_potato',
+        'tomato': 'tomato', 'tomatoes': 'tomato',
+        'turnip': 'turnip', 'turnips': 'turnip',
+
+        // FRUITS
+        'apple': 'apple', 'apples': 'apple', 'apple tree': 'apple', 'apple trees': 'apple',
+        'apricot': 'apricot', 'apricots': 'apricot', 'apricot tree': 'apricot',
+        'blueberry': 'blueberry', 'blueberries': 'blueberry', 'blueberry bush': 'blueberry',
+        'fruit trees': 'fruit_trees', 'fruit tree': 'fruit_trees',
+        'grape': 'grape', 'grapes': 'grape', 'grapevine': 'grape', 'grape vine': 'grape',
+        'melon': 'melon', 'melons': 'melon', 'cantaloupe': 'melon', 'honeydew': 'melon',
+        'passion fruit': 'passion_fruit', 'passionfruit': 'passion_fruit',
+        'pear': 'pear', 'pears': 'pear', 'pear tree': 'pear',
+        'strawberry': 'strawberry', 'strawberries': 'strawberry', 'strawberry plant': 'strawberry',
+        'raspberry': 'raspberry', 'raspberries': 'raspberry', 'raspberry canes': 'raspberry',
+        'cherry': 'cherry', 'cherries': 'cherry', 'cherry tree': 'cherry',
+        'peach': 'peach', 'peaches': 'peach', 'peach tree': 'peach',
+        'fig': 'fig', 'figs': 'fig', 'fig tree': 'fig',
+
+        // HERBS
+        'anise': 'anise',
+        'basil': 'basil', 'sweet basil': 'basil', 'thai basil': 'basil',
+        'borage': 'borage',
+        'caraway': 'caraway',
+        'catnip': 'catnip', 'cat mint': 'catnip',
+        'chamomile': 'chamomile', 'german chamomile': 'chamomile',
+        'chervil': 'chervil',
+        'chives': 'chives',
+        'cilantro': 'cilantro', 'coriander': 'cilantro', 'fresh coriander': 'cilantro',
+        'dill': 'dill', 'dill weed': 'dill',
+        'fennel': 'fennel', 'florence fennel': 'fennel',
+        'flax': 'flax', 'linseed': 'flax',
+        'garlic': 'garlic',
+        'hyssop': 'hyssop',
+        'lavender': 'lavender', 'english lavender': 'lavender', 'french lavender': 'lavender',
+        'lemongrass': 'lemongrass', 'lemon grass': 'lemongrass',
+        'lovage': 'lovage',
+        'oregano': 'oregano', 'wild marjoram': 'oregano',
+        'parsley': 'parsley', 'flat leaf parsley': 'parsley', 'curly parsley': 'parsley', 'italian parsley': 'parsley',
+        'peppermint': 'peppermint',
+        'mint': 'peppermint', // default to peppermint unless specified
+        'rosemary': 'rosemary',
+        'sage': 'sage', 'common sage': 'sage',
+        'southernwood': 'southernwood',
+        'spearmint': 'spearmint', 'garden mint': 'spearmint',
+        'stinging nettle': 'stinging_nettle', 'nettle': 'stinging_nettle',
+        'summer savory': 'summer_savory', 'savory': 'summer_savory',
+        'tarragon': 'tarragon', 'french tarragon': 'tarragon',
+        'thyme': 'thyme', 'common thyme': 'thyme', 'garden thyme': 'thyme',
+        'wormwood': 'wormwood',
+        'yarrow': 'yarrow', 'achillea': 'yarrow',
+
+        // FLOWERS
+        'alyssum': 'alyssum', 'sweet alyssum': 'alyssum',
+        'baby breath': 'baby_breath', "baby's breath": 'baby_breath',
+        'bee balm': 'bee_balm', 'monarda': 'bee_balm',
+        'california poppy': 'california_poppy',
+        'dianthus': 'dianthus', 'carnation': 'dianthus', 'pinks': 'dianthus',
+        'geranium': 'geranium', 'pelargonium': 'geranium',
+        'larkspur': 'larkspur',
+        'lupin': 'lupin', 'lupine': 'lupin',
+        'marigold': 'marigold', 'french marigold': 'marigold', 'african marigold': 'marigold',
+        'nasturtium': 'nasturtium', 'indian cress': 'nasturtium',
+        'pansy': 'pansy', 'viola': 'pansy',
+        'petunia': 'petunia',
+        'phacelia': 'phacelia', 'bee bread': 'phacelia',
+        'rose': 'rose', 'roses': 'rose', 'rose bush': 'rose',
+        'sunflower': 'sunflower', 'sunflowers': 'sunflower',
+        'swan plant': 'swan_plant', 'milkweed': 'swan_plant',
+        'sweet pea': 'sweet_pea', 'sweet peas': 'sweet_pea',
+        'tansy': 'tansy',
+        'zinnia': 'zinnia', 'zinnias': 'zinnia',
+
+        // OTHER
+        'alfalfa': 'alfalfa', 'lucerne': 'alfalfa',
+        'peanut': 'peanut', 'peanuts': 'peanut', 'groundnut': 'peanut',
+        'walnut tree': 'walnut_tree', 'walnut': 'walnut_tree', 'black walnut': 'walnut_tree'
+      };
+      
+      return nameToIdMap[plantName.toLowerCase().trim()] || null;
+    };
+
     const companionIds = new Set();
     const avoidIds = new Set();
-    const plantedPlantIds = garden.plantedItems.map(item => item.plantId);
+    
+    // Get plant IDs from planted items using name mapping
+    const plantedPlantIds = garden.plantedItems
+      .map(item => mapPlantNameToId(item.name))
+      .filter(Boolean);
 
-    garden.plantedItems.forEach(plantedItem => {
-      const plantData = PLANT_LIBRARY.find(p => p.id === plantedItem.plantId);
+    // Process each planted item
+    garden.plantedItems.forEach((plantedItem) => {
+      const plantId = mapPlantNameToId(plantedItem.name);
+      
+      if (!plantId) return;
+      
+      // Find plant data in library
+      const plantData = plantLibrary.find(p => p.id === plantId);
+      
       if (plantData) {
-        // Add companion plants that aren't already planted
-        plantData.companionPlants?.forEach(id => {
+        // Parse companion and avoid plants
+        let companionPlants = [];
+        let avoidPlants = [];
+        
+        try {
+          companionPlants = plantData.companion_plants ? 
+            (typeof plantData.companion_plants === 'string' ? 
+              JSON.parse(plantData.companion_plants) : plantData.companion_plants) : [];
+        } catch (e) {
+          companionPlants = [];
+        }
+        
+        try {
+          avoidPlants = plantData.avoid_plants ? 
+            (typeof plantData.avoid_plants === 'string' ? 
+              JSON.parse(plantData.avoid_plants) : plantData.avoid_plants) : [];
+        } catch (e) {
+          avoidPlants = [];
+        }
+        
+        // Add suggestions that aren't already planted
+        companionPlants.forEach(id => {
           if (!plantedPlantIds.includes(id)) {
             companionIds.add(id);
           }
         });
         
-        // Add avoid plants that aren't already planted
-        plantData.avoidPlants?.forEach(id => {
+        avoidPlants.forEach(id => {
           if (!plantedPlantIds.includes(id)) {
             avoidIds.add(id);
           }
@@ -131,13 +304,15 @@ export default function GardenDetailPage() {
       }
     });
 
+    // Get companion plant details from library
     const companions = Array.from(companionIds)
-      .map(id => PLANT_LIBRARY.find(p => p.id === id))
+      .map(id => plantLibrary.find(p => p.id === id))
       .filter(Boolean)
       .slice(0, 8);
 
+    // Get avoid plant details from library
     const avoid = Array.from(avoidIds)
-      .map(id => PLANT_LIBRARY.find(p => p.id === id))
+      .map(id => plantLibrary.find(p => p.id === id))
       .filter(Boolean)
       .slice(0, 6);
 
@@ -196,7 +371,7 @@ export default function GardenDetailPage() {
 
   return (
     <div className="min-h-screen overflow-auto shadow-lg bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50">
-      {/* Garden Form Popup - Add this */}
+      {/* Garden Form Popup */}
       <GardenForm
         garden={garden}
         onSave={handleSaveGarden}
@@ -331,7 +506,7 @@ export default function GardenDetailPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="mb-2 sm:mb-0">
                 <p className="text-xs sm:text-sm text-gray-600">Soil Type</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-800 truncate">{garden.soilType}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-800 truncate">{garden.soil_type}</p>
               </div>
               <div className="w-8 h-8 sm:w-12 sm:h-12 bg-amber-100 rounded-full flex items-center justify-center self-start sm:self-auto">
                 <span className="text-lg sm:text-xl">🌱</span>
@@ -344,7 +519,7 @@ export default function GardenDetailPage() {
               <div className="mb-2 sm:mb-0">
                 <p className="text-xs sm:text-sm text-gray-600">Created</p>
                 <p className="text-sm sm:text-lg font-bold text-gray-800">
-                  {garden.createdAt ? new Date(garden.createdAt).toLocaleDateString() : 'N/A'}
+                  {garden.created_at ? new Date(garden.created_at).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
               <div className="w-8 h-8 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center self-start sm:self-auto">
@@ -400,7 +575,7 @@ export default function GardenDetailPage() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Soil Type:</span>
-                            <span className="text-gray-800">{garden.soilType}</span>
+                            <span className="text-gray-800">{garden.soil_type}</span>
                           </div>
                         </div>
                       </div>
@@ -436,9 +611,9 @@ export default function GardenDetailPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {garden.plantedItems.slice(0, 6).map((plant, index) => (
                         <div key={index} className="bg-gray-50 rounded-lg p-4 flex items-center gap-3">
-                          <span className="text-2xl flex-shrink-0">{plant.emoji || plant.plantEmoji || '🌱'}</span>
+                          <span className="text-2xl flex-shrink-0">{plant.emoji || '🌱'}</span>
                           <div className="min-w-0">
-                            <p className="font-medium text-gray-800 truncate">{plant.name || plant.plantName}</p>
+                            <p className="font-medium text-gray-800 truncate">{plant.name}</p>
                             <p className="text-sm text-gray-600">
                               Planted {plant.plantedDate ? new Date(plant.plantedDate).toLocaleDateString() : 'Unknown'}
                             </p>
@@ -469,10 +644,10 @@ export default function GardenDetailPage() {
                     {garden.plantedItems.map((plant, index) => (
                       <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
                         <div className="flex items-center gap-3 mb-3">
-                          <span className="text-3xl flex-shrink-0">{plant.emoji || plant.plantEmoji || '🌱'}</span>
+                          <span className="text-3xl flex-shrink-0">{plant.emoji || '🌱'}</span>
                           <div className="min-w-0">
-                            <h4 className="font-semibold text-gray-800 truncate">{plant.name || plant.plantName}</h4>
-                            <p className="text-sm text-gray-600">Size: {plant.size || plant.plantSize}x{plant.size || plant.plantSize}</p>
+                            <h4 className="font-semibold text-gray-800 truncate">{plant.name}</h4>
+                            <p className="text-sm text-gray-600">Size: {plant.size}x{plant.size}</p>
                           </div>
                         </div>
                         <div className="space-y-1 text-sm text-gray-600">
@@ -513,7 +688,7 @@ export default function GardenDetailPage() {
                       <div className="space-y-3">
                         {(() => {
                           const categories = garden.plantedItems.reduce((acc, plant) => {
-                            const category = plant.category || plant.plantCategory || 'Other';
+                            const category = plant.category || 'Other';
                             acc[category] = (acc[category] || 0) + 1;
                             return acc;
                           }, {});
@@ -542,7 +717,7 @@ export default function GardenDetailPage() {
                       <div className="space-y-3">
                         {(() => {
                           const totalArea = (garden.dimensions?.width || garden.width) * (garden.dimensions?.height || garden.height) || 1;
-                          const usedSpace = garden.plantedItems.reduce((sum, plant) => sum + ((plant.size || plant.plantSize || 1) * (plant.size || plant.plantSize || 1)), 0);
+                          const usedSpace = garden.plantedItems.reduce((sum, plant) => sum + ((plant.size || 1) * (plant.size || 1)), 0);
                           const utilizationPercent = Math.min((usedSpace / totalArea) * 100, 100);
                           
                           return (
@@ -611,9 +786,9 @@ export default function GardenDetailPage() {
                           .slice(0, 5)
                           .map((plant, index) => (
                           <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
-                            <span className="text-lg">{plant.emoji || plant.plantEmoji || '🌱'}</span>
+                            <span className="text-lg">{plant.emoji || '🌱'}</span>
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-800">{plant.name || plant.plantName}</p>
+                              <p className="text-sm font-medium text-gray-800">{plant.name}</p>
                               <p className="text-xs text-gray-600">
                                 {plant.plantedDate ? new Date(plant.plantedDate).toLocaleDateString() : 'Unknown date'}
                               </p>
@@ -719,7 +894,11 @@ export default function GardenDetailPage() {
                             <Heart className="w-8 h-8 text-gray-400" />
                           </div>
                           <h4 className="text-lg font-semibold text-gray-800 mb-2">No companion suggestions available</h4>
-                          <p className="text-gray-600 mb-6">Your current plants don't have specific companion recommendations.</p>
+                          <p className="text-gray-600 mb-6">
+                            {plantLibrary.length === 0 
+                              ? 'Plant library is still loading...' 
+                              : 'Your current plants don\'t have specific companion recommendations.'}
+                          </p>
                           <button
                             onClick={handleOpenGardenPlanner}
                             className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
@@ -786,13 +965,13 @@ export default function GardenDetailPage() {
                       <div className="flex justify-between">
                         <span className="text-gray-600">Created:</span>
                         <span className="text-gray-800">
-                          {garden.createdAt ? new Date(garden.createdAt).toLocaleDateString() : 'Unknown'}
+                          {garden.created_at ? new Date(garden.created_at).toLocaleDateString() : 'Unknown'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Last Updated:</span>
                         <span className="text-gray-800">
-                          {garden.updatedAt ? new Date(garden.updatedAt).toLocaleDateString() : 'Unknown'}
+                          {garden.updated_at ? new Date(garden.updated_at).toLocaleDateString() : 'Unknown'}
                         </span>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
@@ -819,13 +998,19 @@ export default function GardenDetailPage() {
                     Once you delete a garden, there is no going back. Please be certain.
                   </p>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (confirm(`Are you sure you want to delete "${garden.name}"? This action cannot be undone.`)) {
-                        // Handle garden deletion
-                        const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-                        const updatedGardens = localGardens.filter(g => g.id != garden.id);
-                        localStorage.setItem('gardens', JSON.stringify(updatedGardens));
-                        router.push('/gardens');
+                        try {
+                          await apiClient.deleteGarden(garden.id);
+                          router.push('/gardens');
+                        } catch (error) {
+                          console.error('Failed to delete garden via API:', error);
+                          // Fallback to localStorage deletion
+                          const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+                          const updatedGardens = localGardens.filter(g => g.id != garden.id);
+                          localStorage.setItem('gardens', JSON.stringify(updatedGardens));
+                          router.push('/gardens');
+                        }
                       }
                     }}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"

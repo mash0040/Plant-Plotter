@@ -1,1046 +1,648 @@
-// Enhanced Mock API functions with User IDs for proper demo data
-// lib/api.js
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
-export async function getGardens() {
-  return [
-    {
-      id: 1,
-      userId: 1, // Demo user ID
-      name: "Main Vegetable Garden",
-      description: "Large productive vegetable garden with diverse crops and companion planting",
-      soilType: "Loamy",
-      dimensions: { width: 16, height: 12 },
-      location: "Backyard",
-      status: "Active",
-      plantCount: 15,
-      createdAt: "2024-01-15T10:00:00Z",
-      updatedAt: "2024-12-15T14:30:00Z",
-      plantedItems: [
-        {
-          id: "item-1",
-          plantId: "tomato",
-          name: "Tomato",
-          emoji: "🍅",
-          size: 2,
-          category: "vegetables",
-          xPosition: 2,
-          yPosition: 1,
-          plantedDate: "2024-11-01T00:00:00Z",
-          notes: "Cherry tomato variety, caged for support"
-        },
-        {
-          id: "item-2",
-          plantId: "basil",
-          name: "Basil",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 4,
-          yPosition: 1,
-          plantedDate: "2024-11-05T00:00:00Z",
-          notes: "Companion plant with tomatoes"
-        },
-        {
-          id: "item-3",
-          plantId: "lettuce",
-          name: "Lettuce",
-          emoji: "🥬",
-          size: 1,
-          category: "vegetables",
-          xPosition: 0,
-          yPosition: 3,
-          plantedDate: "2024-10-20T00:00:00Z",
-          notes: "Butterhead variety"
-        },
-        {
-          id: "item-4",
-          plantId: "carrot",
-          name: "Carrot",
-          emoji: "🥕",
-          size: 1,
-          category: "vegetables",
-          xPosition: 1,
-          yPosition: 3,
-          plantedDate: "2024-10-15T00:00:00Z",
-          notes: "Orange variety, deep loose soil"
-        },
-        {
-          id: "item-5",
-          plantId: "radish",
-          name: "Radish",
-          emoji: "🔴",
-          size: 1,
-          category: "vegetables",
-          xPosition: 2,
-          yPosition: 3,
-          plantedDate: "2024-11-25T00:00:00Z",
-          notes: "Quick growing, intercropped with carrots"
-        },
-        {
-          id: "item-6",
-          plantId: "pepper",
-          name: "Bell Pepper",
-          emoji: "🫑",
-          size: 2,
-          category: "vegetables",
-          xPosition: 6,
-          yPosition: 2,
-          plantedDate: "2024-11-10T00:00:00Z",
-          notes: "Red bell pepper, needs warm weather"
-        },
-        {
-          id: "item-7",
-          plantId: "oregano",
-          name: "Oregano",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 8,
-          yPosition: 2,
-          plantedDate: "2024-10-25T00:00:00Z",
-          notes: "Mediterranean variety, drought tolerant"
-        },
-        {
-          id: "item-8",
-          plantId: "spinach",
-          name: "Spinach",
-          emoji: "🥬",
-          size: 1,
-          category: "vegetables",
-          xPosition: 0,
-          yPosition: 5,
-          plantedDate: "2024-10-30T00:00:00Z",
-          notes: "Cold weather crop"
-        },
-        {
-          id: "item-9",
-          plantId: "broccoli",
-          name: "Broccoli",
-          emoji: "🥦",
-          size: 2,
-          category: "vegetables",
-          xPosition: 2,
-          yPosition: 5,
-          plantedDate: "2024-10-10T00:00:00Z",
-          notes: "Fall planting, cool weather preferred"
-        },
-        {
-          id: "item-10",
-          plantId: "parsley",
-          name: "Parsley",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 4,
-          yPosition: 6,
-          plantedDate: "2024-10-20T00:00:00Z",
-          notes: "Flat-leaf variety, biennial"
-        },
-        {
-          id: "item-11",
-          plantId: "cucumber",
-          name: "Cucumber",
-          emoji: "🥒",
-          size: 3,
-          category: "vegetables",
-          xPosition: 10,
-          yPosition: 4,
-          plantedDate: "2024-11-15T00:00:00Z",
-          notes: "Climbing variety with trellis"
-        },
-        {
-          id: "item-12",
-          plantId: "zucchini",
-          name: "Zucchini",
-          emoji: "🥒",
-          size: 3,
-          category: "vegetables",
-          xPosition: 6,
-          yPosition: 8,
-          plantedDate: "2024-11-20T00:00:00Z",
-          notes: "Summer squash, very productive"
-        },
-        {
-          id: "item-13",
-          plantId: "marigold",
-          name: "Marigold",
-          emoji: "🌼",
-          size: 1,
-          category: "flowers",
-          xPosition: 0,
-          yPosition: 0,
-          plantedDate: "2024-10-01T00:00:00Z",
-          notes: "Pest deterrent border plant"
-        },
-        {
-          id: "item-14",
-          plantId: "nasturtium",
-          name: "Nasturtium",
-          emoji: "🌸",
-          size: 1,
-          category: "flowers",
-          xPosition: 9,
-          yPosition: 0,
-          plantedDate: "2024-10-05T00:00:00Z",
-          notes: "Edible flowers, aphid trap crop"
-        },
-        {
-          id: "item-15",
-          plantId: "cilantro",
-          name: "Cilantro",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 14,
-          yPosition: 2,
-          plantedDate: "2024-11-01T00:00:00Z",
-          notes: "Cool weather herb, succession planted"
-        }
-      ]
-    },
-    {
-      id: 2,
-      userId: 1, // Demo user ID
-      name: "Mixed Berry & Flower Garden",
-      description: "Diverse garden combining berry bushes, flowers, and companion herbs",
-      soilType: "Sandy Loam",
-      dimensions: { width: 14, height: 10 },
-      location: "Front yard",
-      status: "Active",
-      plantCount: 13,
-      createdAt: "2024-02-20T09:00:00Z",
-      updatedAt: "2024-12-10T16:15:00Z",
-      plantedItems: [
-        {
-          id: "item-16",
-          plantId: "strawberry",
-          name: "Strawberry",
-          emoji: "🍓",
-          size: 1,
-          category: "fruits",
-          xPosition: 1,
-          yPosition: 1,
-          plantedDate: "2024-09-15T00:00:00Z",
-          notes: "Ever-bearing variety, June harvest"
-        },
-        {
-          id: "item-17",
-          plantId: "strawberry",
-          name: "Strawberry",
-          emoji: "🍓",
-          size: 1,
-          category: "fruits",
-          xPosition: 3,
-          yPosition: 1,
-          plantedDate: "2024-09-15T00:00:00Z",
-          notes: "Second strawberry plant for better yield"
-        },
-        {
-          id: "item-18",
-          plantId: "strawberry",
-          name: "Strawberry",
-          emoji: "🍓",
-          size: 1,
-          category: "fruits",
-          xPosition: 5,
-          yPosition: 1,
-          plantedDate: "2024-09-15T00:00:00Z",
-          notes: "Third strawberry for full bed"
-        },
-        {
-          id: "item-19",
-          plantId: "blueberry",
-          name: "Blueberry",
-          emoji: "🫐",
-          size: 3,
-          category: "fruits",
-          xPosition: 8,
-          yPosition: 2,
-          plantedDate: "2024-08-01T00:00:00Z",
-          notes: "Highbush variety, acidic soil added"
-        },
-        {
-          id: "item-20",
-          plantId: "raspberry",
-          name: "Raspberry",
-          emoji: "🍇",
-          size: 2,
-          category: "fruits",
-          xPosition: 2,
-          yPosition: 4,
-          plantedDate: "2024-07-20T00:00:00Z",
-          notes: "Red raspberry canes, summer bearing"
-        },
-        {
-          id: "item-21",
-          plantId: "raspberry",
-          name: "Raspberry",
-          emoji: "🍇",
-          size: 2,
-          category: "fruits",
-          xPosition: 4,
-          yPosition: 4,
-          plantedDate: "2024-07-20T00:00:00Z",
-          notes: "Second raspberry for better production"
-        },
-        {
-          id: "item-22",
-          plantId: "lavender",
-          name: "Lavender",
-          emoji: "💜",
-          size: 2,
-          category: "flowers",
-          xPosition: 0,
-          yPosition: 7,
-          plantedDate: "2024-08-15T00:00:00Z",
-          notes: "English lavender, drought tolerant"
-        },
-        {
-          id: "item-23",
-          plantId: "lavender",
-          name: "Lavender",
-          emoji: "💜",
-          size: 2,
-          category: "flowers",
-          xPosition: 3,
-          yPosition: 7,
-          plantedDate: "2024-08-15T00:00:00Z",
-          notes: "Second lavender for hedge effect"
-        },
-        {
-          id: "item-24",
-          plantId: "rose",
-          name: "Rose Bush",
-          emoji: "🌹",
-          size: 2,
-          category: "flowers",
-          xPosition: 10,
-          yPosition: 6,
-          plantedDate: "2024-07-01T00:00:00Z",
-          notes: "Hybrid tea rose, needs regular feeding"
-        },
-        {
-          id: "item-25",
-          plantId: "marigold",
-          name: "Marigold",
-          emoji: "🌼",
-          size: 1,
-          category: "flowers",
-          xPosition: 6,
-          yPosition: 3,
-          plantedDate: "2024-09-20T00:00:00Z",
-          notes: "French marigold, natural pest control"
-        },
-        {
-          id: "item-26",
-          plantId: "marigold",
-          name: "Marigold",
-          emoji: "🌼",
-          size: 1,
-          category: "flowers",
-          xPosition: 11,
-          yPosition: 4,
-          plantedDate: "2024-09-20T00:00:00Z",
-          notes: "Companion for roses"
-        },
-        {
-          id: "item-27",
-          plantId: "thyme",
-          name: "Thyme",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 12,
-          yPosition: 1,
-          plantedDate: "2024-08-30T00:00:00Z",
-          notes: "Creeping thyme groundcover"
-        },
-        {
-          id: "item-28",
-          plantId: "rosemary",
-          name: "Rosemary",
-          emoji: "🌿",
-          size: 2,
-          category: "herbs",
-          xPosition: 6,
-          yPosition: 8,
-          plantedDate: "2024-08-20T00:00:00Z",
-          notes: "Upright rosemary, winter hardy"
-        }
-      ]
-    },
-    {
-      id: 3,
-      userId: 1, // Demo user ID
-      name: "Culinary Herb Collection",
-      description: "Comprehensive herb garden with cooking essentials and specialty varieties",
-      soilType: "Well-drained Loam",
-      dimensions: { width: 8, height: 8 },
-      location: "Kitchen garden",
-      status: "Active",
-      plantCount: 12,
-      createdAt: "2024-03-10T11:30:00Z",
-      updatedAt: "2024-12-05T10:20:00Z",
-      plantedItems: [
-        {
-          id: "item-29",
-          plantId: "basil",
-          name: "Basil",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 1,
-          yPosition: 1,
-          plantedDate: "2024-10-01T00:00:00Z",
-          notes: "Genovese basil for pesto"
-        },
-        {
-          id: "item-30",
-          plantId: "basil",
-          name: "Basil",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 2,
-          yPosition: 1,
-          plantedDate: "2024-10-01T00:00:00Z",
-          notes: "Thai basil variety"
-        },
-        {
-          id: "item-31",
-          plantId: "oregano",
-          name: "Oregano",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 4,
-          yPosition: 1,
-          plantedDate: "2024-09-25T00:00:00Z",
-          notes: "Greek oregano, very flavorful"
-        },
-        {
-          id: "item-32",
-          plantId: "thyme",
-          name: "Thyme",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 6,
-          yPosition: 1,
-          plantedDate: "2024-09-25T00:00:00Z",
-          notes: "Common thyme"
-        },
-        {
-          id: "item-33",
-          plantId: "rosemary",
-          name: "Rosemary",
-          emoji: "🌿",
-          size: 2,
-          category: "herbs",
-          xPosition: 1,
-          yPosition: 3,
-          plantedDate: "2024-09-20T00:00:00Z",
-          notes: "Upright variety, cold hardy"
-        },
-        {
-          id: "item-34",
-          plantId: "parsley",
-          name: "Parsley",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 4,
-          yPosition: 3,
-          plantedDate: "2024-10-05T00:00:00Z",
-          notes: "Flat-leaf Italian parsley"
-        },
-        {
-          id: "item-35",
-          plantId: "parsley",
-          name: "Parsley",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 5,
-          yPosition: 3,
-          plantedDate: "2024-10-05T00:00:00Z",
-          notes: "Curly parsley for garnish"
-        },
-        {
-          id: "item-36",
-          plantId: "cilantro",
-          name: "Cilantro",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 0,
-          yPosition: 5,
-          plantedDate: "2024-09-30T00:00:00Z",
-          notes: "Slow-bolt variety"
-        },
-        {
-          id: "item-37",
-          plantId: "cilantro",
-          name: "Cilantro",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 1,
-          yPosition: 5,
-          plantedDate: "2024-10-15T00:00:00Z",
-          notes: "Second succession planting"
-        },
-        {
-          id: "item-38",
-          plantId: "mint",
-          name: "Mint",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 3,
-          yPosition: 5,
-          plantedDate: "2024-09-30T00:00:00Z",
-          notes: "Spearmint in container to control spread"
-        },
-        {
-          id: "item-39",
-          plantId: "mint",
-          name: "Mint",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 4,
-          yPosition: 5,
-          plantedDate: "2024-09-30T00:00:00Z",
-          notes: "Peppermint variety"
-        },
-        {
-          id: "item-40",
-          plantId: "lavender",
-          name: "Lavender",
-          emoji: "💜",
-          size: 2,
-          category: "flowers",
-          xPosition: 6,
-          yPosition: 5,
-          plantedDate: "2024-08-15T00:00:00Z",
-          notes: "Culinary lavender for tea and baking"
-        }
-      ]
-    },
-    {
-      id: 4,
-      userId: 1, // Demo user ID
-      name: "Young Orchard",
-      description: "Developing fruit tree collection with understory plantings",
-      soilType: "Clay Loam",
-      dimensions: { width: 20, height: 15 },
-      location: "Side yard",
-      status: "Active",
-      plantCount: 11,
-      createdAt: "2024-04-05T14:00:00Z",
-      updatedAt: "2024-11-20T09:45:00Z",
-      plantedItems: [
-        {
-          id: "item-41",
-          plantId: "apple",
-          name: "Apple Tree",
-          emoji: "🍎",
-          size: 4,
-          category: "fruits",
-          xPosition: 3,
-          yPosition: 3,
-          plantedDate: "2024-04-15T00:00:00Z",
-          notes: "Honeycrisp variety, dwarf rootstock"
-        },
-        {
-          id: "item-42",
-          plantId: "apple",
-          name: "Apple Tree",
-          emoji: "🍎",
-          size: 4,
-          category: "fruits",
-          xPosition: 10,
-          yPosition: 3,
-          plantedDate: "2024-04-15T00:00:00Z",
-          notes: "Gala variety, cross-pollinator"
-        },
-        {
-          id: "item-43",
-          plantId: "pear",
-          name: "Pear Tree",
-          emoji: "🍐",
-          size: 4,
-          category: "fruits",
-          xPosition: 16,
-          yPosition: 3,
-          plantedDate: "2024-04-20T00:00:00Z",
-          notes: "Bartlett pear, needs cross-pollination"
-        },
-        {
-          id: "item-44",
-          plantId: "cherry",
-          name: "Cherry Tree",
-          emoji: "🍒",
-          size: 4,
-          category: "fruits",
-          xPosition: 3,
-          yPosition: 10,
-          plantedDate: "2024-05-01T00:00:00Z",
-          notes: "Sweet cherry, self-pollinating variety"
-        },
-        {
-          id: "item-45",
-          plantId: "peach",
-          name: "Peach Tree",
-          emoji: "🍑",
-          size: 4,
-          category: "fruits",
-          xPosition: 10,
-          yPosition: 10,
-          plantedDate: "2024-05-05T00:00:00Z",
-          notes: "Freestone peach, disease resistant"
-        },
-        {
-          id: "item-46",
-          plantId: "fig",
-          name: "Fig Tree",
-          emoji: "🟤",
-          size: 4,
-          category: "fruits",
-          xPosition: 16,
-          yPosition: 10,
-          plantedDate: "2024-05-10T00:00:00Z",
-          notes: "Brown Turkey fig, cold hardy"
-        },
-        {
-          id: "item-47",
-          plantId: "nasturtium",
-          name: "Nasturtium",
-          emoji: "🌸",
-          size: 1,
-          category: "flowers",
-          xPosition: 1,
-          yPosition: 1,
-          plantedDate: "2024-08-01T00:00:00Z",
-          notes: "Ground cover around apple tree"
-        },
-        {
-          id: "item-48",
-          plantId: "nasturtium",
-          name: "Nasturtium",
-          emoji: "🌸",
-          size: 1,
-          category: "flowers",
-          xPosition: 8,
-          yPosition: 1,
-          plantedDate: "2024-08-01T00:00:00Z",
-          notes: "Beneficial insect attractor"
-        },
-        {
-          id: "item-49",
-          plantId: "nasturtium",
-          name: "Nasturtium",
-          emoji: "🌸",
-          size: 1,
-          category: "flowers",
-          xPosition: 14,
-          yPosition: 1,
-          plantedDate: "2024-08-01T00:00:00Z",
-          notes: "Understory planting"
-        },
-        {
-          id: "item-50",
-          plantId: "nasturtium",
-          name: "Nasturtium",
-          emoji: "🌸",
-          size: 1,
-          category: "flowers",
-          xPosition: 1,
-          yPosition: 8,
-          plantedDate: "2024-08-01T00:00:00Z",
-          notes: "Edible flowers for salads"
-        },
-        {
-          id: "item-51",
-          plantId: "nasturtium",
-          name: "Nasturtium",
-          emoji: "🌸",
-          size: 1,
-          category: "flowers",
-          xPosition: 18,
-          yPosition: 8,
-          plantedDate: "2024-08-01T00:00:00Z",
-          notes: "Natural pest deterrent"
-        }
-      ]
-    },
-    {
-      id: 5,
-      userId: 1, // Demo user ID
-      name: "Intensive Container Garden",
-      description: "Maximized small-space gardening with succession planting",
-      soilType: "Premium Potting Mix",
-      dimensions: { width: 6, height: 4 },
-      location: "Apartment balcony",
-      status: "Active",
-      plantCount: 14,
-      createdAt: "2024-06-01T16:20:00Z",
-      updatedAt: "2024-12-01T11:10:00Z",
-      plantedItems: [
-        {
-          id: "item-52",
-          plantId: "lettuce",
-          name: "Lettuce",
-          emoji: "🥬",
-          size: 1,
-          category: "vegetables",
-          xPosition: 0,
-          yPosition: 0,
-          plantedDate: "2024-11-15T00:00:00Z",
-          notes: "Buttercrunch lettuce"
-        },
-        {
-          id: "item-53",
-          plantId: "lettuce",
-          name: "Lettuce",
-          emoji: "🥬",
-          size: 1,
-          category: "vegetables",
-          xPosition: 1,
-          yPosition: 0,
-          plantedDate: "2024-11-15T00:00:00Z",
-          notes: "Red oak leaf lettuce"
-        },
-        {
-          id: "item-54",
-          plantId: "spinach",
-          name: "Spinach",
-          emoji: "🥬",
-          size: 1,
-          category: "vegetables",
-          xPosition: 2,
-          yPosition: 0,
-          plantedDate: "2024-11-10T00:00:00Z",
-          notes: "Baby spinach for salads"
-        },
-        {
-          id: "item-55",
-          plantId: "radish",
-          name: "Radish",
-          emoji: "🔴",
-          size: 1,
-          category: "vegetables",
-          xPosition: 3,
-          yPosition: 0,
-          plantedDate: "2024-11-20T00:00:00Z",
-          notes: "Cherry belle radish"
-        },
-        {
-          id: "item-56",
-          plantId: "radish",
-          name: "Radish",
-          emoji: "🔴",
-          size: 1,
-          category: "vegetables",
-          xPosition: 4,
-          yPosition: 0,
-          plantedDate: "2024-11-25T00:00:00Z",
-          notes: "Second succession planting"
-        },
-        {
-          id: "item-57",
-          plantId: "cilantro",
-          name: "Cilantro",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 0,
-          yPosition: 1,
-          plantedDate: "2024-11-10T00:00:00Z",
-          notes: "Slow-bolt variety"
-        },
-        {
-          id: "item-58",
-          plantId: "basil",
-          name: "Basil",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 1,
-          yPosition: 1,
-          plantedDate: "2024-11-05T00:00:00Z",
-          notes: "Compact bush basil"
-        },
-        {
-          id: "item-59",
-          plantId: "parsley",
-          name: "Parsley",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 2,
-          yPosition: 1,
-          plantedDate: "2024-10-30T00:00:00Z",
-          notes: "Flat-leaf parsley"
-        },
-        {
-          id: "item-60",
-          plantId: "thyme",
-          name: "Thyme",
-          emoji: "🌿",
-          size: 1,
-          category: "herbs",
-          xPosition: 3,
-          yPosition: 1,
-          plantedDate: "2024-10-25T00:00:00Z",
-          notes: "French thyme in small pot"
-        },
-        {
-          id: "item-61",
-          plantId: "strawberry",
-          name: "Strawberry",
-          emoji: "🍓",
-          size: 1,
-          category: "fruits",
-          xPosition: 0,
-          yPosition: 2,
-          plantedDate: "2024-10-01T00:00:00Z",
-          notes: "Day-neutral variety"
-        },
-        {
-          id: "item-62",
-          plantId: "strawberry",
-          name: "Strawberry",
-          emoji: "🍓",
-          size: 1,
-          category: "fruits",
-          xPosition: 1,
-          yPosition: 2,
-          plantedDate: "2024-10-01T00:00:00Z",
-          notes: "Alpine strawberry"
-        },
-        {
-          id: "item-63",
-          plantId: "pepper",
-          name: "Bell Pepper",
-          emoji: "🫑",
-          size: 2,
-          category: "vegetables",
-          xPosition: 3,
-          yPosition: 2,
-          plantedDate: "2024-10-15T00:00:00Z",
-          notes: "Compact bell pepper variety"
-        },
-        {
-          id: "item-64",
-          plantId: "marigold",
-          name: "Marigold",
-          emoji: "🌼",
-          size: 1,
-          category: "flowers",
-          xPosition: 0,
-          yPosition: 3,
-          plantedDate: "2024-10-20T00:00:00Z",
-          notes: "Dwarf marigold for pest control"
-        },
-        {
-          id: "item-65",
-          plantId: "nasturtium",
-          name: "Nasturtium",
-          emoji: "🌸",
-          size: 1,
-          category: "flowers",
-          xPosition: 5,
-          yPosition: 3,
-          plantedDate: "2024-10-18T00:00:00Z",
-          notes: "Trailing variety in hanging container"
-        }
-      ]
-    },
-    // Gardens for other users (admin/regular users would see empty gardens)
-    {
-      id: 6,
-      userId: 2, // Admin user ID
-      name: "Admin Test Garden",
-      description: "Empty garden for admin user testing",
-      soilType: "Loamy",
-      dimensions: { width: 10, height: 8 },
-      location: "Test Location",
-      status: "Planning",
-      plantCount: 0,
-      createdAt: "2024-12-01T10:00:00Z",
-      updatedAt: "2024-12-01T10:00:00Z",
-      plantedItems: []
-    },
-    {
-      id: 7,
-      userId: 3, // Regular user ID
-      name: "My First Garden",
-      description: "Starter garden for regular user",
-      soilType: "Loamy",
-      dimensions: { width: 8, height: 6 },
-      location: "Backyard",
-      status: "Planning",
-      plantCount: 0,
-      createdAt: "2024-12-01T12:00:00Z",
-      updatedAt: "2024-12-01T12:00:00Z",
-      plantedItems: []
+class ApiClient {
+  constructor() {
+    this.baseURL = API_BASE_URL;
+    console.log('ApiClient initialized with base URL:', this.baseURL);
+  }
+
+  // Get auth token from localStorage
+  getAuthToken() {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (token) {
+        console.log('Auth token found:', token.substring(0, 20) + '...');
+      } else {
+        console.log('No auth token found in localStorage');
+      }
+      return token;
     }
-  ];
-}
-
-// Function to get gardens by user ID (for proper filtering)
-export async function getGardensByUserId(userId) {
-  const allGardens = await getGardens();
-  return allGardens.filter(garden => garden.userId === userId);
-}
-
-export async function getGardenById(id) {
-  const gardens = await getGardens();
-  const garden = gardens.find(g => g.id === parseInt(id));
-  
-  if (!garden) {
-    throw new Error(`Garden with id ${id} not found`);
+    return null;
   }
-  
-  return garden;
-}
 
-export async function updateGarden(id, gardenData) {
-  // Mock update function - replace with real API call
-  console.log(`Updating garden ${id}:`, gardenData);
-  
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return {
-    ...gardenData,
-    id: parseInt(id),
-    updatedAt: new Date().toISOString()
-  };
-}
+  // Generic request method with improved debugging
+  async request(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    const token = this.getAuthToken();
 
-export async function deleteGarden(id) {
-  // Mock delete function - replace with real API call
-  console.log(`Deleting garden ${id}`);
-  
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return { success: true };
-}
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+      },
+      ...options,
+    };
 
-export async function createGarden(gardenData) {
-  // Mock create function - replace with real API call
-  console.log('Creating garden:', gardenData);
-  
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  return {
-    ...gardenData,
-    id: Date.now(), // Simple ID generation for mock
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    plantedItems: []
-  };
-}
-
-// User mapping for demo purposes
-export const USER_MAP = {
-  1: { // Demo user - gets rich sample data
-    id: 1,
-    name: 'Demo User',
-    email: 'demo@plantplotter.com',
-    role: 'user',
-    isDemo: true
-  },
-  2: { // Admin user - gets empty gardens
-    id: 2,
-    name: 'Admin User',
-    email: 'admin@plantplotter.com',
-    role: 'admin',
-    isDemo: false
-  },
-  3: { // Regular user - gets empty gardens
-    id: 3,
-    name: 'Regular User',
-    email: 'user@example.com',
-    role: 'user',
-    isDemo: false
-  }
-};
-
-// Additional helper functions for garden management
-export async function getGardensByStatus(status) {
-  const gardens = await getGardens();
-  return gardens.filter(garden => garden.status === status);
-}
-
-export async function getGardensByLocation(location) {
-  const gardens = await getGardens();
-  return gardens.filter(garden => garden.location.toLowerCase().includes(location.toLowerCase()));
-}
-
-export async function getGardensWithPlant(plantId) {
-  const gardens = await getGardens();
-  return gardens.filter(garden => 
-    garden.plantedItems && 
-    garden.plantedItems.some(item => item.plantId === plantId)
-  );
-}
-
-export async function getPlantStatistics() {
-  const gardens = await getGardens();
-  const stats = {
-    totalPlants: 0,
-    plantsByCategory: {},
-    mostPopularPlants: {},
-    averagePlantsPerGarden: 0
-  };
-
-  gardens.forEach(garden => {
-    if (garden.plantedItems) {
-      stats.totalPlants += garden.plantedItems.length;
-      
-      garden.plantedItems.forEach(plant => {
-        // Count by category
-        const category = plant.category || 'other';
-        stats.plantsByCategory[category] = (stats.plantsByCategory[category] || 0) + 1;
-        
-        // Count by plant type
-        const plantType = plant.plantId;
-        stats.mostPopularPlants[plantType] = (stats.mostPopularPlants[plantType] || 0) + 1;
+    try {
+      console.log(`🔄 Making ${config.method || 'GET'} request to: ${url}`);
+      console.log('📤 Request config:', {
+        method: config.method || 'GET',
+        headers: { ...config.headers, Authorization: token ? 'Bearer [REDACTED]' : 'None' },
+        body: config.body ? JSON.parse(config.body) : 'None'
       });
+      
+      const response = await fetch(url, config);
+      
+      console.log(`📥 Response status: ${response.status} ${response.statusText}`);
+      
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        let errorData = null;
+        
+        try {
+          errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          console.error('❌ API Error Response:', errorData);
+        } catch (parseError) {
+          console.warn('⚠️ Failed to parse error response:', parseError);
+          try {
+            const textResponse = await response.text();
+            console.warn('📄 Error response as text:', textResponse);
+            errorMessage = textResponse || errorMessage;
+          } catch (textError) {
+            console.warn('⚠️ Failed to get text response:', textError);
+          }
+        }
+        
+        // Handle specific status codes
+        switch (response.status) {
+          case 401:
+            console.log('🔑 Unauthorized - clearing auth data');
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('token');
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('user');
+            }
+            throw new Error('Authentication failed. Please log in again.');
+          case 403:
+            throw new Error('Access forbidden. You do not have permission.');
+          case 404:
+            throw new Error(`Resource not found: ${endpoint}`);
+          case 500:
+            throw new Error('Server error. Please try again later.');
+          default:
+            throw new Error(errorMessage);
+        }
+      }
+
+      // Handle empty responses
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log(`✅ API Response from ${endpoint}:`, data);
+        return data;
+      } else {
+        console.log(`✅ Non-JSON response from ${endpoint}`);
+        return { success: true };
+      }
+    } catch (error) {
+      console.error(`❌ API request failed: ${endpoint}`, error);
+      
+      // Handle network errors
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your connection and server status.');
+      }
+      
+      throw error;
     }
-  });
+  }
 
-  stats.averagePlantsPerGarden = gardens.length > 0 ? (stats.totalPlants / gardens.length).toFixed(1) : 0;
+  // Auth methods
+  async login(email, password) {
+    try {
+      console.log('🔐 Attempting login for:', email);
+      const response = await this.request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
 
-  return stats;
-}
+      if (response.token && typeof window !== 'undefined') {
+        console.log('✅ Login successful, storing token');
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
 
-// Mock user authentication for demo purposes
-export async function getUserById(userId) {
-  return USER_MAP[userId] || null;
-}
+      return response;
+    } catch (error) {
+      console.error('❌ Login failed:', error);
+      throw error;
+    }
+  }
 
-// Get demo user data specifically
-export async function getDemoUserGardens() {
-  return getGardensByUserId(1); // Demo user has userId = 1
-}
+  logout() {
+    console.log('🚪 Logging out - clearing localStorage');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+    }
+  }
 
-// Get gardens based on user type
-export async function getGardensForUser(user) {
-  if (user.isDemo || user.email === 'demo@plantplotter.com') {
-    // Demo user gets rich sample data (userId = 1)
-    return getGardensByUserId(1);
-  } else {
-    // Regular/admin users get their own gardens (which would be empty for new users)
-    return getGardensByUserId(user.id);
+  // Get gardens with complete plant data for authenticated user
+  async getGardens() {
+    try {
+      console.log('🏡 Fetching gardens for authenticated user...');
+      
+      const response = await this.request('/gardens');
+      console.log('✅ Raw gardens response:', response);
+      
+      // The backend now returns array directly (not wrapped in object)
+      let gardens = [];
+      
+      if (Array.isArray(response)) {
+        gardens = response;
+      } else if (response && response.gardens && Array.isArray(response.gardens)) {
+        // Fallback for old format
+        gardens = response.gardens;
+        console.log('📊 User Summary:', response.userSummary);
+      } else {
+        console.warn('⚠️ Unexpected response structure:', response);
+        return [];
+      }
+      
+      console.log(`🏡 Found ${gardens.length} gardens for user`);
+      
+      // Transform gardens to ensure consistent format for frontend
+      const transformedGardens = gardens.map(garden => {
+        console.log(`🌱 Processing garden: ${garden.name} (ID: ${garden.id})`);
+        
+        return {
+          id: garden.id,
+          name: garden.name,
+          description: garden.description || '',
+          // Handle both possible dimension formats
+          dimensions: {
+            width: garden.width || garden.dimensions?.width || 10,
+            height: garden.height || garden.dimensions?.height || 10
+          },
+          width: garden.width || garden.dimensions?.width || 10,
+          height: garden.height || garden.dimensions?.height || 10,
+          soilType: garden.soil_type || garden.soilType || 'Loamy',
+          soil_type: garden.soil_type || garden.soilType || 'Loamy',
+          location: garden.location || 'Garden',
+          status: garden.status || 'Active',
+          plantCount: garden.plant_count || garden.plantCount || garden.plantedItems?.length || 0,
+          plant_count: garden.plant_count || garden.plantCount || garden.plantedItems?.length || 0,
+          plantedItems: garden.plantedItems || [],
+          created_at: garden.created_at || garden.createdAt,
+          createdAt: garden.created_at || garden.createdAt,
+          updated_at: garden.updated_at || garden.updatedAt,
+          updatedAt: garden.updated_at || garden.updatedAt,
+          summary: garden.summary || null
+        };
+      });
+      
+      console.log(`✅ Final transformed gardens:`, {
+        totalGardens: transformedGardens.length,
+        gardensWithPlants: transformedGardens.filter(g => g.plantedItems?.length > 0).length,
+        totalPlants: transformedGardens.reduce((sum, g) => sum + (g.plantedItems?.length || 0), 0)
+      });
+      
+      return transformedGardens;
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch gardens:', error);
+      
+      // Enhanced error handling
+      if (error.message.includes('Authentication failed')) {
+        this.logout();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        throw new Error('Please log in again');
+      }
+      
+      if (error.message.includes('Network error')) {
+        throw new Error('Cannot connect to server. Please check if the backend is running.');
+      }
+      
+      throw error;
+    }
+  }
+
+  // Get single garden with complete plant data
+  async getGarden(id) {
+    try {
+      console.log('🏡 Fetching garden by ID with plants:', id);
+      
+      // Fetch garden basic data
+      const garden = await this.request(`/gardens/${id}`);
+      console.log('✅ Garden basic data:', garden);
+      
+      // Fetch planted items for this garden
+      let plantedItems = [];
+      try {
+        const plants = await this.request(`/gardens/${id}/plants`);
+        plantedItems = Array.isArray(plants) ? plants : [];
+        console.log('✅ Garden plants:', plantedItems);
+      } catch (plantError) {
+        console.warn(`⚠️ Failed to fetch plants for garden ${id}:`, plantError);
+        plantedItems = garden.plantedItems || [];
+      }
+      
+      // Transform planted items to consistent format
+      const transformedPlantedItems = plantedItems.map(item => ({
+        id: item.id,
+        plantId: item.plant_id,
+        name: item.name,
+        emoji: item.emoji,
+        size: item.size || 1,
+        xPosition: item.xPosition,
+        yPosition: item.yPosition,
+        plantedDate: item.plantedDate,
+        notes: item.notes
+      }));
+      
+      // Combine garden data with planted items
+      const completeGarden = {
+        ...garden,
+        plantedItems: transformedPlantedItems,
+        plant_count: transformedPlantedItems.length
+      };
+      
+      console.log('✅ Complete garden data:', completeGarden);
+      return completeGarden;
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch garden:', error);
+      throw error;
+    }
+  }
+
+  // Create garden for authenticated user
+  async createGarden(gardenData) {
+    try {
+      console.log('🆕 Creating garden:', gardenData);
+      
+      if (!gardenData.name) {
+        throw new Error('Garden name is required');
+      }
+      if (!gardenData.width || !gardenData.height) {
+        throw new Error('Garden dimensions (width and height) are required');
+      }
+      
+      const response = await this.request('/gardens', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: gardenData.name,
+          description: gardenData.description || '',
+          width: gardenData.width || gardenData.dimensions?.width,
+          height: gardenData.height || gardenData.dimensions?.height,
+          soil_type: gardenData.soil_type || gardenData.soilType || 'Loamy',
+          location: gardenData.location || 'Garden',
+          status: gardenData.status || 'Planning'
+        }),
+      });
+      
+      console.log('✅ Garden created:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to create garden:', error);
+      throw error;
+    }
+  }
+
+  async updateGarden(id, gardenData) {
+    try {
+      console.log('🔍 ===== DEBUG UPDATE GARDEN =====');
+      console.log('🔍 Garden ID:', id);
+      console.log('🔍 Raw gardenData received:', gardenData);
+      
+      // DETAILED ANALYSIS OF THE NAME FIELD
+      console.log('🔍 ===== NAME FIELD ANALYSIS =====');
+      console.log('🔍 gardenData.name RAW:', gardenData.name);
+      console.log('🔍 gardenData.name TYPE:', typeof gardenData.name);
+      console.log('🔍 gardenData.name LENGTH:', gardenData.name ? gardenData.name.length : 'null/undefined');
+      console.log('🔍 gardenData.name JSON:', JSON.stringify(gardenData.name));
+      
+      // Check if it's an object
+      if (typeof gardenData.name === 'object' && gardenData.name !== null) {
+        console.log('❌ NAME IS AN OBJECT!');
+        console.log('🔍 Object keys:', Object.keys(gardenData.name));
+        console.log('🔍 Object values:', Object.values(gardenData.name));
+        console.log('🔍 Object stringified:', JSON.stringify(gardenData.name));
+        console.log('🔍 Object stringified length:', JSON.stringify(gardenData.name).length);
+      }
+      
+      // Check each character if it's a string
+      if (typeof gardenData.name === 'string') {
+        console.log('🔍 First 20 characters:');
+        for (let i = 0; i < Math.min(gardenData.name.length, 20); i++) {
+          console.log(`  [${i}]: "${gardenData.name[i]}" (charCode: ${gardenData.name.charCodeAt(i)})`);
+        }
+        
+        // Check for hidden characters
+        console.log('🔍 Name as hex bytes:', [...gardenData.name].map(c => c.charCodeAt(0).toString(16)).join(' '));
+      }
+      
+      // Check all fields
+      console.log('🔍 ===== ALL FIELDS ANALYSIS =====');
+      Object.entries(gardenData).forEach(([key, value]) => {
+        console.log(`🔍 ${key}:`, {
+          value: value,
+          type: typeof value,
+          length: typeof value === 'string' ? value.length : 'N/A',
+          json: JSON.stringify(value)
+        });
+      });
+      
+      console.log('🔍 ===== END DEBUG =====');
+      
+      // Continue with your normal updateGarden code...
+      console.log('📝 Updating garden:', id, gardenData);
+      const response = await this.request(`/gardens/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(gardenData),
+      });
+      console.log('✅ Garden updated successfully:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to update garden:', error);
+      throw error;
+    }
+  }
+
+  async deleteGarden(id) {
+    try {
+      console.log('🗑️ Deleting garden:', id);
+      const response = await this.request(`/gardens/${id}`, {
+        method: 'DELETE',
+      });
+      console.log('✅ Garden deleted:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to delete garden:', error);
+      throw error;
+    }
+  }
+
+  // Plant methods
+  async getGardenPlants(gardenId) {
+    try {
+      console.log('🌱 Fetching plants for garden:', gardenId);
+      const plantedItems = await this.request(`/gardens/${gardenId}/plants`);
+      
+      const transformedItems = Array.isArray(plantedItems) ? plantedItems.map(item => ({
+        id: item.id,
+        plantId: item.plant_id,
+        name: item.name,
+        emoji: item.emoji,
+        size: item.size || 1,
+        xPosition: item.xPosition,
+        yPosition: item.yPosition,
+        plantedDate: item.plantedDate,
+        notes: item.notes
+      })) : [];
+      
+      console.log('✅ Garden plants loaded:', transformedItems);
+      return transformedItems;
+    } catch (error) {
+      console.error('❌ Failed to fetch garden plants:', error);
+      throw error;
+    }
+  }
+
+  async addPlantToGarden(gardenId, plantData) {
+    try {
+      console.log('🌱 Adding plant to garden:', gardenId, plantData);
+      const response = await this.request(`/gardens/${gardenId}/plants`, {
+        method: 'POST',
+        body: JSON.stringify({
+          plant_id: plantData.plant_id || plantData.plantId,
+          plant_name: plantData.plant_name || plantData.name,
+          plant_emoji: plantData.plant_emoji || plantData.emoji,
+          plant_size: plantData.plant_size || plantData.size,
+          plant_category: plantData.plant_category || plantData.category,
+          x_position: plantData.x_position || plantData.xPosition,
+          y_position: plantData.y_position || plantData.yPosition,
+          notes: plantData.notes
+        }),
+      });
+      console.log('✅ Plant added:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to add plant:', error);
+      throw error;
+    }
+  }
+
+  async removePlantFromGarden(gardenId, plantId) {
+    try {
+      console.log('🗑️ Removing plant from garden:', gardenId, plantId);
+      const response = await this.request(`/gardens/${gardenId}/plants/${plantId}`, {
+        method: 'DELETE',
+      });
+      console.log('✅ Plant removed:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to remove plant:', error);
+      throw error;
+    }
+  }
+
+  // Add method to clear all plants from a garden
+  async clearGardenPlants(gardenId) {
+    try {
+      console.log('🗑️ Clearing all plants from garden:', gardenId);
+      const response = await this.request(`/gardens/${gardenId}/plants`, {
+        method: 'DELETE'
+      });
+      console.log('✅ Plants cleared successfully');
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to clear plants:', error);
+      throw error;
+    }
+  }
+
+  // Enhanced save complete garden method
+  async saveCompleteGarden(gardenData, plantedItems = []) {
+    try {
+      console.log('💾 ===== COMPLETE GARDEN SAVE START =====');
+      console.log('🏡 Garden data:', gardenData);
+      console.log('🌱 Plants to save:', plantedItems.length);
+      
+      let garden;
+      
+      // Step 1: Save or update garden basic info
+      if (gardenData.id) {
+        console.log(`📝 Updating existing garden ${gardenData.id}`);
+        garden = await this.updateGarden(gardenData.id, {
+          name: gardenData.name,
+          description: gardenData.description || '',
+          width: gardenData.width || gardenData.dimensions?.width,
+          height: gardenData.height || gardenData.dimensions?.height,
+          soil_type: gardenData.soilType || gardenData.soil_type,
+          location: gardenData.location,
+          status: gardenData.status
+        });
+        
+        // Extract the actual garden object from the response
+        if (garden.garden) {
+          garden = garden.garden;
+        }
+        
+        // Ensure garden has ID
+        if (!garden.id) {
+          garden.id = gardenData.id;
+        }
+        
+      } else {
+        console.log('🆕 Creating new garden');
+        garden = await this.createGarden({
+          name: gardenData.name,
+          description: gardenData.description || '',
+          width: gardenData.width || gardenData.dimensions?.width,
+          height: gardenData.height || gardenData.dimensions?.height,
+          soil_type: gardenData.soilType || 'Loamy',
+          location: gardenData.location || 'Garden',
+          status: gardenData.status || 'Active'
+        });
+      }
+      
+      console.log('✅ Garden saved:', { id: garden.id, name: garden.name });
+      
+      // Step 2: Save plants if any
+      if (plantedItems.length > 0) {
+        console.log(`🌱 Saving ${plantedItems.length} plants to garden ${garden.id}`);
+        
+        try {
+          // Use the new complete save endpoint for plants
+          const plantResponse = await this.request(`/gardens/${garden.id}/complete`, {
+            method: 'PUT',
+            body: JSON.stringify({ plantedItems }),
+          });
+          
+          console.log('✅ Plants saved successfully:', plantResponse);
+          
+        } catch (plantError) {
+          console.warn('⚠️ Plant saving failed, trying individual plant saves:', plantError.message);
+          
+          // Fallback: Clear plants first, then add individually
+          try {
+            await this.clearGardenPlants(garden.id);
+            console.log('✅ Existing plants cleared');
+          } catch (clearError) {
+            console.warn('⚠️ Could not clear existing plants:', clearError.message);
+          }
+          
+          // Add plants individually
+          let addedCount = 0;
+          for (const plant of plantedItems) {
+            try {
+              await this.addPlantToGarden(garden.id, plant);
+              addedCount++;
+              console.log(`✅ Added plant ${addedCount}/${plantedItems.length}: ${plant.plant_name}`);
+            } catch (error) {
+              console.error(`❌ Failed to add plant ${plant.plant_name}:`, error.message);
+            }
+          }
+          
+          console.log(`✅ Individual plant saves: ${addedCount}/${plantedItems.length} successful`);
+        }
+      } else {
+        console.log('ℹ️ No plants to save');
+      }
+      
+      console.log('✅ ===== COMPLETE GARDEN SAVE SUCCESS =====');
+      return garden;
+      
+    } catch (error) {
+      console.error('❌ ===== COMPLETE GARDEN SAVE FAILED =====');
+      console.error('Error details:', error);
+      throw error;
+    }
+  }
+
+  // Plant library methods
+  async getPlantLibrary() {
+    try {
+      console.log('📚 Fetching plant library...');
+      const plants = await this.request('/plants');
+      console.log('✅ Plant library loaded:', plants);
+      return plants;
+    } catch (error) {
+      console.error('❌ Failed to fetch plant library:', error);
+      throw error;
+    }
+  }
+
+  // Helper methods
+  isAuthenticated() {
+    const token = this.getAuthToken();
+    const isAuth = !!token;
+    console.log('🔑 Authentication check:', isAuth ? 'Authenticated' : 'Not authenticated');
+    return isAuth;
+  }
+
+  getCurrentUser() {
+    if (typeof window !== 'undefined') {
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      console.log('👤 Current user:', user ? `${user.email} (ID: ${user.id})` : 'None');
+      return user;
+    }
+    return null;
+  }
+
+  // Debug methods
+  async testConnection() {
+    try {
+      console.log('🔗 Testing API connection...');
+      const response = await fetch(`${this.baseURL}/health`);
+      const isConnected = response.ok;
+      console.log('🔗 API connection:', isConnected ? '✅ Connected' : '❌ Failed');
+      return isConnected;
+    } catch (error) {
+      console.error('❌ API connection test failed:', error);
+      return false;
+    }
+  }
+
+  async testGardensEndpoint() {
+    try {
+      console.log('🔗 Testing gardens endpoint...');
+      const response = await fetch(`${this.baseURL}/gardens`, {
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('🔗 Gardens endpoint status:', response.status, response.statusText);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Gardens endpoint test successful');
+        console.log('📊 Gardens data preview:', {
+          type: typeof data,
+          isArray: Array.isArray(data),
+          gardensKey: data.gardens ? `array with ${data.gardens.length} items` : 'not present',
+          directArray: Array.isArray(data) ? `${data.length} items` : 'not array'
+        });
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.log('❌ Gardens endpoint failed:', errorText);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Gardens endpoint test failed:', error);
+      return false;
+    }
   }
 }
 
-// Export updated function for backward compatibility
-export { getGardens as getApiGardens };
+// Create singleton instance
+const apiClient = new ApiClient();
+
+// Export helper functions for backward compatibility
+export const getGardenById = (id) => apiClient.getGarden(id);
+export const getGardens = () => apiClient.getGardens();
+export const createGarden = (gardenData) => apiClient.createGarden(gardenData);
+export const updateGarden = (id, gardenData) => apiClient.updateGarden(id, gardenData);
+export const deleteGarden = (id) => apiClient.deleteGarden(id);
+
+export default apiClient;

@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Menu, X, LogOut, User } from 'lucide-react';
 import Image from 'next/image';
+import { useAuth } from '@/hooks/useAuth';
 
 // Navigation items that require authentication
 const authenticatedNavItems = [
@@ -22,39 +23,13 @@ export default function Navbar() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-
-  // Check authentication status
-  const checkAuth = () => {
-    const userData = localStorage.getItem('user');
-    const authToken = localStorage.getItem('authToken');
-    
-    if (userData && authToken) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('authToken');
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-  };
+  
+  // Use the auth hook
+  const { user, logout, loading } = useAuth();
 
   useEffect(() => {
     setMounted(true);
-    checkAuth();
-
-    // Listen for storage changes (when user logs in/out)
-    const handleStorageChange = () => {
-      checkAuth();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Close user menu when clicking outside
@@ -76,32 +51,18 @@ export default function Navbar() {
 
   // Redirect non-authenticated users from protected routes
   useEffect(() => {
-    if (mounted && !user) {
+    if (mounted && !loading && !user) {
       const protectedRoutes = ['/gardens', '/garden', '/tracker', '/profile', '/preferences'];
       if (protectedRoutes.includes(pathname)) {
         router.push('/login');
       }
     }
-  }, [mounted, user, pathname, router]);
+  }, [mounted, user, pathname, router, loading]);
 
   const handleLogout = () => {
-    // Clear user data from localStorage
-    localStorage.removeItem('user');
-    localStorage.removeItem('authToken');
-    
-    // Clear any other app-specific data if needed
-    localStorage.removeItem('gardens');
-    localStorage.removeItem('userPreferences');
-    
-    // Update state
-    setUser(null);
+    logout();
     setShowUserMenu(false);
     setMenuOpen(false);
-    
-    // Trigger storage event to update other components
-    window.dispatchEvent(new Event('storage'));
-    
-    // Redirect to login page
     router.push('/login');
   };
 
@@ -109,6 +70,21 @@ export default function Navbar() {
     router.push('/login');
     setMenuOpen(false);
   };
+
+  // Don't render anything during loading
+  if (!mounted || loading) {
+    return (
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-green-900 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="text-white text-xl font-bold flex items-center gap-2">
+            <Image src="/logo.svg" alt="PlantPlotter Logo" width={32} height={32} /> 
+            <span>PlantPlotter</span>
+          </div>
+          <div className="w-8 h-8"></div> {/* Placeholder for loading */}
+        </div>
+      </nav>
+    );
+  }
 
   // Get navigation items based on authentication status
   const navItems = user ? authenticatedNavItems : publicNavItems;
@@ -289,7 +265,9 @@ export default function Navbar() {
                   <Link
                     href="/preferences"
                     onClick={() => setMenuOpen(false)}
-                    className="block px-3 py-2 text-sm text-white hover:bg-green-700 rounded-md transition-colors">
+                    className="block px-3 py-2 text-sm text-white hover:bg-green-700 rounded-md transition-colors"
+                  >
+                    Preferences
                   </Link>
                   
                   <button

@@ -1,9 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Leaf, Plus, Edit, Trash2, Eye, MapPin, Ruler } from 'lucide-react';
 
-export default function GardenList({ gardens = [], onEdit, onDelete, onView, onAddNew }) {
+export default function GardenList({ 
+  gardens = [], 
+  onEdit, 
+  onDelete, 
+  onView, 
+  onAddNew,
+  loading = false,
+  error = null 
+}) {
   const router = useRouter();
 
   const getStatusColor = (status) => {
@@ -15,22 +23,48 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
     }
   };
 
-  const handleDelete = (garden) => {
+  const handlePlannerOpen = (garden, e) => {
+    e?.stopPropagation();
+    router.push(`/garden?id=${garden.id}`);
+  };
+
+  const handleView = (garden) => {
+    router.push(`/gardens/${garden.id}`);
+  };
+
+  const handleDelete = async (garden, e) => {
+    e?.stopPropagation();
     if (window.confirm(`Delete "${garden.name}"?`)) {
       onDelete?.(garden);
     }
   };
 
-  const handleView = (garden) => {
-    // Navigate to garden detail page
-    router.push(`/garden/${garden.id}`);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your gardens...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handlePlannerOpen = (garden, e) => {
-    e.stopPropagation(); // Prevent card click
-    // Navigate to garden planner with garden ID
-    router.push(`/garden?id=${garden.id}`);
-  };
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 p-6">
@@ -55,7 +89,7 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
           </div>
         </div>
 
-        {gardens.length > 0 ? (
+        {gardens && gardens.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {gardens.map((garden) => (
               <div
@@ -79,18 +113,18 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
                   <div className="flex items-center gap-3 text-gray-700">
                     <Ruler className="w-4 h-4 text-green-600" />
                     <span className="text-sm">
-                      {garden.dimensions?.width}m × {garden.dimensions?.height}m
+                      {garden.dimensions?.width || garden.width}m × {garden.dimensions?.height || garden.height}m
                     </span>
                   </div>
 
                   <div className="bg-green-50 rounded-lg p-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Soil Type:</span>
-                      <span className="text-sm font-medium text-green-700">{garden.soilType}</span>
+                      <span className="text-sm font-medium text-green-700">{garden.soilType || garden.soil_type}</span>
                     </div>
                     <div className="flex justify-between items-center mt-1">
                       <span className="text-sm text-gray-600">Plants:</span>
-                      <span className="text-sm font-medium text-green-700">{garden.plantCount || 0} plants</span>
+                      <span className="text-sm font-medium text-green-700">{garden.plantCount || garden.plant_count || 0} plants</span>
                     </div>
                   </div>
 
@@ -133,10 +167,7 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
                     Edit
                   </button>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(garden);
-                    }}
+                    onClick={(e) => handleDelete(garden, e)}
                     className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -164,7 +195,7 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
           </div>
         )}
 
-        {gardens.length > 0 && (
+        {gardens && gardens.length > 0 && (
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-100">
             <h3 className="text-xl font-semibold text-gray-800 mb-6">Garden Summary</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -196,7 +227,7 @@ export default function GardenList({ gardens = [], onEdit, onDelete, onView, onA
               <div className="text-center">
                 <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
                   <span className="text-xl font-bold text-purple-600">
-                    {gardens.reduce((sum, garden) => sum + (garden.plantCount || 0), 0)}
+                    {gardens.reduce((sum, garden) => sum + (garden.plantCount || garden.plant_count || 0), 0)}
                   </span>
                 </div>
                 <div className="text-sm text-gray-600">Total Plants</div>

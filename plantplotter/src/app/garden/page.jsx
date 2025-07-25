@@ -10,7 +10,7 @@ import SaveGardenModel from '@/components/Garden/SaveGardenModel';
 import LoadGardenModel from '@/components/Garden/LoadGardenModel';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
 import { snapToGrid, checkPlantOverlap, isWithinBounds } from '@/components/Garden/Utils/GardenUtils';
-import gardenDataService from '@/lib/gardenDataService';
+import apiClient from '@/lib/api';
 
 export default function GardenPlannerPage() {
   const searchParams = useSearchParams();
@@ -51,14 +51,14 @@ export default function GardenPlannerPage() {
   // Helper function to convert grid units to pixels
   const gridToPixels = (gridUnits) => gridUnits * gridSize;
 
-  // Load garden data using gardenDataService
+  // Load garden data using apiClient
   useEffect(() => {
     const loadGarden = async () => {
       if (!gardenId) return;
       
       setLoading(true);
       try {
-        const garden = await gardenDataService.getGardenById(parseInt(gardenId));
+        const garden = await apiClient.getGarden(gardenId);
         
         if (!garden) {
           alert('Garden not found');
@@ -240,60 +240,96 @@ export default function GardenPlannerPage() {
     setDragOverlayPosition({ x: 0, y: 0 });
   };
 
-  // Save garden using gardenDataService
+  // Save garden using apiClient
   const handleSaveGarden = async (gardenName) => {
     try {
-      // Convert planner format to storage format
+      console.log('🎯 Starting garden save process...');
+      
+      // Convert planner format to API format
       const plantedItems = placedPlants.map(plant => ({
-        id: plant.id,
-        plantId: plant.plantId || plant.id.replace('plant-', ''),
-        name: plant.name,
-        emoji: plant.emoji,
-        size: plant.size,
-        category: plant.category,
-        // Convert pixel positions to grid positions
-        xPosition: pixelsToGrid(plant.x),
-        yPosition: pixelsToGrid(plant.y),
-        plantedDate: plant.plantedDate || new Date(),
+        plant_id: plant.plantId || plant.id?.replace('plant-', '') || 'unknown',
+        plant_name: plant.name,
+        plant_emoji: plant.emoji,
+        plant_size: plant.size || 1,
+        plant_category: plant.category || 'other',
+        x_position: Math.floor((plant.x || 0) / gridSize),
+        y_position: Math.floor((plant.y || 0) / gridSize),
+        planted_date: plant.plantedDate ? 
+          (plant.plantedDate instanceof Date ? 
+            plant.plantedDate.toISOString().split('T')[0] : 
+            plant.plantedDate) : 
+          new Date().toISOString().split('T')[0],
         notes: plant.notes || ''
       }));
 
+      console.log('📊 Processed planted items:', plantedItems);
+
       const gardenData = {
         name: gardenName,
+        description: currentGarden?.description || '',
+        width: dimensions.width,
+        height: dimensions.height,
         soilType: currentGarden?.soilType || 'Loamy',
-        dimensions: {
-          width: dimensions.width,
-          height: dimensions.height
-        },
         location: currentGarden?.location || 'Garden',
-        status: currentGarden?.status || 'Active',
-        plantedItems: plantedItems
+        status: currentGarden?.status || 'Active'
       };
 
-      let savedGarden;
+      // Add ID if updating existing garden
       if (currentGarden?.id) {
-        // Update existing garden
-        savedGarden = await gardenDataService.saveGarden({
-          ...gardenData,
-          id: currentGarden.id,
-          createdAt: currentGarden.createdAt
-        }, true);
-      } else {
-        // Create new garden
-        savedGarden = await gardenDataService.saveGarden(gardenData, false);
+        gardenData.id = currentGarden.id;
       }
+
+      console.log('🏡 Garden data to save:', gardenData);
+
+      // Use the enhanced save method
+      const savedGarden = await apiClient.saveCompleteGarden(gardenData, plantedItems);
       
-      setCurrentGarden(savedGarden);
+      // Update current garden state
+      setCurrentGarden({
+        ...savedGarden,
+        dimensions: {
+          width: savedGarden.width,
+          height: savedGarden.height
+        },
+        soilType: savedGarden.soil_type || savedGarden.soilType,
+        plantedItems: placedPlants // Keep the planner format for the UI
+      });
+      
       setHasUnsavedChanges(false);
       
+      console.log('✅ Garden save completed successfully');
       return savedGarden;
-    } catch (error) {
-      console.error('Failed to save garden:', error);
-      throw error;
-    }
-  };
+      
+      } catch (error) {
+        console.error('❌ Garden save failed:', error);
+        throw error;
+      }
+    };
 
-  // Load garden using gardenDataService
+  const getSafeGardenName = (garden) => {
+  if (!garden || !garden.name) {
+    return 'Garden';
+  }
+  
+  // Handle corrupted object names
+  if (typeof garden.name === 'string') {
+    // If it's the corrupted "[object Object]" string, use a fallback
+    if (garden.name === '[object Object]') {
+      return `Garden ${garden.id || 'Untitled'}`;
+    }
+    return garden.name;
+  } else if (typeof garden.name === 'object' && garden.name !== null) {
+    // If somehow it's still an actual object, extract string
+    console.warn('Garden name is an object:', garden.name);
+    return garden.name.name || garden.name.value || `Garden ${garden.id || 'Untitled'}`;
+  } else {
+    return String(garden.name || 'Garden');
+  }
+};
+
+const safeGardenName = getSafeGardenName(currentGarden);
+
+  // Load garden using apiClient
   const handleLoadGarden = async (gardenData) => {
     if (!gardenData) {
       alert("Garden not found");
@@ -493,7 +529,7 @@ export default function GardenPlannerPage() {
             onSave={() => setShowSaveModal(true)}
             hasUnsavedChanges={hasUnsavedChanges}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-            gardenName={currentGarden?.name}
+            gardenName={safeGardenName}
             onBackClick={handleBackToGarden}
           />
 

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { X, Calendar, Trash2 } from 'lucide-react';
-import gardenDataService from '@/lib/gardenDataService';
+import apiClient from '@/lib/api';
 
 export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const [gardens, setGardens] = useState([]);
@@ -16,10 +16,12 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const loadGardens = async () => {
     setLoading(true);
     try {
-      const userGardens = await gardenDataService.getGardens();
+      const userGardens = await apiClient.getGardens();
       setGardens(userGardens);
     } catch (error) {
       console.error('Failed to load gardens:', error);
+      // Show user-friendly error
+      alert('Failed to load gardens. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -27,8 +29,39 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
 
   const handleLoad = async (garden) => {
     try {
-      const fullGarden = await gardenDataService.getGardenById(garden.id);
-      onLoad(fullGarden);
+      const fullGarden = await apiClient.getGarden(garden.id);
+      
+      const transformedGarden = {
+        id: fullGarden.id,
+        name: fullGarden.name,
+        description: fullGarden.description,
+        dimensions: {
+          width: fullGarden.width,
+          height: fullGarden.height
+        },
+        gridSize: 40, // Default grid size
+        soilType: fullGarden.soil_type,
+        location: fullGarden.location,
+        status: fullGarden.status,
+        plantCount: fullGarden.plant_count,
+        // Transform planted_items to match planner expectations
+        plantedItems: fullGarden.plantedItems?.map(item => ({
+          id: item.id,
+          plantId: item.plant_id,
+          name: item.plant_name,
+          emoji: item.plant_emoji,
+          size: item.plant_size,
+          category: item.plant_category,
+          x: item.x_position,
+          y: item.y_position,
+          plantedDate: item.planted_date,
+          notes: item.notes
+        })) || [],
+        createdAt: fullGarden.created_at,
+        updatedAt: fullGarden.updated_at
+      };
+      
+      onLoad(transformedGarden);
       onClose();
     } catch (error) {
       console.error('Failed to load garden:', error);
@@ -40,7 +73,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this garden?')) {
       try {
-        await gardenDataService.deleteGarden(gardenId);
+        await apiClient.deleteGarden(gardenId);
         setGardens(prev => prev.filter(g => g.id !== gardenId));
       } catch (error) {
         console.error('Failed to delete garden:', error);

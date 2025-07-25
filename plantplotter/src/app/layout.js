@@ -1,7 +1,9 @@
+// app/layout.js
+'use client';
 import { Geist, Geist_Mono } from "next/font/google";
 import "../styles/globals.css";
+import { AuthProvider } from "@/hooks/useAuth"; 
 import Navbar from '@/components/Navbar';
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,19 +15,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "Plant Plotter",
-  description: "Plan your garden with drag-and-drop ease",
-};
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark">
       <body className="bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-1200 text-gray-1200 dark:text-white">
-        <Navbar />
-        <main className="pt-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          {children}
-        </main>
+        <AuthProvider>
+          <Navbar />
+          <main className="pt-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );

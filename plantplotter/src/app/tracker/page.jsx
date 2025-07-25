@@ -18,7 +18,7 @@ import {
   completeTask,
   resetTaskDatabase
 } from '@/components/Tracker/Constants/TaskData';
-import gardenDataService, { subscribeToGardenChanges } from '@/lib/gardenDataService';
+import apiClient from '@/lib/api';
 
 export default function TrackingPage() {
   const [gardens, setGardens] = useState([]);
@@ -40,16 +40,9 @@ export default function TrackingPage() {
   const [todayTasks, setTodayTasks] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
 
-  // Load gardens from the centralized data service
+  // Load gardens from the API
   useEffect(() => {
     loadGardens();
-    
-    // Subscribe to garden data changes
-    const unsubscribe = subscribeToGardenChanges(() => {
-      loadGardens();
-    });
-    
-    return () => unsubscribe();
   }, []);
 
   // Load tasks when garden changes
@@ -62,22 +55,87 @@ export default function TrackingPage() {
 
   const loadGardens = async () => {
     try {
-      // Use the centralized garden data service
-      const gardens = await gardenDataService.getGardensForTracker();
-      console.log('Loaded gardens from data service:', gardens);
+      // Try to load from API first
+      const gardens = await apiClient.getGardens();
+      console.log('Loaded gardens from API:', gardens);
       
-      setGardens(gardens);
-      if (gardens.length > 0 && !selectedGarden) {
-        setSelectedGarden(gardens[0]);
+      // Transform gardens for tracker format
+      const trackerGardens = gardens.map(garden => ({
+        id: garden.id,
+        name: garden.name,
+        icon: getGardenIcon(garden),
+        plantCount: garden.plantCount || garden.plantedItems?.length || 0,
+        status: garden.status || 'Active',
+        location: garden.location || 'Unknown'
+      }));
+      
+      setGardens(trackerGardens);
+      if (trackerGardens.length > 0 && !selectedGarden) {
+        setSelectedGarden(trackerGardens[0]);
       }
     } catch (error) {
-      console.error('Failed to load gardens:', error);
-      setGardens([]);
+      console.error('Failed to load gardens from API:', error);
+      
+      // Fallback to localStorage
+      try {
+        const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+        console.log('Loaded gardens from localStorage as fallback:', localGardens);
+        
+        const trackerGardens = localGardens.map(garden => ({
+          id: garden.id,
+          name: garden.name,
+          icon: getGardenIcon(garden),
+          plantCount: garden.plantCount || garden.plantedItems?.length || 0,
+          status: garden.status || 'Active',
+          location: garden.location || 'Unknown'
+        }));
+        
+        setGardens(trackerGardens);
+        if (trackerGardens.length > 0 && !selectedGarden) {
+          setSelectedGarden(trackerGardens[0]);
+        }
+      } catch (localError) {
+        console.error('Failed to load from localStorage:', localError);
+        setGardens([]);
+      }
     }
   };
 
-  // Helper function is no longer needed as it's handled by the data service
-  // const getGardenIcon = () => { ... } - removed
+  // Helper function to get garden icon based on garden data
+  const getGardenIcon = (garden) => {
+    if (garden.plantedItems && garden.plantedItems.length > 0) {
+      // Get the most common plant category
+      const categories = garden.plantedItems.reduce((acc, plant) => {
+        const category = plant.category || plant.plantCategory || 'other';
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      }, {});
+      
+      const mostCommon = Object.keys(categories).reduce((a, b) => 
+        categories[a] > categories[b] ? a : b
+      );
+      
+      // Return icon based on most common category
+      switch (mostCommon) {
+        case 'vegetables': return '🥕';
+        case 'fruits': return '🍎';
+        case 'herbs': return '🌿';
+        case 'flowers': return '🌸';
+        default: return '🌱';
+      }
+    }
+    
+    // Default icon based on garden name or location
+    const name = garden.name?.toLowerCase() || '';
+    const location = garden.location?.toLowerCase() || '';
+    
+    if (name.includes('herb') || location.includes('herb')) return '🌿';
+    if (name.includes('vegetable') || location.includes('vegetable')) return '🥕';
+    if (name.includes('fruit') || location.includes('fruit')) return '🍎';
+    if (name.includes('flower') || location.includes('flower')) return '🌸';
+    
+    return '🌱'; // Default garden icon
+  };
 
   const loadTasks = () => {
     if (!selectedGarden) return;
@@ -128,16 +186,35 @@ export default function TrackingPage() {
     setShowForm(true);
   };
 
-  const handleSubmitActivity = (activityData) => {
+  const handleSubmitActivity = async (activityData) => {
     if (!selectedGarden) return;
     
-    const newActivityData = {
-      ...activityData,
-      gardenId: selectedGarden.id
-    };
-    
-    const updatedCalendarData = addActivity(calendarData, selectedDate, newActivityData);
-    setCalendarData(updatedCalendarData);
+    try {
+      // Try to add activity via API
+      const newActivityData = {
+        ...activityData,
+        gardenId: selectedGarden.id,
+        date: selectedDate
+      };
+      
+      await apiClient.addActivity(newActivityData);
+      
+      // Also add to local calendar data for immediate UI update
+      const updatedCalendarData = addActivity(calendarData, selectedDate, newActivityData);
+      setCalendarData(updatedCalendarData);
+      
+    } catch (error) {
+      console.error('Failed to add activity via API:', error);
+      
+      // Fallback to local calendar data only
+      const newActivityData = {
+        ...activityData,
+        gardenId: selectedGarden.id
+      };
+      
+      const updatedCalendarData = addActivity(calendarData, selectedDate, newActivityData);
+      setCalendarData(updatedCalendarData);
+    }
     
     setShowForm(false);
     setFormData({ activity: '', plant: '', notes: '', gardenId: null });

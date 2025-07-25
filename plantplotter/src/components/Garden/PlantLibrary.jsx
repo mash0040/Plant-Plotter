@@ -1,18 +1,187 @@
 'use client';
 import { ArrowLeft, X, Search, ChevronDown, ChevronUp, Heart, AlertTriangle, Info } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PlantLibraryItem from './PlantLibraryItem';
+import apiClient from '@/lib/api';
 
 export default function PlantLibrary({ 
-  plants, 
   searchTerm, 
   setSearchTerm, 
   isOpen, 
   onToggle,
-  placedPlants = [] // New prop to show companion suggestions
+  placedPlants = []
 }) {
+  const [plants, setPlants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [showCompanionGuide, setShowCompanionGuide] = useState(false);
   const [expandedPlants, setExpandedPlants] = useState({});
+
+  // Helper function to safely parse JSON or comma-separated strings
+  const safeJsonParse = (value, fallback = []) => {
+    if (!value) return fallback;
+    
+    // If it's already an array, return it
+    if (Array.isArray(value)) return value;
+    
+    // If it's a string, try to parse it
+    if (typeof value === 'string') {
+      // First, try JSON.parse
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : fallback;
+      } catch (jsonError) {
+        // If JSON parsing fails, try splitting by comma
+        try {
+          if (value.includes(',')) {
+            return value.split(',').map(item => item.trim()).filter(Boolean);
+          } else if (value.trim()) {
+            return [value.trim()];
+          }
+        } catch (splitError) {
+          console.warn('Failed to parse value as comma-separated:', value, splitError);
+        }
+      }
+    }
+    
+    return fallback;
+  };
+
+  useEffect(() => {
+    loadPlants();
+  }, []);
+
+  const loadPlants = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🌱 Loading plant library...');
+      const plantLibrary = await apiClient.getPlantLibrary();
+      console.log('📚 Raw plant library response:', plantLibrary);
+      
+      if (!Array.isArray(plantLibrary)) {
+        throw new Error('Plant library response is not an array');
+      }
+      
+      const transformedPlants = plantLibrary.map((plant, index) => {
+        try {
+          // Safe parsing of JSON fields
+          const companionPlants = safeJsonParse(plant.companion_plants, []);
+          const avoidPlants = safeJsonParse(plant.avoid_plants, []);
+          const soilTypes = safeJsonParse(plant.soil_types, []);
+          
+          console.log(`🌿 Processing plant ${plant.name}:`, {
+            companionPlants,
+            avoidPlants,
+            soilTypes
+          });
+          
+          return {
+            id: plant.id,
+            name: plant.name,
+            emoji: plant.emoji,
+            size: plant.size || 1,
+            category: plant.category,
+            description: plant.description,
+            spacing: plant.spacing,
+            sunlight: plant.sunlight,
+            waterNeeds: plant.water_needs,
+            daysToMaturity: plant.days_to_maturity,
+            companionPlants: companionPlants,
+            avoidPlants: avoidPlants,
+            soilTypes: soilTypes,
+            difficulty: plant.difficulty,
+            plantingDepth: plant.planting_depth
+          };
+        } catch (plantError) {
+          console.error(`❌ Failed to transform plant ${plant.name}:`, plantError);
+          // Return a basic version of the plant if transformation fails
+          return {
+            id: plant.id,
+            name: plant.name,
+            emoji: plant.emoji || '🌱',
+            size: plant.size || 1,
+            category: plant.category || 'other',
+            description: plant.description || '',
+            spacing: plant.spacing,
+            sunlight: plant.sunlight,
+            waterNeeds: plant.water_needs,
+            daysToMaturity: plant.days_to_maturity,
+            companionPlants: [],
+            avoidPlants: [],
+            soilTypes: [],
+            difficulty: plant.difficulty,
+            plantingDepth: plant.planting_depth
+          };
+        }
+      });
+      
+      console.log('✅ Transformed plants:', transformedPlants);
+      setPlants(transformedPlants);
+    } catch (err) {
+      console.error('❌ Failed to load plant library:', err);
+      setError(`Failed to load plant library: ${err.message}`);
+      
+      // Fallback to a basic plant set if API fails
+      const fallbackPlants = [
+        {
+          id: 'tomato',
+          name: 'Tomato',
+          emoji: '🍅',
+          size: 2,
+          category: 'vegetables',
+          description: 'Popular garden vegetable',
+          companionPlants: ['basil', 'carrot'],
+          avoidPlants: ['pepper'],
+          soilTypes: ['loamy'],
+          difficulty: 'medium'
+        },
+        {
+          id: 'basil',
+          name: 'Basil',
+          emoji: '🌿',
+          size: 1,
+          category: 'herbs',
+          description: 'Aromatic herb perfect for cooking',
+          companionPlants: ['tomato'],
+          avoidPlants: [],
+          soilTypes: ['loamy'],
+          difficulty: 'easy'
+        },
+        {
+          id: 'lettuce',
+          name: 'Lettuce',
+          emoji: '🥬',
+          size: 1,
+          category: 'vegetables',
+          description: 'Cool-season leafy green',
+          companionPlants: ['carrot'],
+          avoidPlants: [],
+          soilTypes: ['loamy'],
+          difficulty: 'easy'
+        },
+        {
+          id: 'carrot',
+          name: 'Carrot',
+          emoji: '🥕',
+          size: 1,
+          category: 'vegetables',
+          description: 'Root vegetable rich in beta-carotene',
+          companionPlants: ['tomato', 'lettuce'],
+          avoidPlants: [],
+          soilTypes: ['sandy', 'loamy'],
+          difficulty: 'easy'
+        }
+      ];
+      
+      console.log('📦 Using fallback plants:', fallbackPlants);
+      setPlants(fallbackPlants);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredPlants = plants.filter(plant => 
     plant.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -38,29 +207,33 @@ export default function PlantLibrary({
         const avoid = [];
 
         // Get companion plants that aren't already placed
-        plantData.companionPlants?.forEach(id => {
-          if (!placedPlantIds.includes(id)) {
-            const companionPlant = plants.find(p => p.id === id);
-            if (companionPlant) {
-              companions.push(companionPlant);
+        if (plantData.companionPlants && Array.isArray(plantData.companionPlants)) {
+          plantData.companionPlants.forEach(id => {
+            if (!placedPlantIds.includes(id)) {
+              const companionPlant = plants.find(p => p.id === id);
+              if (companionPlant) {
+                companions.push(companionPlant);
+              }
             }
-          }
-        });
+          });
+        }
 
         // Get avoid plants that aren't already placed
-        plantData.avoidPlants?.forEach(id => {
-          if (!placedPlantIds.includes(id)) {
-            const avoidPlant = plants.find(p => p.id === id);
-            if (avoidPlant) {
-              avoid.push(avoidPlant);
+        if (plantData.avoidPlants && Array.isArray(plantData.avoidPlants)) {
+          plantData.avoidPlants.forEach(id => {
+            if (!placedPlantIds.includes(id)) {
+              const avoidPlant = plants.find(p => p.id === id);
+              if (avoidPlant) {
+                avoid.push(avoidPlant);
+              }
             }
-          }
-        });
+          });
+        }
 
         if (companions.length > 0 || avoid.length > 0) {
           suggestions.push({
             sourcePlant: plantData,
-            companions: companions.slice(0, 4), // Limit to 4 per plant
+            companions: companions.slice(0, 4),
             avoid: avoid.slice(0, 4)
           });
         }
@@ -69,6 +242,55 @@ export default function PlantLibrary({
 
     return suggestions;
   }, [placedPlants, plants]);
+
+  // Add loading and error states
+  if (loading) {
+    return (
+      <div className="fixed lg:relative top-0 left-0 h-screen w-72 sm:w-80 lg:w-64 bg-white border-r border-gray-200 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading plants...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="fixed lg:relative top-0 left-0 h-screen w-72 sm:w-80 lg:w-64 bg-white border-r border-gray-200 flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+              <span className="text-red-600 text-sm font-bold">❌</span>
+            </div>
+            <h2 className="text-lg font-semibold text-gray-800">Plants</h2>
+          </div>
+          <button 
+            onClick={onToggle}
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="font-semibold text-red-800 mb-2">Error Loading Plants</h3>
+            <p className="text-red-600 text-sm mb-4 px-2">{error}</p>
+            <button 
+              onClick={loadPlants}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const togglePlantSection = (plantId) => {
     setExpandedPlants(prev => ({
@@ -112,6 +334,11 @@ export default function PlantLibrary({
               <span className="text-green-600 text-sm font-bold">🌱</span>
             </div>
             <h2 className="text-lg font-semibold text-gray-800">Plants</h2>
+            {plants.length > 0 && (
+              <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
+                {plants.length}
+              </span>
+            )}
           </div>
           <button 
             onClick={onToggle}
@@ -261,7 +488,7 @@ export default function PlantLibrary({
           {Object.entries(groupedPlants).map(([category, plants]) => (
             <div key={category} className="space-y-2">
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide px-2 py-1 bg-gray-100 rounded">
-                {category}
+                {category} ({plants.length})
               </h3>
               <div className="space-y-1">
                 {plants.map((plant) => (

@@ -1,0 +1,13 @@
+{
+  "name": "plantplotter",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd plantplotter_backend && npm run dev",
+    "dev:frontend": "cd plantplotter && npm run dev",
+    "build": "cd plantplotter && npm run build",
+    "start": "cd plantplotter_backend && npm start",
+    "lint": "next lint"
+  }
+}

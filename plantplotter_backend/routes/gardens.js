@@ -2,291 +2,1200 @@ const express = require("express");
 const router = express.Router();
 const verifyToken = require("../middleware/verifyToken");
 const db = require("../config/db.js");
-const PDFDocument = require("pdfkit");
-const path = require("path");
-const fs = require("fs");
 
-// GET /api/gardens
+// Helper function to generate garden summary
+const generateGardenSummary = (garden, plantedItems) => {
+  const summary = {
+    totalPlants: plantedItems.length,
+    plantCategories: {},
+    totalArea: garden.width * garden.height,
+    usedSpace: 0,
+    plantsByCategory: {},
+    lastPlantedDate: null,
+    averagePlantSize: 0
+  };
+
+  // Calculate plant statistics
+  if (plantedItems.length > 0) {
+    let totalSize = 0;
+    let latestDate = null;
+
+    plantedItems.forEach(plant => {
+      const category = plant.plant_category || 'other';
+      const size = plant.plant_size || 1;
+      
+      // Count by category
+      summary.plantCategories[category] = (summary.plantCategories[category] || 0) + 1;
+      
+      // Track plants by category for detailed breakdown
+      if (!summary.plantsByCategory[category]) {
+        summary.plantsByCategory[category] = [];
+      }
+      summary.plantsByCategory[category].push({
+        name: plant.plant_name,
+        emoji: plant.plant_emoji,
+        size: size
+      });
+
+      // Calculate used space (assuming square plants)
+      summary.usedSpace += size * size;
+      
+      // Track total size for average
+      totalSize += size;
+      
+      // Find latest planted date
+      const plantDate = new Date(plant.planted_date || plant.created_at);
+      if (!latestDate || plantDate > latestDate) {
+        latestDate = plantDate;
+      }
+    });
+
+    summary.averagePlantSize = Math.round((totalSize / plantedItems.length) * 10) / 10;
+    summary.lastPlantedDate = latestDate;
+    summary.spaceUtilization = Math.round((summary.usedSpace / summary.totalArea) * 100);
+  } else {
+    summary.spaceUtilization = 0;
+  }
+
+  return summary;
+};
+
+// Helper function to transform garden data with summary
+const transformGardenWithSummary = (garden, plantedItems) => {
+  const summary = generateGardenSummary(garden, plantedItems);
+  
+  return {
+    id: garden.id,
+    name: garden.name,
+    description: garden.description || '',
+    width: garden.width,
+    height: garden.height,
+    soil_type: garden.soil_type || 'Loamy',
+    location: garden.location || 'Backyard',
+    status: garden.status || 'Active',
+    plant_count: plantedItems.length,
+    created_at: garden.created_at,
+    updated_at: garden.updated_at,
+    
+    // Planted items with proper transformation
+    plantedItems: plantedItems.map(plant => ({
+      id: plant.id,
+      plantId: plant.plant_id,
+      name: plant.plant_name,
+      emoji: plant.plant_emoji,
+      size: plant.plant_size || 1,
+      category: plant.plant_category,
+      xPosition: plant.x_position,
+      yPosition: plant.y_position,
+      plantedDate: plant.planted_date || plant.created_at,
+      notes: plant.notes,
+      created_at: plant.created_at,
+      updated_at: plant.updated_at
+    })),
+    
+    // Garden summary
+    summary: summary
+  };
+};
+
+// Data sanitization helpers - works with any database column size
+const sanitizeForDatabase = {
+  // Enhanced string sanitization that specifically handles objects
+  string: (value, maxLength = 255, fieldName = 'field') => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    
+    let cleanValue;
+    
+    // Handle different data types
+    if (typeof value === 'string') {
+      // Check if it's the corrupted "[object Object]" string
+      if (value === '[object Object]') {
+        console.log(`⚠️ ${fieldName} is corrupted "[object Object]" string, using fallback`);
+        cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
+      } else {
+        cleanValue = value.trim();
+      }
+    } else if (typeof value === 'object' && value !== null) {
+      // Extract meaningful string from object
+      if (value.name) cleanValue = String(value.name);
+      else if (value.value) cleanValue = String(value.value);
+      else if (value.title) cleanValue = String(value.title);
+      else if (value.label) cleanValue = String(value.label);
+      else {
+        // If no meaningful property found, use a default
+        cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
+      }
+      
+      console.log(`⚠️ ${fieldName} was an object, extracted: "${cleanValue}"`);
+    } else {
+      cleanValue = String(value).trim();
+    }
+    
+    // Remove any remaining object indicators
+    if (cleanValue === '[object Object]' || cleanValue === 'undefined' || cleanValue === 'null') {
+      cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
+      console.log(`⚠️ ${fieldName} had invalid value, using fallback: "${cleanValue}"`);
+    }
+    
+    // Truncate if too long
+    if (cleanValue.length > maxLength) {
+      console.log(`⚠️ ${fieldName} too long (${cleanValue.length} chars), truncating to ${maxLength}`);
+      cleanValue = cleanValue.substring(0, maxLength).trim();
+    }
+    
+    // Ensure it's not empty
+    if (!cleanValue) {
+      cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
+      console.log(`⚠️ ${fieldName} was empty, using fallback: "${cleanValue}"`);
+    }
+    
+    return cleanValue;
+  },
+  
+  // Clean and validate number
+  number: (value, fieldName = 'number', min = 1) => {
+    const num = parseInt(value);
+    if (isNaN(num) || num < min) {
+      throw new Error(`${fieldName} must be a number >= ${min}, received: ${value}`);
+    }
+    return num;
+  },
+  
+  // Convenience methods using the enhanced string function
+  shortString: (value, fieldName = 'field') => {
+    return sanitizeForDatabase.string(value, 50, fieldName);
+  },
+  
+  mediumString: (value, fieldName = 'field') => {
+    return sanitizeForDatabase.string(value, 100, fieldName);
+  },
+  
+  longString: (value, fieldName = 'field') => {
+    return sanitizeForDatabase.string(value, 255, fieldName);
+  }
+};
+
+// GET /api/gardens - Fetch all gardens for authenticated user with summaries
 router.get("/", verifyToken, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const [rows] = await db.query("SELECT * FROM gardens WHERE user_id = ?", [
-      userId,
-    ]);
-
-    res.json(rows);
-  } catch (err) {
-    console.error("Error fetching gardens:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// POST /api/gardens
-router.post("/", verifyToken, async (req, res) => {
-  const { name, width, height, unit } = req.body;
-  const userId = req.user.id;
-
-  if (!name || !width || !height || !unit) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  try {
-    const [result] = await db.query(
-      "INSERT INTO gardens (user_id, name, width, height, unit) VALUES (?, ?, ?, ?, ?)",
-      [userId, name, width, height, unit]
+    console.log(`🔍 Fetching all gardens for user: ${userId}`);
+    
+    // Get all gardens for this specific user
+    const [gardens] = await db.execute(
+      `SELECT 
+        g.id,
+        g.name,
+        g.description,
+        g.width,
+        g.height,
+        g.soil_type,
+        g.location,
+        g.status,
+        g.created_at,
+        g.updated_at
+       FROM gardens g 
+       WHERE g.user_id = ? 
+       ORDER BY g.updated_at DESC`,
+      [userId]
     );
 
-    res.status(201).json({
-      message: "Garden created successfully",
-      gardenId: result.insertId,
-    });
-  } catch (err) {
-    console.error("Error creating garden:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+    console.log(`🏡 Found ${gardens.length} gardens for user ${userId}`);
 
-// PUT /api/gardens/:id
-router.put("/:id", verifyToken, async (req, res) => {
-  const gardenId = req.params.id;
-  const userId = req.user.id;
-  const { name, width, height, unit } = req.body;
-
-  if (!name || !width || !height || !unit) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  try {
-    const [result] = await db
-      .promise()
-      .query(
-        "UPDATE gardens SET name = ?, width = ?, height = ?, unit = ? WHERE id = ? AND user_id = ?",
-        [name, width, height, unit, gardenId, userId]
-      );
-
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ message: "Garden not found or unauthorized" });
+    if (gardens.length === 0) {
+      return res.json([]);
     }
 
-    res.json({ message: "Garden updated successfully" });
+    // Get all planted items for all user's gardens in one query
+    const gardenIds = gardens.map(g => g.id);
+    const placeholders = gardenIds.map(() => '?').join(',');
+    
+    const [allPlantedItems] = await db.execute(
+      `SELECT 
+        pi.id,
+        pi.garden_id,
+        pi.plant_id,
+        pi.plant_name,
+        pi.plant_emoji,
+        pi.plant_size,
+        pi.plant_category,
+        pi.x_position,
+        pi.y_position,
+        pi.planted_date,
+        pi.notes,
+        pi.created_at,
+        pi.updated_at
+       FROM planted_items pi 
+       WHERE pi.garden_id IN (${placeholders})
+       ORDER BY pi.garden_id, pi.created_at DESC`,
+      gardenIds
+    );
+
+    console.log(`🌱 Found ${allPlantedItems.length} total planted items across all gardens`);
+
+    // Group planted items by garden_id
+    const plantsByGarden = {};
+    allPlantedItems.forEach(plant => {
+      if (!plantsByGarden[plant.garden_id]) {
+        plantsByGarden[plant.garden_id] = [];
+      }
+      plantsByGarden[plant.garden_id].push(plant);
+    });
+
+    // Transform each garden with its planted items
+    const gardensWithPlants = gardens.map(garden => {
+      const gardenPlants = plantsByGarden[garden.id] || [];
+      console.log(`🏡 Garden "${garden.name}" (ID: ${garden.id}) has ${gardenPlants.length} plants`);
+      
+      return {
+        id: garden.id,
+        name: garden.name,
+        description: garden.description || '',
+        width: garden.width,
+        height: garden.height,
+        dimensions: {
+          width: garden.width,
+          height: garden.height
+        },
+        soil_type: garden.soil_type || 'Loamy',
+        soilType: garden.soil_type || 'Loamy',
+        location: garden.location || 'Backyard',
+        status: garden.status || 'Active',
+        plant_count: gardenPlants.length,
+        plantCount: gardenPlants.length,
+        created_at: garden.created_at,
+        createdAt: garden.created_at,
+        updated_at: garden.updated_at,
+        updatedAt: garden.updated_at,
+        
+        // Planted items with proper transformation for frontend
+        plantedItems: gardenPlants.map(plant => ({
+          id: plant.id,
+          plantId: plant.plant_id,
+          name: plant.plant_name,
+          emoji: plant.plant_emoji,
+          size: plant.plant_size || 1,
+          category: plant.plant_category,
+          xPosition: plant.x_position,
+          yPosition: plant.y_position,
+          plantedDate: plant.planted_date || plant.created_at,
+          notes: plant.notes,
+          created_at: plant.created_at,
+          updated_at: plant.updated_at
+        }))
+      };
+    });
+
+    console.log(`✅ Successfully processed ${gardens.length} gardens for user ${userId}`);
+    res.json(gardensWithPlants);
+
   } catch (err) {
-    console.error("Error updating garden:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error(`❌ Error fetching gardens for user ${userId}:`, err);
+    res.status(500).json({ 
+      message: "Server error", 
+      error: err.message,
+      userId: userId 
+    });
   }
 });
 
-// DELETE /api/gardens/:id
+// GET /api/gardens/:id - Get specific garden with detailed summary
+router.get('/:id', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const gardenId = req.params.id;
+
+  try {
+    console.log(`🔍 Fetching garden ${gardenId} for user ${userId}`);
+    
+    // Get specific garden for this user
+    const [gardens] = await db.execute(
+      `SELECT 
+        g.id,
+        g.name,
+        g.description,
+        g.width,
+        g.height,
+        g.soil_type,
+        g.location,
+        g.status,
+        g.created_at,
+        g.updated_at
+       FROM gardens g 
+       WHERE g.id = ? AND g.user_id = ?`,
+      [gardenId, userId]
+    );
+
+    if (gardens.length === 0) {
+      console.log(`❌ Garden ${gardenId} not found for user ${userId}`);
+      return res.status(404).json({ error: 'Garden not found or access denied' });
+    }
+
+    const garden = gardens[0];
+    console.log(`🏡 Found garden: "${garden.name}"`);
+
+    // Get all planted items for this garden
+    const [plantedItems] = await db.execute(
+      `SELECT 
+        pi.id,
+        pi.garden_id,
+        pi.plant_id,
+        pi.plant_name,
+        pi.plant_emoji,
+        pi.plant_size,
+        pi.plant_category,
+        pi.x_position,
+        pi.y_position,
+        pi.planted_date,
+        pi.notes,
+        pi.created_at,
+        pi.updated_at
+       FROM planted_items pi 
+       WHERE pi.garden_id = ?
+       ORDER BY pi.created_at DESC`,
+      [gardenId]
+    );
+
+    console.log(`🌱 Found ${plantedItems.length} plants in garden "${garden.name}"`);
+
+    // Transform garden with detailed summary
+    const gardenWithSummary = transformGardenWithSummary(garden, plantedItems);
+
+    // Add detailed analytics for single garden view
+    gardenWithSummary.analytics = {
+      plantingHistory: plantedItems.map(plant => ({
+        date: plant.planted_date || plant.created_at,
+        plantName: plant.plant_name,
+        category: plant.plant_category
+      })).sort((a, b) => new Date(b.date) - new Date(a.date)),
+      
+      categoryBreakdown: gardenWithSummary.summary.plantCategories,
+      
+      spaceAnalysis: {
+        totalArea: garden.width * garden.height,
+        usedSpace: gardenWithSummary.summary.usedSpace,
+        availableSpace: (garden.width * garden.height) - gardenWithSummary.summary.usedSpace,
+        utilizationPercentage: gardenWithSummary.summary.spaceUtilization
+      },
+      
+      recommendations: generateRecommendations(garden, plantedItems)
+    };
+
+    console.log(`✅ Successfully fetched garden ${gardenId} with detailed summary`);
+    res.json(gardenWithSummary);
+
+  } catch (error) {
+    console.error(`❌ Error fetching garden ${gardenId} for user ${userId}:`, error);
+    res.status(500).json({ 
+      error: 'Failed to fetch garden', 
+      message: error.message,
+      gardenId: gardenId,
+      userId: userId
+    });
+  }
+});
+
+// Helper function to generate recommendations
+const generateRecommendations = (garden, plantedItems) => {
+  const recommendations = [];
+  
+  const totalArea = garden.width * garden.height;
+  const usedSpace = plantedItems.reduce((sum, plant) => {
+    const size = plant.plant_size || 1;
+    return sum + (size * size);
+  }, 0);
+  
+  const utilizationPercentage = totalArea > 0 ? (usedSpace / totalArea) * 100 : 0;
+  
+  // Space utilization recommendations
+  if (utilizationPercentage < 30) {
+    recommendations.push({
+      type: 'space',
+      priority: 'medium',
+      message: 'Your garden has plenty of space! Consider adding more plants.',
+      suggestion: 'Add companion plants or try vertical gardening techniques.'
+    });
+  } else if (utilizationPercentage > 80) {
+    recommendations.push({
+      type: 'space',
+      priority: 'high',
+      message: 'Your garden is getting crowded. Consider spacing or pruning.',
+      suggestion: 'Remove some plants or expand your garden area.'
+    });
+  }
+  
+  // Category diversity recommendations
+  const categories = new Set(plantedItems.map(p => p.plant_category));
+  if (categories.size < 2 && plantedItems.length > 0) {
+    recommendations.push({
+      type: 'diversity',
+      priority: 'low',
+      message: 'Consider adding variety to your garden.',
+      suggestion: 'Try planting different categories like herbs, vegetables, or flowers.'
+    });
+  }
+  
+  // Maintenance recommendations
+  if (plantedItems.length > 10) {
+    recommendations.push({
+      type: 'maintenance',
+      priority: 'medium',
+      message: 'With many plants, regular maintenance is important.',
+      suggestion: 'Create a watering and fertilizing schedule.'
+    });
+  }
+  
+  return recommendations;
+};
+
+// GET /api/gardens/:id/plants - Get just planted items for a garden
+router.get('/:id/plants', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const gardenId = req.params.id;
+
+  try {
+    console.log(`🌱 Fetching plants for garden ${gardenId}, user ${userId}`);
+    
+    // Verify garden belongs to user
+    const [gardenCheck] = await db.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
+      [gardenId, userId]
+    );
+
+    if (gardenCheck.length === 0) {
+      return res.status(404).json({ error: 'Garden not found or access denied' });
+    }
+
+    const [plantedItems] = await db.execute(
+      `SELECT 
+        pi.id,
+        pi.garden_id,
+        pi.plant_id,
+        pi.plant_name,
+        pi.plant_emoji,
+        pi.plant_size,
+        pi.plant_category,
+        pi.x_position,
+        pi.y_position,
+        pi.planted_date,
+        pi.notes,
+        pi.created_at,
+        pi.updated_at
+       FROM planted_items pi 
+       WHERE pi.garden_id = ?
+       ORDER BY pi.created_at DESC`,
+      [gardenId]
+    );
+
+    const transformedPlants = plantedItems.map(plant => ({
+      id: plant.id,
+      plantId: plant.plant_id,
+      name: plant.plant_name,
+      emoji: plant.plant_emoji,
+      size: plant.plant_size || 1,
+      category: plant.plant_category,
+      xPosition: plant.x_position,
+      yPosition: plant.y_position,
+      plantedDate: plant.planted_date || plant.created_at,
+      notes: plant.notes,
+      created_at: plant.created_at,
+      updated_at: plant.updated_at
+    }));
+
+    console.log(`✅ Found ${transformedPlants.length} plants for garden ${gardenId}`);
+    res.json(transformedPlants);
+
+  } catch (error) {
+    console.error(`❌ Error fetching plants for garden ${gardenId}:`, error);
+    res.status(500).json({ error: 'Failed to fetch planted items' });
+  }
+});
+
+// POST /api/gardens - Create new garden for user
+router.post('/', verifyToken, async (req, res) => {
+  const rawData = req.body;
+  const userId = req.user.id;
+
+  try {
+    console.log('🆕 ===== CREATING GARDEN WITH SANITIZATION =====');
+    console.log('📋 Raw data received:', JSON.stringify(rawData, null, 2));
+
+    // Sanitize data for database
+    const sanitizedData = {
+      name: sanitizeForDatabase.shortString(rawData.name, 'Garden name'),
+      description: sanitizeForDatabase.string(rawData.description, 65535, 'Description'),
+      width: sanitizeForDatabase.number(rawData.width, 'Width'),
+      height: sanitizeForDatabase.number(rawData.height, 'Height'),
+      soil_type: sanitizeForDatabase.mediumString(rawData.soil_type || 'Loamy', 'Soil type'),
+      location: sanitizeForDatabase.longString(rawData.location || 'Garden', 'Location'),
+      status: sanitizeForDatabase.shortString(rawData.status || 'Planning', 'Status')
+    };
+
+    console.log('✅ Sanitized data for database:', sanitizedData);
+
+    if (!sanitizedData.name) {
+      return res.status(400).json({ 
+        message: 'Garden name is required',
+        received: rawData.name
+      });
+    }
+
+    // Insert into database
+    const [result] = await db.execute(
+      `INSERT INTO gardens 
+       (user_id, name, description, width, height, grid_size, soil_type, location, status, plant_count, created_at, updated_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        userId,
+        sanitizedData.name,
+        sanitizedData.description,
+        sanitizedData.width,
+        sanitizedData.height,
+        40, // Default grid size
+        sanitizedData.soil_type,
+        sanitizedData.location,
+        sanitizedData.status,
+        0 // Initial plant count
+      ]
+    );
+
+    // Fetch and return created garden
+    const [newGarden] = await db.execute(
+      'SELECT * FROM gardens WHERE id = ?',
+      [result.insertId]
+    );
+
+    const garden = newGarden[0];
+    const transformedGarden = {
+      id: garden.id,
+      name: garden.name,
+      description: garden.description || '',
+      width: garden.width,
+      height: garden.height,
+      dimensions: { width: garden.width, height: garden.height },
+      soil_type: garden.soil_type,
+      soilType: garden.soil_type,
+      location: garden.location,
+      status: garden.status,
+      plant_count: 0,
+      plantCount: 0,
+      plantedItems: [],
+      created_at: garden.created_at,
+      createdAt: garden.created_at,
+      updated_at: garden.updated_at,
+      updatedAt: garden.updated_at
+    };
+
+    console.log('✅ Garden created successfully with sanitized data');
+    res.status(201).json(transformedGarden);
+
+  } catch (error) {
+    console.error('❌ Error creating garden:', error);
+    
+    if (error.code === 'ER_DATA_TOO_LONG') {
+      return res.status(400).json({ 
+        message: 'Data sanitization failed - some field is still too long',
+        error: error.message,
+        hint: 'Check database column sizes'
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Failed to create garden', 
+      error: error.message,
+      code: error.code || 'UNKNOWN_ERROR'
+    });
+  }
+});
+
+// PUT /api/gardens/:id - Update garden
+router.put('/:id', verifyToken, async (req, res) => {
+  const gardenId = req.params.id;
+  const userId = req.user.id;
+  const rawData = req.body;
+
+  try {
+    console.log('🔍 ===== GARDEN UPDATE DEBUG =====');
+    console.log('🔍 Raw request body:', JSON.stringify(rawData, null, 2));
+    console.log('🔍 Raw name field:', rawData.name);
+    console.log('🔍 Name type:', typeof rawData.name);
+
+    // ✅ CRITICAL FIX: Use the sanitization helper we already defined
+    const sanitizedData = {
+      name: sanitizeForDatabase.shortString(rawData.name, 'Garden name'),
+      description: sanitizeForDatabase.string(rawData.description, 65535, 'Description'),
+      width: sanitizeForDatabase.number(rawData.width, 'Width'),
+      height: sanitizeForDatabase.number(rawData.height, 'Height'),
+      soil_type: sanitizeForDatabase.mediumString(rawData.soil_type || 'Loamy', 'Soil type'),
+      location: sanitizeForDatabase.longString(rawData.location || 'Garden', 'Location'),
+      status: sanitizeForDatabase.shortString(rawData.status || 'Active', 'Status')
+    };
+
+    console.log('✅ Sanitized data:', sanitizedData);
+    console.log('✅ Sanitized name:', sanitizedData.name);
+    console.log('✅ Sanitized name type:', typeof sanitizedData.name);
+
+    // Validate required fields after sanitization
+    if (!sanitizedData.name) {
+      console.log('❌ Garden name is empty after sanitization');
+      return res.status(400).json({ 
+        message: 'Garden name is required',
+        received: rawData.name,
+        sanitized: sanitizedData.name
+      });
+    }
+
+    // Verify garden ownership
+    const [existing] = await db.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
+      [gardenId, userId]
+    );
+
+    if (existing.length === 0) {
+      return res.status(404).json({ message: 'Garden not found' });
+    }
+
+    // Update with sanitized data
+    const [updateResult] = await db.execute(
+      `UPDATE gardens 
+       SET name = ?, description = ?, width = ?, height = ?, 
+           soil_type = ?, location = ?, status = ?, updated_at = NOW()
+       WHERE id = ? AND user_id = ?`,
+      [
+        sanitizedData.name,        // ✅ Always a clean string
+        sanitizedData.description,
+        sanitizedData.width,
+        sanitizedData.height,
+        sanitizedData.soil_type,
+        sanitizedData.location,
+        sanitizedData.status,
+        gardenId,
+        userId
+      ]
+    );
+
+    console.log('✅ Update completed, affected rows:', updateResult.affectedRows);
+
+    // Fetch updated garden to verify
+    const [updatedGarden] = await db.execute(
+      'SELECT * FROM gardens WHERE id = ?',
+      [gardenId]
+    );
+
+    const garden = updatedGarden[0];
+    console.log('✅ Garden name in database after update:', garden.name);
+    console.log('✅ Garden name type after update:', typeof garden.name);
+
+    const response = {
+      message: 'Garden updated successfully',
+      garden: {
+        id: garden.id,
+        name: garden.name, // Should now be clean string
+        description: garden.description || '',
+        width: garden.width,
+        height: garden.height,
+        dimensions: { width: garden.width, height: garden.height },
+        soil_type: garden.soil_type,
+        soilType: garden.soil_type,
+        location: garden.location,
+        status: garden.status,
+        plant_count: garden.plant_count || 0,
+        plantCount: garden.plant_count || 0,
+        created_at: garden.created_at,
+        createdAt: garden.created_at,
+        updated_at: garden.updated_at,
+        updatedAt: garden.updated_at
+      }
+    };
+
+    console.log('📤 Sending response with name:', response.garden.name);
+    console.log('📤 Response name type:', typeof response.garden.name);
+    res.json(response);
+
+  } catch (error) {
+    console.error('❌ Update error:', error);
+    
+    // Handle specific database errors
+    if (error.code === 'ER_DATA_TOO_LONG') {
+      return res.status(400).json({ 
+        message: 'Data too long for database field',
+        error: error.message,
+        hint: 'Garden name or description is too long'
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Failed to update garden', 
+      error: error.message 
+    });
+  }
+});
+
+// This handles the plant saving that happens after garden update
+router.put('/:id/complete', verifyToken, async (req, res) => {
+  const gardenId = req.params.id;
+  const userId = req.user.id;
+  const { plantedItems = [] } = req.body;
+
+  console.log('🌱 SAVING PLANTS for garden', gardenId, '- Plants:', plantedItems.length);
+
+  try {
+    // Verify garden ownership
+    const [garden] = await db.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
+      [gardenId, userId]
+    );
+
+    if (garden.length === 0) {
+      return res.status(404).json({ message: 'Garden not found' });
+    }
+
+    // Clear existing plants first
+    console.log('🗑️ Clearing existing plants from garden', gardenId);
+    const [deleteResult] = await db.execute(
+      'DELETE FROM planted_items WHERE garden_id = ?',
+      [gardenId]
+    );
+    console.log('✅ Cleared', deleteResult.affectedRows, 'existing plants');
+
+    // Add new plants
+    let plantsAdded = 0;
+    for (const plant of plantedItems) {
+      try {
+        const safePlant = {
+          garden_id: parseInt(gardenId),
+          plant_id: String(plant.plant_id || 'unknown').substring(0, 100),
+          plant_name: String(plant.plant_name || 'Unknown Plant').substring(0, 255),
+          plant_emoji: String(plant.plant_emoji || '🌱').substring(0, 10),
+          plant_size: Math.max(1, parseInt(plant.plant_size) || 1),
+          plant_category: String(plant.plant_category || 'other').substring(0, 100),
+          x_position: Math.max(0, parseInt(plant.x_position) || 0),
+          y_position: Math.max(0, parseInt(plant.y_position) || 0),
+          planted_date: plant.planted_date || new Date().toISOString().split('T')[0],
+          notes: String(plant.notes || '').substring(0, 1000)
+        };
+
+        await db.execute(
+          `INSERT INTO planted_items 
+           (garden_id, plant_id, plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, planted_date, notes, created_at, updated_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          [
+            safePlant.garden_id,
+            safePlant.plant_id,
+            safePlant.plant_name,
+            safePlant.plant_emoji,
+            safePlant.plant_size,
+            safePlant.plant_category,
+            safePlant.x_position,
+            safePlant.y_position,
+            safePlant.planted_date,
+            safePlant.notes
+          ]
+        );
+
+        plantsAdded++;
+        console.log(`✅ Added plant ${plantsAdded}/${plantedItems.length}: ${safePlant.plant_name}`);
+
+      } catch (plantError) {
+        console.error(`❌ Failed to add plant ${plant.plant_name}:`, plantError.message);
+        // Continue with other plants
+      }
+    }
+
+    console.log(`✅ Plants saved: ${plantsAdded}/${plantedItems.length} successful`);
+
+    res.json({
+      message: 'Plants saved successfully',
+      plantsAdded: plantsAdded,
+      totalPlants: plantedItems.length
+    });
+
+  } catch (error) {
+    console.error('❌ Plant saving failed:', error);
+    res.status(500).json({ 
+      message: 'Failed to save plants', 
+      error: error.message 
+    });
+  }
+});
+
+// DELETE /api/gardens/:id/plants - Clear all plants from a garden
+router.delete('/:id/plants', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const gardenId = req.params.id;
+
+  try {
+    console.log(`🗑️ Clearing all plants from garden ${gardenId} for user ${userId}`);
+    
+    // Verify garden belongs to user
+    const [garden] = await db.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
+      [gardenId, userId]
+    );
+
+    if (garden.length === 0) {
+      return res.status(404).json({ error: 'Garden not found or access denied' });
+    }
+
+    // Delete all planted items for this garden
+    const [result] = await db.execute(
+      'DELETE FROM planted_items WHERE garden_id = ?',
+      [gardenId]
+    );
+
+    console.log(`✅ Cleared ${result.affectedRows} plants from garden ${gardenId}`);
+    res.json({ 
+      message: 'Plants cleared successfully', 
+      deletedCount: result.affectedRows 
+    });
+
+  } catch (error) {
+    console.error(`❌ Error clearing plants from garden ${gardenId}:`, error);
+    res.status(500).json({ error: 'Failed to clear plants' });
+  }
+});
+
+// DELETE /api/gardens/:id - Delete garden for user
 router.delete("/:id", verifyToken, async (req, res) => {
   const gardenId = req.params.id;
   const userId = req.user.id;
 
   try {
-    const [result] = await db
-      .promise()
-      .query("DELETE FROM gardens WHERE id = ? AND user_id = ?", [
+    console.log(`🗑️ Deleting garden ${gardenId} for user ${userId}`);
+    
+    // First delete all planted items
+    const [plantDeleteResult] = await db.execute(
+      "DELETE FROM planted_items WHERE garden_id = ?", 
+      [gardenId]
+    );
+    
+    // Then delete the garden (only if owned by user)
+    const [gardenDeleteResult] = await db.execute(
+      "DELETE FROM gardens WHERE id = ? AND user_id = ?", 
+      [gardenId, userId]
+    );
+
+    if (gardenDeleteResult.affectedRows === 0) {
+      return res.status(404).json({ message: "Garden not found or unauthorized" });
+    }
+
+    console.log(`✅ Garden ${gardenId} and ${plantDeleteResult.affectedRows} plants deleted for user ${userId}`);
+    res.json({ 
+      message: "Garden deleted successfully",
+      deletedPlants: plantDeleteResult.affectedRows 
+    });
+
+  } catch (err) {
+    console.error(`❌ Error deleting garden ${gardenId} for user ${userId}:`, err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// POST /api/gardens/:id/plants - Add plant to user's garden
+router.post('/:id/plants', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const gardenId = req.params.id;
+  const { plant_id, plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, notes } = req.body;
+
+  try {
+    console.log('🌱 ===== ADDING PLANT TO GARDEN =====');
+    console.log(`🌱 Adding plant "${plant_name}" to garden ${gardenId} for user ${userId}`);
+    console.log('📋 Plant data received:', {
+      plant_id,
+      plant_name,
+      plant_emoji,
+      plant_size,
+      plant_category,
+      x_position,
+      y_position,
+      notes
+    });
+    
+    // Step 1: Validate required fields
+    if (!plant_name) {
+      console.log('❌ Validation failed: plant_name is required');
+      return res.status(400).json({ 
+        error: 'Plant name is required',
+        field: 'plant_name',
+        received: plant_name
+      });
+    }
+
+    // Step 2: Verify garden belongs to user
+    console.log('🔍 Verifying garden ownership...');
+    const [garden] = await db.execute(
+      'SELECT id, name FROM gardens WHERE id = ? AND user_id = ?',
+      [gardenId, userId]
+    );
+
+    if (garden.length === 0) {
+      console.log('❌ Garden not found or access denied');
+      return res.status(404).json({ 
+        error: 'Garden not found or access denied',
+        gardenId: gardenId,
+        userId: userId
+      });
+    }
+
+    console.log('✅ Garden verified:', garden[0]);
+
+    // Step 3: Prepare plant data with defaults
+    const plantData = {
+      garden_id: parseInt(gardenId),
+      plant_id: plant_id || 'unknown',
+      plant_name: plant_name.trim(),
+      plant_emoji: plant_emoji || '🌱',
+      plant_size: parseInt(plant_size) || 1,
+      plant_category: plant_category || 'other',
+      x_position: parseInt(x_position) || 0,
+      y_position: parseInt(y_position) || 0,
+      notes: (notes || '').trim(),
+      planted_date: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
+    };
+
+    console.log('📝 Prepared plant data:', plantData);
+
+    // Step 4: Insert plant into database
+    console.log('💾 Inserting plant into database...');
+    
+    const insertSQL = `
+      INSERT INTO planted_items 
+      (garden_id, plant_id, plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, notes, planted_date, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    `;
+    
+    const insertParams = [
+      plantData.garden_id,
+      plantData.plant_id,
+      plantData.plant_name,
+      plantData.plant_emoji,
+      plantData.plant_size,
+      plantData.plant_category,
+      plantData.x_position,
+      plantData.y_position,
+      plantData.notes,
+      plantData.planted_date
+    ];
+
+    console.log('📝 SQL Query:', insertSQL);
+    console.log('📋 SQL Params:', insertParams);
+
+    const [result] = await db.execute(insertSQL, insertParams);
+
+    console.log('✅ Plant inserted successfully:', { 
+      insertId: result.insertId, 
+      affectedRows: result.affectedRows 
+    });
+
+    // Step 5: Fetch the newly created plant
+    console.log('🔍 Fetching newly created plant...');
+    const [newPlant] = await db.execute(
+      'SELECT * FROM planted_items WHERE id = ?',
+      [result.insertId]
+    );
+
+    if (newPlant.length === 0) {
+      console.log('❌ Failed to retrieve created plant');
+      return res.status(500).json({ 
+        error: 'Plant created but could not be retrieved',
+        insertId: result.insertId
+      });
+    }
+
+    // Step 6: Transform for frontend
+    console.log('🔄 Transforming plant data for frontend...');
+    const plant = newPlant[0];
+    const transformedPlant = {
+      id: plant.id,
+      plantId: plant.plant_id,
+      name: plant.plant_name,
+      emoji: plant.plant_emoji,
+      size: plant.plant_size,
+      category: plant.plant_category,
+      xPosition: plant.x_position,
+      yPosition: plant.y_position,
+      plantedDate: plant.planted_date,
+      notes: plant.notes,
+      created_at: plant.created_at,
+      updated_at: plant.updated_at
+    };
+
+    console.log('✅ Transformed plant:', transformedPlant);
+    console.log('🎉 ===== PLANT ADDED SUCCESSFULLY =====');
+
+    res.status(201).json(transformedPlant);
+
+  } catch (error) {
+    console.error('🔥 ===== PLANT ADDITION ERROR =====');
+    console.error(`❌ Error adding plant to garden ${gardenId} for user ${userId}`);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      errno: error.errno,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage
+    });
+    console.error('❌ Full error object:', error);
+    console.error('❌ Stack trace:', error.stack);
+    
+    // Handle specific database errors
+    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+      console.log('❌ Foreign key constraint failed');
+      return res.status(400).json({ 
+        error: 'Invalid garden ID or user ID',
+        message: error.message,
         gardenId,
         userId,
-      ]);
+        code: error.code
+      });
+    }
+    
+    if (error.code === 'ER_BAD_FIELD_ERROR') {
+      console.log('❌ Bad field error - column does not exist');
+      return res.status(500).json({ 
+        error: 'Database schema error - missing column',
+        message: error.message,
+        code: error.code,
+        sqlMessage: error.sqlMessage
+      });
+    }
+    
+    if (error.code === 'ER_DATA_TOO_LONG') {
+      console.log('❌ Data too long for field');
+      return res.status(400).json({ 
+        error: 'One or more fields exceed maximum length',
+        message: error.message,
+        code: error.code
+      });
+    }
+
+    if (error.code === 'ER_BAD_NULL_ERROR') {
+      console.log('❌ Required field is null');
+      return res.status(400).json({ 
+        error: 'Required field is missing',
+        message: error.message,
+        code: error.code
+      });
+    }
+
+    if (error.code === 'ECONNREFUSED') {
+      console.log('❌ Database connection refused');
+      return res.status(503).json({ 
+        error: 'Database connection failed',
+        message: 'Cannot connect to database server',
+        code: error.code
+      });
+    }
+    
+    // Generic error response
+    res.status(500).json({ 
+      error: 'Failed to add plant', 
+      message: error.message,
+      code: error.code || 'UNKNOWN_ERROR',
+      timestamp: new Date().toISOString(),
+      gardenId,
+      userId
+    });
+  }
+});
+
+// PUT /api/gardens/:id/plants/:plantId - Update plant in user's garden
+router.put('/:id/plants/:plantId', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const gardenId = req.params.id;
+  const plantId = req.params.plantId;
+  const { plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, notes } = req.body;
+
+  try {
+    console.log(`📝 Updating plant ${plantId} in garden ${gardenId} for user ${userId}`);
+    
+    // Verify garden belongs to user
+    const [garden] = await db.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
+      [gardenId, userId]
+    );
+
+    if (garden.length === 0) {
+      return res.status(404).json({ error: 'Garden not found or access denied' });
+    }
+
+    const [result] = await db.execute(
+      `UPDATE planted_items 
+       SET plant_name = ?, plant_emoji = ?, plant_size = ?, plant_category = ?, x_position = ?, y_position = ?, notes = ?, updated_at = NOW()
+       WHERE id = ? AND garden_id = ?`,
+      [plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, notes, plantId, gardenId]
+    );
 
     if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ message: "Garden not found or unauthorized" });
+      return res.status(404).json({ error: 'Plant not found in this garden' });
     }
 
-    res.json({ message: "Garden deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting garden:", err);
-    res.status(500).json({ message: "Server error" });
+    const [updatedPlant] = await db.execute(
+      'SELECT * FROM planted_items WHERE id = ?',
+      [plantId]
+    );
+
+    const transformedPlant = {
+      id: updatedPlant[0].id,
+      plantId: updatedPlant[0].plant_id,
+      name: updatedPlant[0].plant_name,
+      emoji: updatedPlant[0].plant_emoji,
+      size: updatedPlant[0].plant_size,
+      category: updatedPlant[0].plant_category,
+      xPosition: updatedPlant[0].x_position,
+      yPosition: updatedPlant[0].y_position,
+      plantedDate: updatedPlant[0].planted_date,
+      notes: updatedPlant[0].notes,
+      created_at: updatedPlant[0].created_at,
+      updated_at: updatedPlant[0].updated_at
+    };
+
+    console.log(`✅ Plant ${plantId} updated successfully in garden ${gardenId}`);
+    res.json(transformedPlant);
+
+  } catch (error) {
+    console.error(`❌ Error updating plant ${plantId} for user ${userId}:`, error);
+    res.status(500).json({ error: 'Failed to update plant', message: error.message });
   }
 });
 
-// GET /api/gardens/:id/layout
-router.get("/:id/layout", verifyToken, async (req, res) => {
-  const gardenId = req.params.id;
+// DELETE /api/gardens/:id/plants/:plantId - Remove plant from user's garden
+router.delete('/:id/plants/:plantId', verifyToken, async (req, res) => {
   const userId = req.user.id;
+  const gardenId = req.params.id;
+  const plantId = req.params.plantId;
 
   try {
-    // Get garden metadata
-    const [[garden]] = await db.query(
-      "SELECT id, width, height, unit FROM gardens WHERE id = ? AND user_id = ?",
+    console.log(`🗑️ Removing plant ${plantId} from garden ${gardenId} for user ${userId}`);
+    
+    // Verify garden belongs to user
+    const [garden] = await db.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
       [gardenId, userId]
     );
 
-    if (!garden) {
-      return res
-        .status(404)
-        .json({ message: "Garden not found or unauthorized" });
+    if (garden.length === 0) {
+      return res.status(404).json({ error: 'Garden not found or access denied' });
     }
 
-    // Get all plants for the garden
-    const [plants] = await db.query(
-      "SELECT id, name, x, y, image_url, spacing, soil_type, note FROM plants WHERE garden_id = ?",
-      [gardenId]
+    const [result] = await db.execute(
+      'DELETE FROM planted_items WHERE id = ? AND garden_id = ?',
+      [plantId, gardenId]
     );
 
-    res.json({
-      width: garden.width,
-      height: garden.height,
-      unit: garden.unit,
-      plants,
-    });
-  } catch (err) {
-    console.error("Error fetching garden layout:", err);
-    res.status(500).json({ message: "Failed to fetch garden layout" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Plant not found in this garden' });
+    }
+
+    console.log(`✅ Plant ${plantId} removed successfully from garden ${gardenId}`);
+    res.json({ message: 'Plant removed successfully' });
+
+  } catch (error) {
+    console.error(`❌ Error removing plant ${plantId} for user ${userId}:`, error);
+    res.status(500).json({ error: 'Failed to remove plant', message: error.message });
   }
 });
-
-/*
-// GET /api/gardens/:id/export
-router.get("/:id/export", verifyToken, async (req, res) => {
-  const gardenId = req.params.id;
-  const userId = req.user.id;
-
-  try {
-    const [[garden]] = await db.query(
-      "SELECT name, width, height, unit FROM gardens WHERE id = ? AND user_id = ?",
-      [gardenId, userId]
-    );
-    if (!garden)
-      return res
-        .status(404)
-        .json({ message: "Garden not found or unauthorized" });
-
-    const [plants] = await db.query(
-      "SELECT name, x, y, spacing, soil_type, note, image_url FROM plants WHERE garden_id = ?",
-      [gardenId]
-    );
-    const gardenPlantNames = plants.map((p) => p.name.trim().toLowerCase());
-
-    // Load companion data
-    const dataPath = path.join(__dirname, "../data/companion_plants.json");
-    const rawData = fs.readFileSync(dataPath);
-    const rawCompanion = JSON.parse(rawData);
-    const companionData = {};
-    for (const key in rawCompanion) {
-      companionData[key.trim().toLowerCase()] = rawCompanion[key];
-    }
-
-    // Advisory logic
-    function singularize(name) {
-      const lower = name.trim().toLowerCase();
-      if (lower.endsWith("ies")) return lower.slice(0, -3) + "y";
-      if (lower.endsWith("s") && !lower.endsWith("ss"))
-        return lower.slice(0, -1);
-      return lower;
-    }
-
-    const tips = new Set();
-    const warnings = new Set();
-
-    for (const rawName of gardenPlantNames) {
-      const plant = singularize(rawName);
-      const entry = companionData[plant];
-      if (!entry) continue;
-
-      const allTips = [
-        ...(entry.companions || []),
-        ...(entry.helps || []),
-        ...(entry.helped_by || []),
-      ];
-
-      allTips.forEach((t) => {
-        const tNorm = singularize(t.trim().toLowerCase());
-        if (gardenPlantNames.includes(tNorm)) {
-          tips.add(
-            `${capitalize(rawName)} grows well with or supports ${capitalize(
-              t
-            )}.`
-          );
-        }
-      });
-
-      const allWarnings = [
-        ...(entry.incompatible || []),
-        ...(entry.avoid || []),
-        ...(entry.repels || []),
-      ];
-
-      allWarnings.forEach((w) => {
-        const wNorm = singularize(w.trim().toLowerCase());
-        if (gardenPlantNames.includes(wNorm)) {
-          warnings.add(
-            `${capitalize(rawName)} should not be planted near ${capitalize(
-              w
-            )}.`
-          );
-        }
-      });
-    }
-
-    // Generate PDF
-    const doc = new PDFDocument();
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=garden-${gardenId}.pdf`
-    );
-    res.setHeader("Content-Type", "application/pdf");
-    doc.pipe(res);
-
-    doc.fontSize(18).text(`Garden Report: ${garden.name}`, { underline: true });
-    doc.moveDown().fontSize(12);
-    doc.text(`Dimensions: ${garden.width} x ${garden.height} ${garden.unit}`);
-    doc.moveDown();
-
-    // Plants Section
-    doc.fontSize(14).text("Plants in Garden", { underline: true });
-    doc.moveDown(0.5);
-
-    if (plants.length === 0) {
-      doc.text("No plants added yet.");
-    } else {
-      plants.forEach((p, i) => {
-        doc.fontSize(12).text(`${i + 1}. ${capitalize(p.name)}`);
-        doc.fontSize(10).text(`- Position: (${p.x}, ${p.y})`);
-        doc.text(`- Soil: ${p.soil_type}, Spacing: ${p.spacing}`);
-        doc.text(`- Note: ${p.note || "N/A"}`);
-        doc.text(" ");
-      });
-    }
-
-    // Tips
-    doc
-      .addPage()
-      .fontSize(14)
-      .text("Companion Planting Tips", { underline: true });
-    doc.moveDown();
-    if (tips.size === 0) {
-      doc.text("No tips found based on current garden.");
-    } else {
-      [...tips].forEach((tip, i) => doc.fontSize(12).text(`${i + 1}. ${tip}`));
-    }
-
-    // Warnings
-    doc
-      .addPage()
-      .fontSize(14)
-      .text("Incompatibility Warnings", { underline: true });
-    doc.moveDown();
-    if (warnings.size === 0) {
-      doc.text("No warnings based on current garden.");
-    } else {
-      [...warnings].forEach((w, i) => doc.fontSize(12).text(`${i + 1}. ${w}`));
-    }
-
-    doc.end();
-  } catch (err) {
-    console.error("Error generating PDF export:", err);
-    res.status(500).json({ message: "Failed to generate PDF" });
-  }
-});
-
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-*/
 
 module.exports = router;
