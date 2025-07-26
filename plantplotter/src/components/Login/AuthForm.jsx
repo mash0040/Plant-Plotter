@@ -1,20 +1,30 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function AuthForm() {
   const router = useRouter();
-  const { login, loading, error } = useAuth(); 
+  const { login, register, loading, error } = useAuth(); 
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState('login'); // 'login', 'register', 'forgot'
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setLocalError(''); // Clear error when user types
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,10 +32,23 @@ export default function AuthForm() {
     setLocalError('');
 
     try {
-      await login(email, password);      
-      router.push('/gardens');
+      if (mode === 'login') {
+        await login(formData.email, formData.password);
+        router.push('/gardens');
+      } else if (mode === 'register') {
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+          throw new Error('Passwords do not match');
+        }
+        if (formData.password.length < 6) {
+          throw new Error('Password must be at least 6 characters long');
+        }
+        
+        await register(formData.name, formData.email, formData.password);
+        router.push('/gardens');
+      }
     } catch (err) {
-      setLocalError(err.message || 'Login failed. Please try again.');
+      setLocalError(err.message || `${mode === 'login' ? 'Login' : 'Registration'} failed. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -40,10 +63,9 @@ export default function AuthForm() {
       // Simulate API call for password reset
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // In production, replace with actual password reset logic
       if (resetEmail) {
         alert(`Password reset link sent to: ${resetEmail}`);
-        setShowForgotPassword(false);
+        setMode('login');
         setResetEmail('');
       } else {
         throw new Error('Please enter your email address');
@@ -56,8 +78,12 @@ export default function AuthForm() {
   };
 
   const handleDemoLogin = () => {
-    setEmail('demo@plantplotter.com');
-    setPassword('demo123');
+    setFormData(prev => ({
+      ...prev,
+      email: 'demo@plantplotter.com',
+      password: 'demo123'
+    }));
+    setMode('login');
     // Auto-submit after setting values
     setTimeout(() => {
       const form = document.querySelector('form');
@@ -69,7 +95,8 @@ export default function AuthForm() {
 
   const displayError = localError || error;
 
-  if (showForgotPassword) {
+  // Forgot Password Form
+  if (mode === 'forgot') {
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -115,7 +142,7 @@ export default function AuthForm() {
           <button
             type="button"
             onClick={() => {
-              setShowForgotPassword(false);
+              setMode('login');
               setLocalError('');
             }}
             className="w-full text-gray-600 hover:text-green-600 font-medium py-2 transition-colors"
@@ -137,32 +164,55 @@ export default function AuthForm() {
         </div>
       )}
 
-      {/* Demo Login Button */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p className="text-blue-800 text-sm mb-2">
-          <strong>Demo Mode:</strong> Click below for instant access
-        </p>
-        <button
-          type="button"
-          onClick={handleDemoLogin}
-          disabled={isSubmitting || loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-        >
-          Try Demo Login
-        </button>
-      </div>
+      {/* Demo Login Button - only show on login mode */}
+      {mode === 'login' && (
+        <>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-blue-800 text-sm mb-2">
+              <strong>Demo Mode:</strong> Click below for instant access
+            </p>
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={isSubmitting || loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+            >
+              Try Demo Login
+            </button>
+          </div>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-white text-gray-500">or continue with email</span>
-        </div>
-      </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-500">or continue with email</span>
+            </div>
+          </div>
+        </>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
+          {/* Name field - only show for registration */}
+          {mode === 'register' && (
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Full name"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                required
+                disabled={isSubmitting || loading}
+              />
+            </div>
+          )}
+
+          {/* Email field */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Mail className="h-5 w-5 text-gray-400" />
@@ -171,23 +221,24 @@ export default function AuthForm() {
               type="email"
               placeholder="Email address"
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
               required
               disabled={isSubmitting || loading}
             />
           </div>
 
+          {/* Password field */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type={showPassword ? 'text' : 'password'}
-              placeholder="Password"
+              placeholder={mode === 'register' ? 'Create password (min 6 characters)' : 'Password'}
               className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={(e) => handleInputChange('password', e.target.value)}
               required
               disabled={isSubmitting || loading}
             />
@@ -204,18 +255,51 @@ export default function AuthForm() {
               )}
             </button>
           </div>
+
+          {/* Confirm Password field - only show for registration */}
+          {mode === 'register' && (
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder="Confirm password"
+                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
+                value={formData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                required
+                disabled={isSubmitting || loading}
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isSubmitting || loading}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                ) : (
+                  <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="text-right">
-          <button
-            type="button"
-            onClick={() => setShowForgotPassword(true)}
-            className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors"
-            disabled={isSubmitting || loading}
-          >
-            Forgot password?
-          </button>
-        </div>
+        {/* Forgot password link - only show for login */}
+        {mode === 'login' && (
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={() => setMode('forgot')}
+              className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors"
+              disabled={isSubmitting || loading}
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
 
         <button
           type="submit"
@@ -225,18 +309,55 @@ export default function AuthForm() {
           {isSubmitting || loading ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Signing in...
+              {mode === 'login' ? 'Signing in...' : 'Creating account...'}
             </>
           ) : (
-            'Sign In'
+            mode === 'login' ? 'Sign In' : 'Create Account'
           )}
         </button>
       </form>
 
+      {/* Toggle between login/register */}
       <div className="text-center text-sm text-gray-600">
-        <p>
-          Demo credentials: Any email/password combination works!
-        </p>
+        {mode === 'login' ? (
+          <p>
+            Demo credentials: Any email/password combination works!
+          </p>
+        ) : null}
+        
+        <div className="mt-3">
+          {mode === 'login' ? (
+            <p>
+              New to PlantPlotter?{' '}
+              <button
+                onClick={() => {
+                  setMode('register');
+                  setLocalError('');
+                  setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+                }}
+                className="text-green-600 hover:text-green-700 font-medium hover:underline"
+                disabled={isSubmitting || loading}
+              >
+                Sign up here
+              </button>
+            </p>
+          ) : (
+            <p>
+              Already have an account?{' '}
+              <button
+                onClick={() => {
+                  setMode('login');
+                  setLocalError('');
+                  setFormData(prev => ({ ...prev, name: '', confirmPassword: '' }));
+                }}
+                className="text-green-600 hover:text-green-700 font-medium hover:underline"
+                disabled={isSubmitting || loading}
+              >
+                Sign in here
+              </button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

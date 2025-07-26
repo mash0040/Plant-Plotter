@@ -12,20 +12,32 @@ const registerUser = async (req, res) => {
     return res.status(400).json({ message: 'Please fill in all fields' });
   }
 
+  // Basic validation
+  if (password.length < 6) {
+    return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+  }
+
   try {
-    // Check if email already exists - use your existing method
-    const [existing] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
+    // Check if email already exists - use db.execute like your other routes
+    const [existing] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
     if (existing.length > 0) {
       console.log('⚠️ Email already exists:', email);
       return res.status(409).json({ message: 'Email already registered' });
+    }
+
+    // Check if username already exists
+    const [existingUsername] = await db.execute('SELECT * FROM users WHERE username = ?', [username]);
+    if (existingUsername.length > 0) {
+      console.log('⚠️ Username already exists:', username);
+      return res.status(409).json({ message: 'Username already taken' });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log('🔐 Password hashed for registration');
 
-    // Insert user into database
-    const [result] = await db.promise().query(
+    // Insert user into database - use db.execute
+    const [result] = await db.execute(
       'INSERT INTO users (username, email, password_hash, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
       [username, email, hashedPassword, 'user', true]
     );
@@ -33,12 +45,31 @@ const registerUser = async (req, res) => {
     const userId = result.insertId;
     console.log('✅ User registered with ID:', userId);
 
+    // Generate JWT token for immediate login
+    const tokenPayload = { 
+      id: userId, 
+      email: email,
+      username: username,
+      role: 'user'
+    };
+
+    const token = jwt.sign(
+      tokenPayload,
+      process.env.JWT_SECRET || 'plantplotter_secret_key',
+      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+    );
+
+    console.log('✅ JWT token generated for new user:', userId);
+
+    // Return success with token (for immediate login)
     res.status(201).json({ 
       message: 'User registered successfully',
+      token: token,
       user: {
         id: userId,
         username: username,
-        email: email
+        email: email,
+        role: 'user'
       }
     });
   } catch (err) {
@@ -59,8 +90,8 @@ const loginUser = async (req, res) => {
   }
 
   try {
-    // Use your existing db.query method
-    const [rows] = await db.query('SELECT * FROM users WHERE email = ? AND is_active = TRUE', [email]);
+    // Use db.execute instead of db.query to match your pattern
+    const [rows] = await db.execute('SELECT * FROM users WHERE email = ? AND is_active = TRUE', [email]);
 
     if (rows.length === 0) {
       console.log('❌ User not found or inactive:', email);
@@ -103,8 +134,8 @@ const loginUser = async (req, res) => {
           const newHash = await bcrypt.hash('demo123', 10);
           console.log('🔧 Generated fresh hash:', newHash.substring(0, 30) + '...');
           
-          // Update the user's password hash in database
-          await db.query(
+          // Update the user's password hash in database - use db.execute
+          await db.execute(
             'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE email = ?',
             [newHash, 'demo@plantplotter.com']
           );
@@ -131,12 +162,12 @@ const loginUser = async (req, res) => {
         console.log('🔧 admin user password mismatch - generating fresh hash...');
         
         try {
-          // Generate a completely new hash for demo123
+          // Generate a completely new hash for admin123
           const newHash = await bcrypt.hash('admin123', 10);
           console.log('🔧 Generated fresh hash:', newHash.substring(0, 30) + '...');
           
-          // Update the user's password hash in database
-          await db.query(
+          // Update the user's password hash in database - use db.execute
+          await db.execute(
             'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE email = ?',
             [newHash, 'admin@plantplotter.com']
           );
@@ -167,8 +198,8 @@ const loginUser = async (req, res) => {
           const newHash = await bcrypt.hash('user123', 10);
           console.log('🔧 Generated fresh hash:', newHash.substring(0, 30) + '...');
           
-          // Update the user's password hash in database
-          await db.query(
+          // Update the user's password hash in database - use db.execute
+          await db.execute(
             'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE email = ?',
             [newHash, 'user@plantplotter.com']
           );

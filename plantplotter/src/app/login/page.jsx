@@ -82,30 +82,10 @@ export default function LoginPage() {
                   <Leaf className="w-8 h-8 text-green-600" />
                 </div>
                 <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome</h2>
-                <p className="text-gray-600">Sign in to start planning your garden</p>
+                <p className="text-gray-600">Sign in or create an account to start planning your garden</p>
               </div>
 
               <AuthForm />
-
-              <div className="mt-6 text-center space-y-3">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white/90 text-gray-500">
-                      New to PlantPlotter?
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-gray-600 text-sm">
-                  Don't have an account? 
-                  <a href="#" className="text-green-600 hover:text-green-700 font-medium ml-1 hover:underline">
-                    Sign up here
-                  </a>
-                </p>
-              </div>
             </div>
           </div>
         </div>

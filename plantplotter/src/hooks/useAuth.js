@@ -19,7 +19,16 @@ export const AuthProvider = ({ children }) => {
         
         if (storedUser && token) {
           const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
+          
+          // Ensure we have both username and email for display
+          const userWithDisplayName = {
+            ...parsedUser,
+            displayName: parsedUser.username || parsedUser.name || parsedUser.email,
+            username: parsedUser.username || parsedUser.name || 'User'
+          };
+          
+          setUser(userWithDisplayName);
+          console.log('👤 Loaded stored user:', userWithDisplayName);
         }
       }
     } catch (err) {
@@ -40,7 +49,17 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       
       const response = await apiClient.login(email, password);
-      setUser(response.user);
+      
+      // Ensure user object has proper display fields
+      const userWithDisplayName = {
+        ...response.user,
+        displayName: response.user.username || response.user.name || response.user.email,
+        username: response.user.username || response.user.name || 'User'
+      };
+      
+      setUser(userWithDisplayName);
+      console.log('✅ Login successful for user:', userWithDisplayName);
+      
       return response;
     } catch (error) {
       setError(error.message);
@@ -56,7 +75,17 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       
       const response = await apiClient.register(name, email, password);
-      setUser(response.user);
+      
+      // Ensure user object has proper display fields
+      const userWithDisplayName = {
+        ...response.user,
+        displayName: response.user.username || response.user.name || name,
+        username: response.user.username || response.user.name || name
+      };
+      
+      setUser(userWithDisplayName);
+      console.log('✅ Registration successful for user:', userWithDisplayName);
+      
       return response;
     } catch (error) {
       setError(error.message);
@@ -66,11 +95,66 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfile = async (profileData) => {
+    try {
+      setError(null);
+      const response = await apiClient.updateProfile(profileData);
+      
+      // Update user state with new data
+      const updatedUser = {
+        ...user,
+        ...response.user,
+        displayName: response.user.username || response.user.name || response.user.email,
+        username: response.user.username || response.user.name || 'User'
+      };
+      
+      setUser(updatedUser);
+      
+      // Update localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      
+      console.log('✅ Profile updated successfully:', updatedUser);
+      return response;
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    }
+  };
+
+  const updatePreferences = async (preferences) => {
+    try {
+      setError(null);
+      const response = await apiClient.updatePreferences(preferences);
+      
+      // Update user state with new preferences
+      const updatedUser = {
+        ...user,
+        preferences: preferences
+      };
+      
+      setUser(updatedUser);
+      
+      // Update localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      
+      console.log('✅ Preferences updated successfully:', preferences);
+      return response;
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    }
+  };
+
   const logout = () => {
     try {
       apiClient.logout();
       setUser(null);
       setError(null);
+      console.log('👋 User logged out');
     } catch (err) {
       console.error('Logout error:', err);
     }
@@ -80,6 +164,8 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     register,
+    updateProfile,
+    updatePreferences,
     logout,
     loading,
     error,

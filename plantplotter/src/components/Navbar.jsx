@@ -28,6 +28,13 @@ export default function Navbar() {
   // Use the auth hook
   const { user, logout, loading } = useAuth();
 
+  // Helper function to get display name
+  const getDisplayName = (user) => {
+    if (!user) return '';
+    // Priority: username > name > email (fallback)
+    return user.username || user.name || user.email || 'User';
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -88,6 +95,7 @@ export default function Navbar() {
 
   // Get navigation items based on authentication status
   const navItems = user ? authenticatedNavItems : publicNavItems;
+  const displayName = getDisplayName(user);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-green-900 shadow-sm">
@@ -144,18 +152,18 @@ export default function Navbar() {
                     <User className="w-4 h-4" />
                   )}
                 </div>
-                <span className="text-sm font-medium">{user.name}</span>
+                <span className="text-sm font-medium">{displayName}</span>
               </button>
 
               {/* User Dropdown */}
               {showUserMenu && (
                 <div 
                   data-user-menu
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                  className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
                 >
                   <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                    <p className="text-sm text-gray-500">{user.email}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
+                    <p className="text-sm text-gray-500 truncate" title={user.email}>{user.email}</p>
                   </div>
                   
                   <Link
@@ -167,7 +175,7 @@ export default function Navbar() {
                   </Link>
                   
                   <Link
-                    href="/preferences"
+                    href="/profile?tab=preferences"
                     onClick={() => setShowUserMenu(false)}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
@@ -248,8 +256,8 @@ export default function Navbar() {
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-green-200">{user.email}</p>
+                    <p className="text-sm font-medium truncate">{displayName}</p>
+                    <p className="text-xs text-green-200 truncate" title={user.email}>{user.email}</p>
                   </div>
                 </div>
                 
@@ -263,7 +271,7 @@ export default function Navbar() {
                   </Link>
                   
                   <Link
-                    href="/preferences"
+                    href="/profile?tab=preferences"
                     onClick={() => setMenuOpen(false)}
                     className="block px-3 py-2 text-sm text-white hover:bg-green-700 rounded-md transition-colors"
                   >
