@@ -9,7 +9,8 @@ export default function PlantLibrary({
   setSearchTerm, 
   isOpen, 
   onToggle,
-  placedPlants = []
+  placedPlants = [],
+  onPlantsLoaded // NEW: callback to pass plants to parent
 }) {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,21 @@ export default function PlantLibrary({
     }
     
     return fallback;
+  };
+
+  // NEW: Create a mapping function to match plants by multiple criteria
+  const findPlantMatches = (searchValue, plantsArray) => {
+    if (!searchValue || !plantsArray) return [];
+    
+    const searchLower = searchValue.toLowerCase();
+    return plantsArray.filter(plant => {
+      return (
+        plant.id?.toLowerCase() === searchLower ||
+        plant.name?.toLowerCase() === searchLower ||
+        plant.name?.toLowerCase().includes(searchLower) ||
+        plant.id?.toLowerCase().includes(searchLower)
+      );
+    });
   };
 
   useEffect(() => {
@@ -120,6 +136,12 @@ export default function PlantLibrary({
       
       console.log('✅ Transformed plants:', transformedPlants);
       setPlants(transformedPlants);
+      
+      // NEW: Pass plants to parent component
+      if (onPlantsLoaded) {
+        onPlantsLoaded(transformedPlants);
+      }
+      
     } catch (err) {
       console.error('❌ Failed to load plant library:', err);
       setError(`Failed to load plant library: ${err.message}`);
@@ -178,6 +200,11 @@ export default function PlantLibrary({
       
       console.log('📦 Using fallback plants:', fallbackPlants);
       setPlants(fallbackPlants);
+      
+      // Pass fallback plants to parent
+      if (onPlantsLoaded) {
+        onPlantsLoaded(fallbackPlants);
+      }
     } finally {
       setLoading(false);
     }
@@ -193,38 +220,109 @@ export default function PlantLibrary({
     return acc;
   }, {});
 
-  // Calculate companion and avoid suggestions grouped by source plant
+  // FIXED: Enhanced companion suggestions with better matching logic
   const companionSuggestionsByPlant = useMemo(() => {
-    if (placedPlants.length === 0) return [];
+    if (placedPlants.length === 0 || plants.length === 0) return [];
 
-    const placedPlantIds = placedPlants.map(p => p.plantId);
+    console.log('🔍 DEBUG: Calculating companion suggestions...');
+    console.log('🔍 Placed plants:', placedPlants.map(p => ({ id: p.plantId, name: p.name })));
+    console.log('🔍 Available plants in library:', plants.map(p => ({ id: p.id, name: p.name })));
+
     const suggestions = [];
 
     placedPlants.forEach(placedPlant => {
-      const plantData = plants.find(p => p.id === placedPlant.plantId);
+      console.log(`🔍 Processing placed plant: ${placedPlant.name} (ID: ${placedPlant.plantId})`);
+      
+      // Try to find the plant in the library by multiple matching criteria
+      let plantData = plants.find(p => p.id === placedPlant.plantId);
+      
+      if (!plantData) {
+        // Try matching by name if ID doesn't match
+        plantData = plants.find(p => 
+          p.name?.toLowerCase() === placedPlant.name?.toLowerCase()
+        );
+        
+        if (!plantData) {
+          // Try partial name matching
+          plantData = plants.find(p => 
+            p.name?.toLowerCase().includes(placedPlant.name?.toLowerCase()) ||
+            placedPlant.name?.toLowerCase().includes(p.name?.toLowerCase())
+          );
+        }
+      }
+
       if (plantData) {
+        console.log(`✅ Found plant data for ${placedPlant.name}:`, {
+          id: plantData.id,
+          name: plantData.name,
+          companionPlants: plantData.companionPlants,
+          avoidPlants: plantData.avoidPlants
+        });
+
         const companions = [];
         const avoid = [];
 
         // Get companion plants that aren't already placed
         if (plantData.companionPlants && Array.isArray(plantData.companionPlants)) {
-          plantData.companionPlants.forEach(id => {
-            if (!placedPlantIds.includes(id)) {
-              const companionPlant = plants.find(p => p.id === id);
-              if (companionPlant) {
+          plantData.companionPlants.forEach(companionRef => {
+            console.log(`🔍 Looking for companion: ${companionRef}`);
+            
+            // Check if this companion is already placed
+            const alreadyPlaced = placedPlants.some(placed => 
+              placed.plantId === companionRef || 
+              placed.name?.toLowerCase() === companionRef.toLowerCase() ||
+              placed.plantId?.toLowerCase() === companionRef.toLowerCase()
+            );
+
+            if (!alreadyPlaced) {
+              // Find the companion plant in the library
+              const companionMatches = findPlantMatches(companionRef, plants);
+              
+              if (companionMatches.length > 0) {
+                // Use the best match (first one)
+                const companionPlant = companionMatches[0];
+                console.log(`✅ Found companion plant: ${companionPlant.name}`);
                 companions.push(companionPlant);
+              } else {
+                console.log(`⚠️ Companion plant not found in library: ${companionRef}`);
+                // Create a placeholder entry for missing plants
+                companions.push({
+                  id: companionRef,
+                  name: companionRef.charAt(0).toUpperCase() + companionRef.slice(1),
+                  emoji: '🌱',
+                  category: 'unknown',
+                  description: 'Beneficial companion plant'
+                });
               }
+            } else {
+              console.log(`⏭️ Companion ${companionRef} already placed`);
             }
           });
         }
 
         // Get avoid plants that aren't already placed
         if (plantData.avoidPlants && Array.isArray(plantData.avoidPlants)) {
-          plantData.avoidPlants.forEach(id => {
-            if (!placedPlantIds.includes(id)) {
-              const avoidPlant = plants.find(p => p.id === id);
-              if (avoidPlant) {
-                avoid.push(avoidPlant);
+          plantData.avoidPlants.forEach(avoidRef => {
+            console.log(`🔍 Looking for avoid plant: ${avoidRef}`);
+            
+            // Check if this avoid plant is already placed (WARNING!)
+            const alreadyPlaced = placedPlants.some(placed => 
+              placed.plantId === avoidRef || 
+              placed.name?.toLowerCase() === avoidRef.toLowerCase() ||
+              placed.plantId?.toLowerCase() === avoidRef.toLowerCase()
+            );
+
+            if (alreadyPlaced) {
+              // This is a warning - the user has planted incompatible plants!
+              const avoidMatches = findPlantMatches(avoidRef, plants);
+              if (avoidMatches.length > 0) {
+                avoid.push(avoidMatches[0]);
+              }
+            } else {
+              // Find avoid plants not yet planted
+              const avoidMatches = findPlantMatches(avoidRef, plants);
+              if (avoidMatches.length > 0) {
+                avoid.push(avoidMatches[0]);
               }
             }
           });
@@ -233,13 +331,22 @@ export default function PlantLibrary({
         if (companions.length > 0 || avoid.length > 0) {
           suggestions.push({
             sourcePlant: plantData,
+            placedPlant: placedPlant, // Keep reference to the actual placed plant
             companions: companions.slice(0, 4),
             avoid: avoid.slice(0, 4)
           });
+          
+          console.log(`✅ Added suggestions for ${plantData.name}:`, {
+            companions: companions.length,
+            avoid: avoid.length
+          });
         }
+      } else {
+        console.log(`❌ No plant data found for ${placedPlant.name} (ID: ${placedPlant.plantId})`);
       }
     });
 
+    console.log(`✅ Total companion suggestions: ${suggestions.length}`);
     return suggestions;
   }, [placedPlants, plants]);
 
@@ -362,7 +469,7 @@ export default function PlantLibrary({
           </div>
         </div>
 
-        {/* Companion Plant Guide - Plant-specific suggestions */}
+        {/* Companion Plant Guide - Enhanced with better debugging */}
         {placedPlants.length > 0 && (
           <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
             <button
@@ -377,6 +484,10 @@ export default function PlantLibrary({
                     {totalSuggestions}
                   </span>
                 )}
+                {/* Debug info */}
+                <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                  {companionSuggestionsByPlant.length}
+                </span>
               </div>
               {showCompanionGuide ? (
                 <ChevronUp className="w-4 h-4 text-gray-500" />
@@ -385,99 +496,110 @@ export default function PlantLibrary({
               )}
             </button>
 
-            {showCompanionGuide && companionSuggestionsByPlant.length > 0 && (
-              <div className="px-4 pb-4 space-y-3 max-h-80 overflow-y-auto">
-                {companionSuggestionsByPlant.map((plantSuggestion) => (
-                  <div key={plantSuggestion.sourcePlant.id} className="bg-white/70 rounded-lg p-3 border border-white/50">
-                    {/* Source Plant Header */}
-                    <button
-                      onClick={() => togglePlantSection(plantSuggestion.sourcePlant.id)}
-                      className="flex items-center justify-between w-full text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{plantSuggestion.sourcePlant.emoji}</span>
-                        <div>
-                          <span className="text-sm font-medium text-gray-800">
-                            {plantSuggestion.sourcePlant.name}
-                          </span>
-                          <div className="flex items-center gap-3 text-xs text-gray-500">
-                            {plantSuggestion.companions.length > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Heart className="w-3 h-3 text-green-500" />
-                                {plantSuggestion.companions.length} good
-                              </span>
-                            )}
-                            {plantSuggestion.avoid.length > 0 && (
-                              <span className="flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3 text-orange-500" />
-                                {plantSuggestion.avoid.length} avoid
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      {expandedPlants[plantSuggestion.sourcePlant.id] ? (
-                        <ChevronUp className="w-4 h-4 text-gray-400" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
-                      )}
-                    </button>
-
-                    {/* Expanded Suggestions */}
-                    {expandedPlants[plantSuggestion.sourcePlant.id] && (
-                      <div className="mt-3 space-y-3">
-                        {/* Companion Plants */}
-                        {plantSuggestion.companions.length > 0 && (
-                          <div>
-                            <div className="flex items-center gap-1 mb-2">
-                              <Heart className="w-3 h-3 text-green-500" />
-                              <span className="text-xs font-medium text-green-700">Good Companions</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-1">
-                              {plantSuggestion.companions.map((plant) => (
-                                <div key={plant.id} className="flex items-center gap-1 p-1.5 bg-green-50/70 rounded text-xs">
-                                  <span className="text-sm">{plant.emoji}</span>
-                                  <span className="font-medium text-gray-700 truncate">{plant.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Avoid Plants */}
-                        {plantSuggestion.avoid.length > 0 && (
-                          <div>
-                            <div className="flex items-center gap-1 mb-2">
-                              <AlertTriangle className="w-3 h-3 text-orange-500" />
-                              <span className="text-xs font-medium text-orange-700">Avoid Near This</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-1">
-                              {plantSuggestion.avoid.map((plant) => (
-                                <div key={plant.id} className="flex items-center gap-1 p-1.5 bg-orange-50/70 rounded text-xs">
-                                  <span className="text-sm">{plant.emoji}</span>
-                                  <span className="font-medium text-gray-700 truncate">{plant.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Quick tip */}
-                <div className="text-xs text-gray-500 p-2 bg-white/50 rounded">
-                  💡 Tap each plant to see its specific companion suggestions
-                </div>
-              </div>
-            )}
-
-            {showCompanionGuide && companionSuggestionsByPlant.length === 0 && (
+            {showCompanionGuide && (
               <div className="px-4 pb-4">
-                <div className="text-xs text-gray-500 p-3 bg-white/50 rounded text-center">
-                  Your planted crops don't have companion suggestions yet. Try adding some vegetables or herbs! 🌱
+                {/* Debug info */}
+                <div className="mb-3 p-2 bg-blue-50 rounded text-xs">
+                  <div>🔍 Debug: {placedPlants.length} placed, {plants.length} in library</div>
+                  <div>🔍 Suggestions found: {companionSuggestionsByPlant.length}</div>
                 </div>
+
+                {companionSuggestionsByPlant.length > 0 ? (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {companionSuggestionsByPlant.map((plantSuggestion) => (
+                      <div key={plantSuggestion.sourcePlant.id} className="bg-white/70 rounded-lg p-3 border border-white/50">
+                        {/* Source Plant Header */}
+                        <button
+                          onClick={() => togglePlantSection(plantSuggestion.sourcePlant.id)}
+                          className="flex items-center justify-between w-full text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{plantSuggestion.sourcePlant.emoji}</span>
+                            <div>
+                              <span className="text-sm font-medium text-gray-800">
+                                {plantSuggestion.sourcePlant.name}
+                              </span>
+                              <div className="flex items-center gap-3 text-xs text-gray-500">
+                                {plantSuggestion.companions.length > 0 && (
+                                  <span className="flex items-center gap-1">
+                                    <Heart className="w-3 h-3 text-green-500" />
+                                    {plantSuggestion.companions.length} good
+                                  </span>
+                                )}
+                                {plantSuggestion.avoid.length > 0 && (
+                                  <span className="flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3 text-orange-500" />
+                                    {plantSuggestion.avoid.length} avoid
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          {expandedPlants[plantSuggestion.sourcePlant.id] ? (
+                            <ChevronUp className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                          )}
+                        </button>
+
+                        {/* Expanded Suggestions */}
+                        {expandedPlants[plantSuggestion.sourcePlant.id] && (
+                          <div className="mt-3 space-y-3">
+                            {/* Companion Plants */}
+                            {plantSuggestion.companions.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-1 mb-2">
+                                  <Heart className="w-3 h-3 text-green-500" />
+                                  <span className="text-xs font-medium text-green-700">Good Companions</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-1">
+                                  {plantSuggestion.companions.map((plant, idx) => (
+                                    <div key={`${plant.id}-${idx}`} className="flex items-center gap-1 p-1.5 bg-green-50/70 rounded text-xs">
+                                      <span className="text-sm">{plant.emoji}</span>
+                                      <span className="font-medium text-gray-700 truncate">{plant.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Avoid Plants */}
+                            {plantSuggestion.avoid.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-1 mb-2">
+                                  <AlertTriangle className="w-3 h-3 text-orange-500" />
+                                  <span className="text-xs font-medium text-orange-700">Avoid Near This</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-1">
+                                  {plantSuggestion.avoid.map((plant, idx) => (
+                                    <div key={`${plant.id}-${idx}`} className="flex items-center gap-1 p-1.5 bg-orange-50/70 rounded text-xs">
+                                      <span className="text-sm">{plant.emoji}</span>
+                                      <span className="font-medium text-gray-700 truncate">{plant.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Quick tip */}
+                    <div className="text-xs text-gray-500 p-2 bg-white/50 rounded">
+                      💡 Tap each plant to see its specific companion suggestions
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 p-3 bg-white/50 rounded text-center">
+                    No companion data found for your plants. This could mean:
+                    <ul className="mt-2 text-left">
+                      <li>• Plant IDs don't match library entries</li>
+                      <li>• Plants don't have companion data</li>
+                      <li>• All companions are already planted</li>
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </div>

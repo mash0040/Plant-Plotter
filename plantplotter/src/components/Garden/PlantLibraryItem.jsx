@@ -68,13 +68,23 @@ export default function PlantLibraryItem({ plant }) {
         {...listeners}
         {...attributes}
         className={`
-          flex items-center gap-3 p-3 rounded-lg cursor-pointer 
+          flex items-center gap-3 p-3 rounded-lg cursor-grab active:cursor-grabbing
           ${colors.bg} ${colors.border} border-2 
           ${colors.hover} transition-all duration-200 ease-in-out
           hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5
           ${isDragging ? 'z-50 shadow-xl scale-105' : ''}
           group
+          select-none
         `}
+        // FIXED: Add proper drag isolation
+        onMouseDown={(e) => {
+          // Prevent event bubbling to parent containers
+          e.stopPropagation();
+        }}
+        onTouchStart={(e) => {
+          // Prevent event bubbling on touch devices
+          e.stopPropagation();
+        }}
       >
         {/* Plant emoji with background circle */}
         <div className={`
@@ -82,12 +92,13 @@ export default function PlantLibraryItem({ plant }) {
           flex items-center justify-center
           group-hover:scale-110 transition-transform duration-200
           shadow-sm
+          pointer-events-none
         `}>
           <span className="text-xl filter drop-shadow-sm">{plant.emoji}</span>
         </div>
         
         {/* Plant details */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pointer-events-none">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-gray-800 truncate">
               {plant.name}
@@ -105,9 +116,13 @@ export default function PlantLibraryItem({ plant }) {
             
             {/* Info icon */}
             <div 
-              className="relative"
+              className="relative pointer-events-auto"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTooltip(!showTooltip);
+              }}
             >
               <div className="w-5 h-5 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition-colors cursor-help">
                 <Info className="w-3 h-3 text-blue-600" />
@@ -117,9 +132,17 @@ export default function PlantLibraryItem({ plant }) {
         </div>
       </div>
 
-      {/* Tooltip */}
+      {/* FIXED: Tooltip with proper positioning and z-index */}
       {showTooltip && (
-        <div className="absolute bg-white border border-gray-200 rounded-lg shadow-lg p-2 text-xs pointer-events-none z-50">
+        <div 
+          className="absolute bg-white border border-gray-200 rounded-lg shadow-lg p-2 text-xs pointer-events-none z-[9999]"
+          style={{
+            right: '100%',
+            top: '0',
+            marginRight: '8px',
+            width: '200px'
+          }}
+        >
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">{plant.emoji}</span>
             <span className="font-semibold text-gray-800">{plant.name}</span>
@@ -169,8 +192,7 @@ export default function PlantLibraryItem({ plant }) {
                 <span className="text-green-600 font-medium">Good Companions:</span>
                 <div className="mt-1 text-green-700">
                   {plant.companionPlants.slice(0, 3).map(id => {
-                    // You might want to pass the full plant library to resolve names
-                    return `Plant ${id}`;
+                    return `${id.charAt(0).toUpperCase() + id.slice(1)}`;
                   }).join(', ')}
                   {plant.companionPlants.length > 3 && ` +${plant.companionPlants.length - 3} more`}
                 </div>
@@ -182,7 +204,7 @@ export default function PlantLibraryItem({ plant }) {
                 <span className="text-red-600 font-medium">Avoid Near:</span>
                 <div className="mt-1 text-red-700">
                   {plant.avoidPlants.slice(0, 3).map(id => {
-                    return `Plant ${id}`;
+                    return `${id.charAt(0).toUpperCase() + id.slice(1)}`;
                   }).join(', ')}
                   {plant.avoidPlants.length > 3 && ` +${plant.avoidPlants.length - 3} more`}
                 </div>

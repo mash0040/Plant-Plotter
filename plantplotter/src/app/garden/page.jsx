@@ -1,7 +1,16 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
+import { 
+  DndContext, 
+  closestCenter, 
+  PointerSensor, 
+  useSensor, 
+  useSensors, 
+  DragOverlay,
+  MouseSensor,
+  TouchSensor
+} from '@dnd-kit/core';
 import PlantLibrary from '@/components/Garden/PlantLibrary';
 import GardenCanvas from '@/components/Garden/GardenCanvas';
 import ControlPanel from '@/components/Garden/ControlPanel';
@@ -27,17 +36,28 @@ export default function GardenPlannerPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Track drag overlay position
-  const [dragOverlayPosition, setDragOverlayPosition] = useState({ x: 0, y: 0 });
-  const dragOverlayRef = useRef(null);
-  
   // Garden state management
   const [currentGarden, setCurrentGarden] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
 
+  // NEW: State to store plant library data
+  const [libraryPlants, setLibraryPlants] = useState([]);
+
+  // FIXED: Enhanced sensor configuration to prevent sidebar dragging
   const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before starting drag
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // Require 250ms hold before starting drag on touch
+        tolerance: 8,
+      },
+    }),
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
@@ -50,6 +70,49 @@ export default function GardenPlannerPage() {
   
   // Helper function to convert grid units to pixels
   const gridToPixels = (gridUnits) => gridUnits * gridSize;
+
+  // NEW: Callback to receive plants from PlantLibrary component
+  const handlePlantsLoaded = (plants) => {
+    console.log('📚 Plants loaded in main component:', plants);
+    setLibraryPlants(plants);
+  };
+
+  // FIXED: Get active plant for drag overlay with proper plant resolution
+  const activePlant = useMemo(() => {
+    if (!activeId) return null;
+    
+    console.log('🔍 Looking for active plant with ID:', activeId);
+    
+    // First check if it's a placed plant
+    const placedPlant = placedPlants.find(p => p.id === activeId);
+    if (placedPlant) {
+      console.log('✅ Found placed plant:', placedPlant);
+      return placedPlant;
+    }
+    
+    // Then check if it's from the library
+    if (activeId.startsWith('library-')) {
+      const libraryId = activeId.replace('library-', '');
+      console.log('🔍 Looking for library plant with ID:', libraryId);
+      
+      // Check in the loaded library plants
+      const libraryPlant = libraryPlants.find(p => p.id === libraryId);
+      if (libraryPlant) {
+        console.log('✅ Found library plant:', libraryPlant);
+        return libraryPlant;
+      }
+      
+      // Fallback to PLANT_LIBRARY constant
+      const fallbackPlant = PLANT_LIBRARY?.find(p => p.id === libraryId);
+      if (fallbackPlant) {
+        console.log('✅ Found fallback plant:', fallbackPlant);
+        return fallbackPlant;
+      }
+    }
+    
+    console.log('❌ No plant found for activeId:', activeId);
+    return null;
+  }, [activeId, placedPlants, libraryPlants]);
 
   // Load garden data using apiClient
   useEffect(() => {
@@ -146,65 +209,180 @@ export default function GardenPlannerPage() {
     }
   };
 
+  // Enhanced handleDragStart with debug logging
   const handleDragStart = (event) => {
-    setActiveId(event.active.id);
+    const { active } = event;
+    const draggedData = active.data.current;
+    
+    console.log('🚀 Drag Start:', {
+      activeId: active.id,
+      isFromLibrary: draggedData?.isFromLibrary,
+      draggedData: draggedData,
+      libraryPlantsCount: libraryPlants.length,
+      placedPlantsCount: placedPlants.length
+    });
+
+    // Only set active ID if it's a valid draggable item
+    if (draggedData && (draggedData.isFromLibrary !== undefined)) {
+      setActiveId(active.id);
+    } else {
+      console.warn('⚠️ Invalid drag data, canceling drag');
+      return;
+    }
   };
 
+  // FIXED: Much improved handleDragEnd with accurate positioning
   const handleDragEnd = (event) => {
-    const { active, over } = event;
+    const { active, over, delta, activatorEvent } = event;
+    
+    console.log('🏁 Drag End:', {
+      activeId: active.id,
+      overId: over?.id,
+      delta: delta,
+      hasActivatorEvent: !!activatorEvent
+    });
+
     setActiveId(null);
 
-    if (!over || over.id !== 'garden-canvas') return;
+    // Must drop over the garden canvas
+    if (!over || over.id !== 'garden-canvas') {
+      console.log('❌ Not dropped over canvas, over =', over?.id);
+      return;
+    }
 
     const draggedData = active.data.current;
     
     if (draggedData?.isFromLibrary) {
       // Adding new plant from library
+      console.log('🌱 Adding new plant from library');
+      
       const canvasElement = document.querySelector('[data-canvas="true"]');
-      if (!canvasElement) return;
+      if (!canvasElement) {
+        console.error('❌ Canvas element not found');
+        return;
+      }
 
+      // Get canvas position and scroll info
       const canvasRect = canvasElement.getBoundingClientRect();
       const scrollContainer = canvasElement.closest('.overflow-auto');
       const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
       const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
-      
-      const overlayX = dragOverlayPosition.x;
-      const overlayY = dragOverlayPosition.y;
-      
-      const canvasX = (overlayX - canvasRect.left) + scrollLeft;
-      const canvasY = (overlayY - canvasRect.top) + scrollTop;
-      
-      const plantSize = (draggedData.size || 1) * gridSize;
-      const plantX = canvasX - (plantSize / 2);
-      const plantY = canvasY - (plantSize / 2);
-      
-      let finalX, finalY;
-      if (showGrid) {
-        finalX = snapToGrid(Math.max(0, plantX), gridSize);
-        finalY = snapToGrid(Math.max(0, plantY), gridSize);
-      } else {
-        finalX = Math.max(0, plantX);
-        finalY = Math.max(0, plantY);
+
+      console.log('📏 Canvas Info:', {
+        canvasRect: {
+          left: canvasRect.left,
+          top: canvasRect.top,
+          width: canvasRect.width,
+          height: canvasRect.height
+        },
+        scroll: { left: scrollLeft, top: scrollTop },
+        delta: delta
+      });
+
+      // Calculate drop position - use multiple fallback methods
+      let dropX, dropY;
+
+      if (activatorEvent) {
+        // Method 1: Use activator event + delta (most accurate)
+        const startX = activatorEvent.clientX || activatorEvent.touches?.[0]?.clientX;
+        const startY = activatorEvent.clientY || activatorEvent.touches?.[0]?.clientY;
+        
+        if (startX && startY && delta) {
+          dropX = startX + delta.x;
+          dropY = startY + delta.y;
+          console.log('✅ Using activator + delta method');
+        }
       }
 
+      if (!dropX || !dropY) {
+        // Method 2: Use canvas center as fallback
+        dropX = canvasRect.left + canvasRect.width / 2;
+        dropY = canvasRect.top + canvasRect.height / 2;
+        console.log('⚠️ Using canvas center fallback');
+      }
+
+      console.log('🎯 Drop Position:', { dropX, dropY });
+
+      // Convert screen coordinates to canvas coordinates
+      const canvasX = (dropX - canvasRect.left) + scrollLeft;
+      const canvasY = (dropY - canvasRect.top) + scrollTop;
+
+      // Validate drop is within canvas bounds
+      if (canvasX < 0 || canvasY < 0 || canvasX > canvasRect.width || canvasY > canvasRect.height) {
+        console.log('❌ Drop outside canvas bounds');
+        return;
+      }
+
+      // Calculate plant position (center plant on drop point)
+      const plantSize = (draggedData.size || 1) * gridSize;
+      let plantX = canvasX - (plantSize / 2);
+      let plantY = canvasY - (plantSize / 2);
+
+      console.log('📍 Plant Position Calculation:', {
+        canvasCoords: { x: canvasX, y: canvasY },
+        plantSize: plantSize,
+        rawPlantPos: { x: plantX, y: plantY }
+      });
+
+      // Apply grid snapping if enabled
+      if (showGrid) {
+        plantX = snapToGrid(Math.max(0, plantX), gridSize);
+        plantY = snapToGrid(Math.max(0, plantY), gridSize);
+        console.log('📐 After grid snapping:', { x: plantX, y: plantY });
+      } else {
+        plantX = Math.max(0, plantX);
+        plantY = Math.max(0, plantY);
+        console.log('🔄 No grid snapping, clamped to bounds:', { x: plantX, y: plantY });
+      }
+
+      // Ensure plant stays within garden boundaries
+      const maxX = (dimensions.width * gridSize) - plantSize;
+      const maxY = (dimensions.height * gridSize) - plantSize;
+      plantX = Math.min(plantX, Math.max(0, maxX));
+      plantY = Math.min(plantY, Math.max(0, maxY));
+
+      console.log('🏡 Final Position:', {
+        final: { x: plantX, y: plantY },
+        grid: { 
+          x: Math.round(plantX / gridSize), 
+          y: Math.round(plantY / gridSize) 
+        },
+        bounds: { maxX, maxY },
+        dimensions: dimensions
+      });
+
+      // Create new plant object
       const newPlant = {
         ...draggedData,
         id: `plant-${Date.now()}`,
         plantId: draggedData.id,
-        x: finalX,
-        y: finalY,
+        x: plantX,
+        y: plantY,
         isFromLibrary: false,
         plantedDate: new Date()
       };
 
-      if (isWithinBoundsFlexible(newPlant, dimensions, gridSize, showGrid) && 
-          !checkPlantOverlapFlexible(newPlant, placedPlants, gridSize, showGrid)) {
+      // Validate placement (bounds and overlap)
+      const withinBounds = isWithinBoundsFlexible(newPlant, dimensions, gridSize, showGrid);
+      const hasOverlap = checkPlantOverlapFlexible(newPlant, placedPlants, gridSize, showGrid);
+
+      console.log('🔍 Placement Validation:', {
+        withinBounds: withinBounds,
+        hasOverlap: hasOverlap,
+        plantCount: placedPlants.length
+      });
+
+      if (withinBounds && !hasOverlap) {
         setPlacedPlants(prev => [...prev, newPlant]);
+        console.log('🎉 Plant placed successfully!');
+        
+        // Auto-close sidebar on mobile after successful placement
         if (window.innerWidth < 1024) {
           setSidebarOpen(false);
         }
       } else {
-        if (!isWithinBoundsFlexible(newPlant, dimensions, gridSize, showGrid)) {
+        console.log('❌ Placement validation failed');
+        if (!withinBounds) {
           alert('Cannot place plant outside garden boundaries.');
         } else {
           alert('Cannot place plant here - it overlaps with another plant.');
@@ -213,31 +391,36 @@ export default function GardenPlannerPage() {
       
     } else if (!draggedData?.isFromLibrary) {
       // Moving existing plant
+      console.log('🔄 Moving existing plant');
+      
       setPlacedPlants(prev => prev.map(plant => {
         if (plant.id === active.id) {
           let newX, newY;
           
           if (showGrid) {
-            newX = snapToGrid(Math.max(0, (plant.x || 0) + event.delta.x), gridSize);
-            newY = snapToGrid(Math.max(0, (plant.y || 0) + event.delta.y), gridSize);
+            newX = snapToGrid(Math.max(0, (plant.x || 0) + delta.x), gridSize);
+            newY = snapToGrid(Math.max(0, (plant.y || 0) + delta.y), gridSize);
           } else {
-            newX = Math.max(0, (plant.x || 0) + event.delta.x);
-            newY = Math.max(0, (plant.y || 0) + event.delta.y);
+            newX = Math.max(0, (plant.x || 0) + delta.x);
+            newY = Math.max(0, (plant.y || 0) + delta.y);
           }
           
           const updatedPlant = { ...plant, x: newX, y: newY };
           
+          // Check if new position is valid
           const otherPlants = prev.filter(p => p.id !== plant.id);
           if (isWithinBoundsFlexible(updatedPlant, dimensions, gridSize, showGrid) && 
               !checkPlantOverlapFlexible(updatedPlant, otherPlants, gridSize, showGrid)) {
+            console.log('✅ Plant moved to:', { x: newX, y: newY });
             return updatedPlant;
+          } else {
+            console.log('❌ Invalid move position, keeping original');
+            return plant;
           }
         }
         return plant;
       }));
     }
-    
-    setDragOverlayPosition({ x: 0, y: 0 });
   };
 
   // Save garden using apiClient
@@ -300,34 +483,34 @@ export default function GardenPlannerPage() {
       console.log('✅ Garden save completed successfully');
       return savedGarden;
       
-      } catch (error) {
-        console.error('❌ Garden save failed:', error);
-        throw error;
-      }
-    };
+    } catch (error) {
+      console.error('❌ Garden save failed:', error);
+      throw error;
+    }
+  };
 
   const getSafeGardenName = (garden) => {
-  if (!garden || !garden.name) {
-    return 'Garden';
-  }
-  
-  // Handle corrupted object names
-  if (typeof garden.name === 'string') {
-    // If it's the corrupted "[object Object]" string, use a fallback
-    if (garden.name === '[object Object]') {
-      return `Garden ${garden.id || 'Untitled'}`;
+    if (!garden || !garden.name) {
+      return 'Garden';
     }
-    return garden.name;
-  } else if (typeof garden.name === 'object' && garden.name !== null) {
-    // If somehow it's still an actual object, extract string
-    console.warn('Garden name is an object:', garden.name);
-    return garden.name.name || garden.name.value || `Garden ${garden.id || 'Untitled'}`;
-  } else {
-    return String(garden.name || 'Garden');
-  }
-};
+    
+    // Handle corrupted object names
+    if (typeof garden.name === 'string') {
+      // If it's the corrupted "[object Object]" string, use a fallback
+      if (garden.name === '[object Object]') {
+        return `Garden ${garden.id || 'Untitled'}`;
+      }
+      return garden.name;
+    } else if (typeof garden.name === 'object' && garden.name !== null) {
+      // If somehow it's still an actual object, extract string
+      console.warn('Garden name is an object:', garden.name);
+      return garden.name.name || garden.name.value || `Garden ${garden.id || 'Untitled'}`;
+    } else {
+      return String(garden.name || 'Garden');
+    }
+  };
 
-const safeGardenName = getSafeGardenName(currentGarden);
+  const safeGardenName = getSafeGardenName(currentGarden);
 
   // Load garden using apiClient
   const handleLoadGarden = async (gardenData) => {
@@ -406,29 +589,6 @@ const safeGardenName = getSafeGardenName(currentGarden);
     }
   };
 
-  // Track drag overlay position
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (activeId && dragOverlayRef.current) {
-        const overlayRect = dragOverlayRef.current.getBoundingClientRect();
-        setDragOverlayPosition({
-          x: overlayRect.left + overlayRect.width / 2,
-          y: overlayRect.top + overlayRect.height / 2
-        });
-      }
-    };
-
-    if (activeId) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('touchmove', handleMouseMove);
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('touchmove', handleMouseMove);
-    };
-  }, [activeId]);
-
   // Close sidebar handlers
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -457,33 +617,6 @@ const safeGardenName = getSafeGardenName(currentGarden);
     };
   }, [sidebarOpen]);
 
-  const activePlant = activeId ? 
-    placedPlants.find(p => p.id === activeId) || 
-    PLANT_LIBRARY.find(p => `library-${p.id}` === activeId) : null;
-
-  // Custom DragOverlay with ref for position tracking
-  const CustomDragOverlay = ({ activePlant, gridSize }) => {
-    if (!activePlant) return null;
-    
-    const plantSize = (activePlant.size || 1) * gridSize;
-    
-    return (
-      <div
-        ref={dragOverlayRef}
-        style={{
-          width: plantSize,
-          height: plantSize,
-        }}
-        className="flex flex-col items-center justify-center border-2 border-green-400 rounded-lg bg-white/90 shadow-lg"
-      >
-        <div className="text-2xl mb-1">{activePlant.emoji}</div>
-        <div className="text-xs text-center font-medium text-gray-700 px-1">
-          {activePlant.name}
-        </div>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-50 items-center justify-center">
@@ -496,7 +629,7 @@ const safeGardenName = getSafeGardenName(currentGarden);
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-auto shadow-lg">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -504,19 +637,26 @@ const safeGardenName = getSafeGardenName(currentGarden);
         onDragEnd={handleDragEnd}
       >
         {/* Plant Library Sidebar */}
-        <div data-sidebar className="relative">
+        <div 
+          data-sidebar 
+          className="relative flex-shrink-0 z-10"
+          style={{ 
+            touchAction: 'pan-y',
+            userSelect: 'none'
+          }}
+        >
           <PlantLibrary
-            plants={PLANT_LIBRARY}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             isOpen={sidebarOpen}
             onToggle={() => setSidebarOpen(!sidebarOpen)}
             placedPlants={placedPlants}
+            onPlantsLoaded={handlePlantsLoaded}
           />
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-screen min-w-0 relative">
+        <div className="flex-1 flex flex-col h-screen min-w-0 relative z-20">
           <ControlPanel
             dimensions={dimensions}
             gridSize={gridSize}
@@ -545,13 +685,61 @@ const safeGardenName = getSafeGardenName(currentGarden);
           </div>
         </div>
 
-        {/* DragOverlay */}
-        <DragOverlay>
-          <CustomDragOverlay
-            activePlant={activePlant}
-            gridSize={gridSize}
-          />
+        {/* ENHANCED: DragOverlay with better visibility and debugging */}
+        <DragOverlay
+          dropAnimation={{
+            duration: 200,
+            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+          }}
+          style={{
+            zIndex: 999999,
+          }}
+        >
+          {activePlant ? (
+            <div
+              style={{
+                width: (activePlant.size || 1) * gridSize,
+                height: (activePlant.size || 1) * gridSize,
+                pointerEvents: 'none',
+              }}
+              className="relative flex flex-col items-center justify-center border-4 border-green-500 rounded-xl bg-white shadow-2xl transform scale-125"
+            >
+              {/* Glow effect background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-green-400/30 to-blue-400/30 rounded-xl blur-lg -z-10"></div>
+              
+              {/* Pulsing ring effect */}
+              <div className="absolute -inset-4 border-2 border-dashed border-green-400 rounded-xl opacity-60 animate-ping"></div>
+              
+              {/* Plant emoji - large and prominent */}
+              <div className="text-5xl mb-2 filter drop-shadow-2xl animate-bounce">
+                {activePlant.emoji}
+              </div>
+              
+              {/* Plant name with high contrast */}
+              <div className="text-sm text-center font-bold text-gray-900 px-3 py-1 bg-white rounded-full border-2 border-green-500 shadow-lg">
+                {activePlant.name}
+              </div>
+              
+              {/* Size indicator */}
+              <div className="text-xs text-gray-700 mt-2 font-medium bg-green-100 px-2 py-1 rounded border border-green-300">
+                {activePlant.size}×{activePlant.size} units
+              </div>
+              
+              {/* Drop zone indicator */}
+              <div className="absolute -bottom-6 text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded border border-green-200">
+                Drop on canvas
+              </div>
+            </div>
+          ) : (
+            // Debug: Show when no plant is found
+            activeId && (
+              <div className="bg-red-100 border-2 border-red-500 rounded p-2 text-red-800 text-xs">
+                Debug: No plant found for ID: {activeId}
+              </div>
+            )
+          )}
         </DragOverlay>
+        
       </DndContext>
 
       <SaveGardenModel
