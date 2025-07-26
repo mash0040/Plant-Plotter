@@ -2,7 +2,14 @@
   "name": "plantplotter",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "plantplotter",
+    "plantplotter_backend"
+  ],
   "scripts": {
+    "install:all": "npm install && npm run install:backend && npm run install:frontend",
+    "install:backend": "cd plantplotter_backend && npm install",
+    "install:frontend": "cd plantplotter && npm install",
     "dev": "npx concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd plantplotter_backend && npm run dev",
     "dev:frontend": "cd plantplotter && npm run dev",
