@@ -42,10 +42,10 @@ export default function GardenPlannerPage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
 
-  // NEW: State to store plant library data
+  // State to store plant library data
   const [libraryPlants, setLibraryPlants] = useState([]);
 
-  // FIXED: Enhanced sensor configuration to prevent sidebar dragging
+  // Enhanced sensor configuration to prevent sidebar dragging
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
@@ -71,13 +71,13 @@ export default function GardenPlannerPage() {
   // Helper function to convert grid units to pixels
   const gridToPixels = (gridUnits) => gridUnits * gridSize;
 
-  // NEW: Callback to receive plants from PlantLibrary component
+  // Callback to receive plants from PlantLibrary component
   const handlePlantsLoaded = (plants) => {
     console.log('📚 Plants loaded in main component:', plants);
     setLibraryPlants(plants);
   };
 
-  // FIXED: Get active plant for drag overlay with proper plant resolution
+  // Get active plant for drag overlay with proper plant resolution
   const activePlant = useMemo(() => {
     if (!activeId) return null;
     
@@ -231,7 +231,7 @@ export default function GardenPlannerPage() {
     }
   };
 
-  // FIXED: Much improved handleDragEnd with accurate positioning
+  // Enhanced handleDragEnd with better scroll container handling
   const handleDragEnd = (event) => {
     const { active, over, delta, activatorEvent } = event;
     
@@ -262,58 +262,106 @@ export default function GardenPlannerPage() {
         return;
       }
 
-      // Get canvas position and scroll info
+      // Enhanced: Better scroll container detection and handling
       const canvasRect = canvasElement.getBoundingClientRect();
-      const scrollContainer = canvasElement.closest('.overflow-auto');
-      const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
-      const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+      
+      // Find all possible scroll containers
+      const mainScrollContainer = canvasElement.closest('.overflow-auto');
+      const sidebarScrollContainer = document.querySelector('[data-sidebar] .overflow-y-auto');
+      
+      // Get scroll offsets from both containers
+      const mainScrollLeft = mainScrollContainer ? mainScrollContainer.scrollLeft : 0;
+      const mainScrollTop = mainScrollContainer ? mainScrollContainer.scrollTop : 0;
+      const sidebarScrollTop = sidebarScrollContainer ? sidebarScrollContainer.scrollTop : 0;
 
-      console.log('📏 Canvas Info:', {
+      console.log('📏 Enhanced Canvas Info:', {
         canvasRect: {
           left: canvasRect.left,
           top: canvasRect.top,
           width: canvasRect.width,
           height: canvasRect.height
         },
-        scroll: { left: scrollLeft, top: scrollTop },
+        scroll: { 
+          mainLeft: mainScrollLeft, 
+          mainTop: mainScrollTop,
+          sidebarTop: sidebarScrollTop
+        },
         delta: delta
       });
 
-      // Calculate drop position - use multiple fallback methods
+      // Enhanced: Better drop position calculation considering all scroll offsets
       let dropX, dropY;
 
       if (activatorEvent) {
-        // Method 1: Use activator event + delta (most accurate)
+        // Get the original start position
         const startX = activatorEvent.clientX || activatorEvent.touches?.[0]?.clientX;
         const startY = activatorEvent.clientY || activatorEvent.touches?.[0]?.clientY;
         
         if (startX && startY && delta) {
+          // Calculate final position considering scroll offsets
           dropX = startX + delta.x;
           dropY = startY + delta.y;
-          console.log('✅ Using activator + delta method');
+          
+          console.log('✅ Using activator + delta method with scroll compensation');
+          console.log('📍 Calculated drop position:', { dropX, dropY });
         }
       }
 
-      if (!dropX || !dropY) {
+      // Fallback methods if primary calculation fails
+      if (!dropX || !dropY || dropX < 0 || dropY < 0) {
         // Method 2: Use canvas center as fallback
         dropX = canvasRect.left + canvasRect.width / 2;
         dropY = canvasRect.top + canvasRect.height / 2;
-        console.log('⚠️ Using canvas center fallback');
+        console.log('⚠️ Using canvas center fallback:', { dropX, dropY });
       }
 
-      console.log('🎯 Drop Position:', { dropX, dropY });
-
       // Convert screen coordinates to canvas coordinates
-      const canvasX = (dropX - canvasRect.left) + scrollLeft;
-      const canvasY = (dropY - canvasRect.top) + scrollTop;
+      const canvasX = (dropX - canvasRect.left) + mainScrollLeft;
+      const canvasY = (dropY - canvasRect.top) + mainScrollTop;
+
+      console.log('🎯 Final canvas coordinates:', { canvasX, canvasY });
 
       // Validate drop is within canvas bounds
       if (canvasX < 0 || canvasY < 0 || canvasX > canvasRect.width || canvasY > canvasRect.height) {
-        console.log('❌ Drop outside canvas bounds');
+        console.log('❌ Drop outside canvas bounds, using center');
+        // Force to canvas center if outside bounds
+        const centerX = canvasRect.width / 2;
+        const centerY = canvasRect.height / 2;
+        
+        const plantSize = (draggedData.size || 1) * gridSize;
+        let plantX = centerX - (plantSize / 2);
+        let plantY = centerY - (plantSize / 2);
+
+        // Apply grid snapping if enabled
+        if (showGrid) {
+          plantX = snapToGrid(Math.max(0, plantX), gridSize);
+          plantY = snapToGrid(Math.max(0, plantY), gridSize);
+        } else {
+          plantX = Math.max(0, plantX);
+          plantY = Math.max(0, plantY);
+        }
+
+        // Create new plant object
+        const newPlant = {
+          ...draggedData,
+          id: `plant-${Date.now()}`,
+          plantId: draggedData.id,
+          x: plantX,
+          y: plantY,
+          isFromLibrary: false,
+          plantedDate: new Date()
+        };
+
+        setPlacedPlants(prev => [...prev, newPlant]);
+        console.log('🎉 Plant placed at canvas center!');
+        
+        if (window.innerWidth < 1024) {
+          setSidebarOpen(false);
+        }
         return;
       }
 
-      // Calculate plant position (center plant on drop point)
+      // Normal placement logic continues...
       const plantSize = (draggedData.size || 1) * gridSize;
       let plantX = canvasX - (plantSize / 2);
       let plantY = canvasY - (plantSize / 2);
@@ -685,7 +733,7 @@ export default function GardenPlannerPage() {
           </div>
         </div>
 
-        {/* ENHANCED: DragOverlay with better visibility and debugging */}
+        {/* Enhanced DragOverlay with better visibility and debugging */}
         <DragOverlay
           dropAnimation={{
             duration: 200,

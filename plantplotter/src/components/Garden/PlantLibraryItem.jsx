@@ -2,10 +2,13 @@
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Info } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function PlantLibraryItem({ plant }) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: true, left: false });
+  const itemRef = useRef(null);
+  const tooltipRef = useRef(null);
   
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `library-${plant.id}`,
@@ -16,6 +19,23 @@ export default function PlantLibraryItem({ plant }) {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
   };
+
+  // Calculate optimal tooltip position - always on the right
+  useEffect(() => {
+    if (showTooltip && itemRef.current && tooltipRef.current) {
+      const itemRect = itemRef.current.getBoundingClientRect();
+      const tooltipRect = tooltipRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      
+      // Check if tooltip would go below viewport when positioned at item top
+      const wouldOverflowBottom = itemRect.top + tooltipRect.height > viewportHeight - 20;
+      
+      setTooltipPosition({
+        top: !wouldOverflowBottom,
+        left: true // Always position to the right
+      });
+    }
+  }, [showTooltip]);
 
   // Get category-based colors for better visual distinction
   const getCategoryColors = (category) => {
@@ -60,8 +80,22 @@ export default function PlantLibraryItem({ plant }) {
 
   const colors = getCategoryColors(plant.category);
 
+  // Get tooltip styles - positioned on top of the plant list
+  const getTooltipStyles = () => {
+    return {
+      position: 'absolute',
+      left: '0',
+      right: '0',
+      [tooltipPosition.top ? 'top' : 'bottom']: '100%',
+      [tooltipPosition.top ? 'marginTop' : 'marginBottom']: '8px',
+      zIndex: 99999, // Very high z-index to appear above everything
+      width: '100%',
+      maxWidth: '280px'
+    };
+  };
+
   return (
-    <div className="relative">
+    <div className="relative" ref={itemRef}>
       <div
         ref={setNodeRef}
         style={style}
@@ -76,13 +110,10 @@ export default function PlantLibraryItem({ plant }) {
           group
           select-none
         `}
-        // FIXED: Add proper drag isolation
         onMouseDown={(e) => {
-          // Prevent event bubbling to parent containers
           e.stopPropagation();
         }}
         onTouchStart={(e) => {
-          // Prevent event bubbling on touch devices
           e.stopPropagation();
         }}
       >
@@ -132,17 +163,22 @@ export default function PlantLibraryItem({ plant }) {
         </div>
       </div>
 
-      {/* FIXED: Tooltip with proper positioning and z-index */}
+      {/* Tooltip positioned on top of plant list */}
       {showTooltip && (
         <div 
-          className="absolute bg-white border border-gray-200 rounded-lg shadow-lg p-2 text-xs pointer-events-none z-[9999]"
-          style={{
-            right: '100%',
-            top: '0',
-            marginRight: '8px',
-            width: '200px'
-          }}
+          ref={tooltipRef}
+          className="bg-white border border-gray-200 rounded-lg shadow-2xl p-4 text-xs pointer-events-none"
+          style={getTooltipStyles()}
         >
+          {/* Arrow indicator - pointing up or down */}
+          <div 
+            className={`absolute w-3 h-3 bg-white border transform rotate-45 left-6 ${
+              tooltipPosition.top 
+                ? '-top-1.5 border-b-0 border-r-0' 
+                : '-bottom-1.5 border-t-0 border-l-0'
+            }`}
+          />
+          
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">{plant.emoji}</span>
             <span className="font-semibold text-gray-800">{plant.name}</span>

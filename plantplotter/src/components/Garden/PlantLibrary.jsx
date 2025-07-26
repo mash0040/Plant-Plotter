@@ -10,7 +10,7 @@ export default function PlantLibrary({
   isOpen, 
   onToggle,
   placedPlants = [],
-  onPlantsLoaded // NEW: callback to pass plants to parent
+  onPlantsLoaded // Callback to pass plants to parent
 }) {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function PlantLibrary({
     return fallback;
   };
 
-  // NEW: Create a mapping function to match plants by multiple criteria
+  // Create a mapping function to match plants by multiple criteria
   const findPlantMatches = (searchValue, plantsArray) => {
     if (!searchValue || !plantsArray) return [];
     
@@ -137,7 +137,7 @@ export default function PlantLibrary({
       console.log('✅ Transformed plants:', transformedPlants);
       setPlants(transformedPlants);
       
-      // NEW: Pass plants to parent component
+      // Pass plants to parent component
       if (onPlantsLoaded) {
         onPlantsLoaded(transformedPlants);
       }
@@ -220,7 +220,7 @@ export default function PlantLibrary({
     return acc;
   }, {});
 
-  // FIXED: Enhanced companion suggestions with better matching logic
+  // Enhanced companion suggestions with better matching logic
   const companionSuggestionsByPlant = useMemo(() => {
     if (placedPlants.length === 0 || plants.length === 0) return [];
 
@@ -424,7 +424,7 @@ export default function PlantLibrary({
       <div className={`
         fixed lg:relative 
         top-0 left-0 
-        h-screen overflow-auto
+        h-screen overflow-hidden
         bg-white 
         border-r border-gray-200 
         transform transition-transform duration-300 ease-in-out
@@ -435,7 +435,7 @@ export default function PlantLibrary({
         flex flex-col
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
               <span className="text-green-600 text-sm font-bold">🌱</span>
@@ -456,7 +456,7 @@ export default function PlantLibrary({
         </div>
         
         {/* Search */}
-        <div className="p-4 border-b border-gray-200 bg-white">
+        <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -471,7 +471,7 @@ export default function PlantLibrary({
 
         {/* Companion Plant Guide - Enhanced with better debugging */}
         {placedPlants.length > 0 && (
-          <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
+          <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50 flex-shrink-0">
             <button
               onClick={() => setShowCompanionGuide(!showCompanionGuide)}
               className="w-full flex items-center justify-between p-4 hover:bg-white/50 transition-colors"
@@ -605,16 +605,29 @@ export default function PlantLibrary({
           </div>
         )}
 
-        {/* Plant Categories - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Plant Categories - Better scroll container */}
+        <div 
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+          style={{
+            // Ensure proper scroll behavior for drag and drop
+            scrollBehavior: 'smooth',
+            overscrollBehavior: 'contain'
+          }}
+          data-scroll-container="plants"
+        >
           {Object.entries(groupedPlants).map(([category, plants]) => (
             <div key={category} className="space-y-2">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide px-2 py-1 bg-gray-100 rounded">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide px-2 py-1 bg-gray-100 rounded sticky top-0 z-10">
                 {category} ({plants.length})
               </h3>
               <div className="space-y-1">
                 {plants.map((plant) => (
-                  <PlantLibraryItem key={plant.id} plant={plant} />
+                  <PlantLibraryItem 
+                    key={plant.id} 
+                    plant={plant}
+                    // Pass additional props for better drag handling
+                    isInScrollContainer={true}
+                  />
                 ))}
               </div>
             </div>
@@ -630,10 +643,13 @@ export default function PlantLibrary({
               <p className="text-xs text-gray-400 mt-1">Try a different search term</p>
             </div>
           )}
+          
+          {/* Padding at bottom to ensure last items are draggable */}
+          <div className="h-20"></div>
         </div>
 
         {/* Footer info (mobile only) */}
-        <div className="lg:hidden p-4 border-t border-gray-200 bg-gray-50">
+        <div className="lg:hidden p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
           <p className="text-xs text-gray-500 text-center">
             Drag plants to the garden to start planting
           </p>
