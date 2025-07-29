@@ -1,5 +1,5 @@
 {
-  "name": "plantplotter",
+  "name": "plantplotter-project",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
@@ -7,14 +7,19 @@
     "plantplotter_backend"
   ],
   "scripts": {
-    "install:all": "npm install && npm run install:backend && npm run install:frontend",
-    "install:backend": "cd plantplotter_backend && npm install",
-    "install:frontend": "cd plantplotter && npm install",
-    "dev": "npx concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd plantplotter_backend && npm run dev",
-    "dev:frontend": "cd plantplotter && npm run dev",
-    "build": "cd plantplotter && npm run build",
-    "start": "cd plantplotter_backend && npm start",
-    "lint": "next lint"
+    "install:all": "npm install",
+    "dev": "npx concurrently \"npm run dev --workspace=plantplotter_backend\" \"npm run dev --workspace=plantplotter\"",
+    "dev:backend": "npm run dev --workspace=plantplotter_backend",
+    "dev:frontend": "npm run dev --workspace=plantplotter",
+    "build": "npm run build --workspace=plantplotter",
+    "start": "npm run start --workspace=plantplotter_backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11"
   }
 }

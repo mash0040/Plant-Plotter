@@ -1,8 +1,8 @@
 module.exports = {
-    webpack: (config, { buildId, isServer }) => {
+    webpack: (config, { buildId, isServer, webpack }) => {
     if (isServer) {
         config.plugins.push(
-        new Webpack.IgnorePlugin({
+        new webpack.IgnorePlugin({
             resourceRegExp: /utf-8-validate|bufferutil/,
         })
         );
