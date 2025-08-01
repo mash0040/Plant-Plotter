@@ -263,10 +263,8 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
       // Close modal
       onClose();
       
-      // Navigate back to gardens page
-      if (onNavigateToGardens) {
-        onNavigateToGardens(transformedGarden);
-      }
+      // Don't automatically navigate - let user stay on the current page
+      // Navigation can be triggered manually if needed
       
     } catch (error) {
       console.error('❌ Save failed:', error);

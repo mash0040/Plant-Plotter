@@ -7,6 +7,8 @@ import TrackingCalendar from '@/components/Tracker/TrackingCalendar';
 import WeatherWidget from '@/components/Tracker/WeatherWidget';
 import TasksList from '@/components/Tracker/TasksList';
 import ActivityModal from '@/components/Tracker/ActivityModal';
+import TaskEditModal from '@/components/Tracker/TaskEditModal';
+import ActivityEditModal from '@/components/Tracker/ActivityEditModal';
 import { 
   generateCalendarData, 
   addActivity,
@@ -39,6 +41,12 @@ export default function TrackingPage() {
   // Task state
   const [todayTasks, setTodayTasks] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
+  
+  // Edit modal states
+  const [showTaskEditModal, setShowTaskEditModal] = useState(false);
+  const [showActivityEditModal, setShowActivityEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [editingActivity, setEditingActivity] = useState(null);
 
   // Load gardens from the API
   useEffect(() => {
@@ -220,6 +228,99 @@ export default function TrackingPage() {
     setFormData({ activity: '', plant: '', notes: '', gardenId: null });
   };
 
+  // Task management functions
+  const handleTaskEdit = (task) => {
+    setEditingTask(task);
+    setShowTaskEditModal(true);
+  };
+
+  const handleTaskAdd = () => {
+    setEditingTask(null);
+    setShowTaskEditModal(true);
+  };
+
+  const handleTaskSave = async (taskData) => {
+    try {
+      if (taskData.id) {
+        // Update existing task
+        await apiClient.updateTask(taskData.id, taskData);
+      } else {
+        // Create new task
+        await apiClient.createTask(taskData);
+      }
+      
+      // Reload tasks
+      loadTasks();
+      
+      console.log('✅ Task saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save task:', error);
+      throw error;
+    }
+  };
+
+  const handleTaskDelete = async (taskId) => {
+    try {
+      await apiClient.deleteTask(taskId);
+      
+      // Reload tasks
+      loadTasks();
+      
+      console.log('✅ Task deleted successfully');
+    } catch (error) {
+      console.error('❌ Failed to delete task:', error);
+      throw error;
+    }
+  };
+
+  // Activity management functions
+  const handleActivityEdit = (activity) => {
+    setEditingActivity(activity);
+    setShowActivityEditModal(true);
+  };
+
+  const handleActivityAdd = () => {
+    setEditingActivity(null);
+    setShowActivityEditModal(true);
+  };
+
+  const handleActivitySave = async (activityData) => {
+    try {
+      if (activityData.id) {
+        // Update existing activity
+        await apiClient.updateActivity(activityData.id, activityData);
+      } else {
+        // Create new activity
+        await apiClient.addActivity({
+          gardenId: activityData.garden_id,
+          activity: activityData.activity_type,
+          plant: activityData.plant_name,
+          notes: activityData.notes,
+          date: activityData.activity_date
+        });
+      }
+      
+      // Also add to local calendar data for immediate UI update
+      const updatedCalendarData = addActivity(calendarData, activityData.activity_date, activityData);
+      setCalendarData(updatedCalendarData);
+      
+      console.log('✅ Activity saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save activity:', error);
+      throw error;
+    }
+  };
+
+  const handleActivityDelete = async (activityId) => {
+    try {
+      await apiClient.deleteActivity(activityId);      
+      console.log('✅ Activity deleted successfully');
+    } catch (error) {
+      console.error('❌ Failed to delete activity:', error);
+      throw error;
+    }
+  };
+
   // Filter calendar data by selected garden
   const filteredCalendarData = selectedGarden ? 
     getActivitiesByGarden(calendarData, selectedGarden.id) : {};
@@ -293,12 +394,16 @@ export default function TrackingPage() {
               title="Today Tasks"
               tasks={todayTasks}
               onTaskComplete={handleTaskComplete}
+              onTaskEdit={handleTaskEdit}
+              onTaskAdd={handleTaskAdd}
               emptyMessage="No tasks for today"
             />
             <TasksList
               title="Upcoming Tasks"
               tasks={upcomingTasks}
               onTaskComplete={handleTaskComplete}
+              onTaskEdit={handleTaskEdit}
+              onTaskAdd={handleTaskAdd}
               showCheckboxes={true}
               emptyMessage="No upcoming tasks"
             />
@@ -317,6 +422,33 @@ export default function TrackingPage() {
           selectedGarden={selectedGarden}
         />
       )}
+
+      {/* Task Edit Modal */}
+      <TaskEditModal
+        isOpen={showTaskEditModal}
+        onClose={() => {
+          setShowTaskEditModal(false);
+          setEditingTask(null);
+        }}
+        task={editingTask}
+        onSave={handleTaskSave}
+        onDelete={editingTask?.id ? handleTaskDelete : null}
+        gardens={gardens}
+      />
+
+      {/* Activity Edit Modal */}
+      <ActivityEditModal
+        isOpen={showActivityEditModal}
+        onClose={() => {
+          setShowActivityEditModal(false);
+          setEditingActivity(null);
+        }}
+        activity={editingActivity}
+        onSave={handleActivitySave}
+        onDelete={editingActivity?.id ? handleActivityDelete : null}
+        gardens={gardens}
+        selectedGarden={selectedGarden}
+      />
     </div>
   );
 }

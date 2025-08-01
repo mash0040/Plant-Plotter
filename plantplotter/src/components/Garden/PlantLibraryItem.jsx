@@ -1,10 +1,10 @@
 'use client';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Info } from 'lucide-react';
+import { Info, Edit3 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
-export default function PlantLibraryItem({ plant }) {
+export default function PlantLibraryItem({ plant, onEdit, showEditButton = true }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: true, left: false });
   const itemRef = useRef(null);
@@ -145,18 +145,35 @@ export default function PlantLibraryItem({ plant }) {
               {plant.category}
             </span>
             
-            {/* Info icon */}
-            <div 
-              className="relative pointer-events-auto"
-              onMouseEnter={() => setShowTooltip(true)}
-              onMouseLeave={() => setShowTooltip(false)}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowTooltip(!showTooltip);
-              }}
-            >
-              <div className="w-5 h-5 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition-colors cursor-help">
-                <Info className="w-3 h-3 text-blue-600" />
+            {/* Action buttons */}
+            <div className="flex items-center gap-1">
+              {/* Edit button */}
+              {showEditButton && onEdit && (
+                <button 
+                  className="w-5 h-5 bg-orange-100 hover:bg-orange-200 rounded-full flex items-center justify-center transition-colors cursor-pointer pointer-events-auto"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(plant);
+                  }}
+                  title="Edit plant"
+                >
+                  <Edit3 className="w-3 h-3 text-orange-600" />
+                </button>
+              )}
+              
+              {/* Info icon */}
+              <div 
+                className="relative pointer-events-auto"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTooltip(!showTooltip);
+                }}
+              >
+                <div className="w-5 h-5 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition-colors cursor-help">
+                  <Info className="w-3 h-3 text-blue-600" />
+                </div>
               </div>
             </div>
           </div>

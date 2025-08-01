@@ -1,7 +1,8 @@
 'use client';
-import { ArrowLeft, X, Search, ChevronDown, ChevronUp, Heart, AlertTriangle, Info } from 'lucide-react';
+import { ArrowLeft, X, Search, ChevronDown, ChevronUp, Heart, AlertTriangle, Info, Plus } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import PlantLibraryItem from './PlantLibraryItem';
+import PlantEditModal from './PlantEditModal';
 import apiClient from '@/lib/api';
 
 export default function PlantLibrary({ 
@@ -18,6 +19,10 @@ export default function PlantLibrary({
   
   const [showCompanionGuide, setShowCompanionGuide] = useState(false);
   const [expandedPlants, setExpandedPlants] = useState({});
+  
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPlant, setEditingPlant] = useState(null);
 
   // Helper function to safely parse JSON or comma-separated strings
   const safeJsonParse = (value, fallback = []) => {
@@ -350,6 +355,84 @@ export default function PlantLibrary({
     return suggestions;
   }, [placedPlants, plants]);
 
+  // Plant editing functions
+  const handleEditPlant = (plant) => {
+    setEditingPlant(plant);
+    setShowEditModal(true);
+  };
+
+  const handleSavePlant = async (updatedPlant) => {
+    try {
+      // Transform data for API
+      const plantData = {
+        name: updatedPlant.name,
+        emoji: updatedPlant.emoji,
+        size: updatedPlant.size,
+        category: updatedPlant.category,
+        description: updatedPlant.description,
+        spacing: updatedPlant.spacing,
+        sunlight: updatedPlant.sunlight,
+        water_needs: updatedPlant.waterNeeds,
+        days_to_maturity: updatedPlant.daysToMaturity,
+        companion_plants: JSON.stringify(updatedPlant.companionPlants),
+        avoid_plants: JSON.stringify(updatedPlant.avoidPlants),
+        soil_types: JSON.stringify(updatedPlant.soilTypes),
+        difficulty: updatedPlant.difficulty,
+        planting_depth: updatedPlant.plantingDepth
+      };
+
+      if (updatedPlant.id) {
+        // Update existing plant
+        await apiClient.updatePlant(updatedPlant.id, plantData);
+      } else {
+        // Add new plant
+        await apiClient.addPlantToLibrary(plantData);
+      }
+
+      // Reload plants to reflect changes
+      await loadPlants();
+      
+      console.log('✅ Plant saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save plant:', error);
+      throw error;
+    }
+  };
+
+  const handleDeletePlant = async (plant) => {
+    try {
+      await apiClient.deletePlantFromLibrary(plant.id);
+      
+      // Reload plants to reflect changes
+      await loadPlants();
+      
+      console.log('✅ Plant deleted successfully');
+    } catch (error) {
+      console.error('❌ Failed to delete plant:', error);
+      throw error;
+    }
+  };
+
+  const handleAddNewPlant = () => {
+    setEditingPlant({
+      name: '',
+      emoji: '🌱',
+      size: 1,
+      category: 'vegetables',
+      description: '',
+      spacing: '',
+      sunlight: 'full',
+      waterNeeds: 'medium',
+      daysToMaturity: '',
+      companionPlants: [],
+      avoidPlants: [],
+      soilTypes: [],
+      difficulty: 'medium',
+      plantingDepth: ''
+    });
+    setShowEditModal(true);
+  };
+
   // Add loading and error states
   if (loading) {
     return (
@@ -447,12 +530,21 @@ export default function PlantLibrary({
               </span>
             )}
           </div>
-          <button 
-            onClick={onToggle}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-600" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleAddNewPlant}
+              className="p-2 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
+              title="Add new plant"
+            >
+              <Plus className="w-4 h-4 text-green-600" />
+            </button>
+            <button 
+              onClick={onToggle}
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
         </div>
         
         {/* Search */}
@@ -625,6 +717,8 @@ export default function PlantLibrary({
                   <PlantLibraryItem 
                     key={plant.id} 
                     plant={plant}
+                    onEdit={handleEditPlant}
+                    showEditButton={true}
                     // Pass additional props for better drag handling
                     isInScrollContainer={true}
                   />
@@ -655,6 +749,19 @@ export default function PlantLibrary({
           </p>
         </div>
       </div>
+      
+      {/* Plant Edit Modal */}
+      <PlantEditModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingPlant(null);
+        }}
+        plant={editingPlant}
+        onSave={handleSavePlant}
+        onDelete={editingPlant?.id ? handleDeletePlant : null}
+        isPlaced={false}
+      />
     </>
   );
 }

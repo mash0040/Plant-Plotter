@@ -596,6 +596,230 @@ class ApiClient {
     }
   }
 
+  async updatePlant(plantId, plantData) {
+    try {
+      console.log('📝 Updating plant in library:', plantId, plantData);
+      const response = await this.request(`/plants/${plantId}`, {
+        method: 'PUT',
+        body: JSON.stringify(plantData),
+      });
+      console.log('✅ Plant updated in library:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to update plant in library:', error);
+      throw error;
+    }
+  }
+
+  async addPlantToLibrary(plantData) {
+    try {
+      console.log('🆕 Adding plant to library:', plantData);
+      const response = await this.request('/plants', {
+        method: 'POST',
+        body: JSON.stringify(plantData),
+      });
+      console.log('✅ Plant added to library:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to add plant to library:', error);
+      throw error;
+    }
+  }
+
+  async deletePlantFromLibrary(plantId) {
+    try {
+      console.log('🗑️ Deleting plant from library:', plantId);
+      const response = await this.request(`/plants/${plantId}`, {
+        method: 'DELETE',
+      });
+      console.log('✅ Plant deleted from library:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to delete plant from library:', error);
+      throw error;
+    }
+  }
+
+  // Activity methods
+  async addActivity(activityData) {
+    try {
+      console.log('📝 Adding activity:', activityData);
+      const response = await this.request('/activities', {
+        method: 'POST',
+        body: JSON.stringify({
+          garden_id: activityData.gardenId,
+          activity_type: activityData.activity,
+          plant_name: activityData.plant,
+          notes: activityData.notes,
+          activity_date: activityData.date
+        }),
+      });
+      console.log('✅ Activity added:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to add activity:', error);
+      throw error;
+    }
+  }
+
+  async getActivities(gardenId = null, date = null) {
+    try {
+      let url = '/activities';
+      const params = new URLSearchParams();
+      
+      if (gardenId) params.append('gardenId', gardenId);
+      if (date) params.append('date', date);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      console.log('📚 Fetching activities:', url);
+      const activities = await this.request(url);
+      console.log('✅ Activities loaded:', activities);
+      return activities;
+    } catch (error) {
+      console.error('❌ Failed to fetch activities:', error);
+      throw error;
+    }
+  }
+
+  async updateActivity(activityId, activityData) {
+    try {
+      console.log('📝 Updating activity:', activityId, activityData);
+      const response = await this.request(`/activities/${activityId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          garden_id: activityData.garden_id,
+          activity_type: activityData.activity_type,
+          plant_name: activityData.plant_name,
+          notes: activityData.notes,
+          activity_date: activityData.activity_date
+        }),
+      });
+      console.log('✅ Activity updated:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to update activity:', error);
+      throw error;
+    }
+  }
+
+  async deleteActivity(activityId) {
+    try {
+      console.log('🗑️ Deleting activity:', activityId);
+      const response = await this.request(`/activities/${activityId}`, {
+        method: 'DELETE',
+      });
+      console.log('✅ Activity deleted:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to delete activity:', error);
+      throw error;
+    }
+  }
+
+  // Task methods
+  async getTasks(gardenId = null) {
+    try {
+      let url = '/tasks';
+      if (gardenId) {
+        url += `?gardenId=${gardenId}`;
+      }
+      
+      console.log('📋 Fetching tasks:', url);
+      const tasks = await this.request(url);
+      console.log('✅ Tasks loaded:', tasks);
+      return tasks;
+    } catch (error) {
+      console.error('❌ Failed to fetch tasks:', error);
+      throw error;
+    }
+  }
+
+  async createTask(taskData) {
+    try {
+      console.log('🆕 Creating task:', taskData);
+      const response = await this.request('/tasks', {
+        method: 'POST',
+        body: JSON.stringify(taskData),
+      });
+      console.log('✅ Task created:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to create task:', error);
+      throw error;
+    }
+  }
+
+  async updateTask(taskId, taskData) {
+    try {
+      console.log('📝 Updating task:', taskId, taskData);
+      const response = await this.request(`/tasks/${taskId}`, {
+        method: 'PUT',
+        body: JSON.stringify(taskData),
+      });
+      console.log('✅ Task updated:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to update task:', error);
+      throw error;
+    }
+  }
+
+  async deleteTask(taskId) {
+    try {
+      console.log('🗑️ Deleting task:', taskId);
+      const response = await this.request(`/tasks/${taskId}`, {
+        method: 'DELETE',
+      });
+      console.log('✅ Task deleted:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to delete task:', error);
+      throw error;
+    }
+  }
+
+  // Preferences methods
+  async updatePreferences(preferences) {
+    try {
+      console.log('⚙️ Updating user preferences:', preferences);
+      console.log('⚙️ Request URL will be:', `${this.baseURL}/users/preferences`);
+      console.log('⚙️ Auth token available:', !!this.getAuthToken());
+      
+      const response = await this.request('/users/preferences', {
+        method: 'PUT',
+        body: JSON.stringify(preferences),
+      });
+      console.log('✅ Preferences updated:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to update preferences:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
+      throw error;
+    }
+  }
+
+  async updateProfile(profileData) {
+    try {
+      console.log('👤 Updating user profile:', profileData);
+      const response = await this.request('/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify(profileData),
+      });
+      console.log('✅ Profile updated:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to update profile:', error);
+      throw error;
+    }
+  }
+
   // Helper methods
   isAuthenticated() {
     const token = this.getAuthToken();

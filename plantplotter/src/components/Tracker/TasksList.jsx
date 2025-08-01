@@ -1,14 +1,18 @@
 'use client';
 import React from 'react';
-import { Check, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Check, Clock, AlertCircle, CheckCircle, Edit3, Plus } from 'lucide-react';
 import { formatTaskDate, getPriorityColor } from './Constants/TaskData';
 
 export default function TasksList({ 
   title, 
   tasks, 
   onTaskComplete, 
+  onTaskEdit,
+  onTaskAdd,
   showCheckboxes = false,
-  emptyMessage = "No tasks"
+  emptyMessage = "No tasks",
+  showEditButtons = true,
+  showAddButton = true
 }) {
   // Empty state for today tasks (celebration)
   if (tasks.length === 0 && title === "Today Tasks") {
@@ -50,13 +54,24 @@ export default function TasksList({
     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
-        <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
-          {tasks.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+            {tasks.length}
+          </span>
+          {showAddButton && onTaskAdd && (
+            <button 
+              onClick={onTaskAdd}
+              className="p-1 bg-blue-100 hover:bg-blue-200 rounded-full transition-colors"
+              title="Add new task"
+            >
+              <Plus className="w-3 h-3 text-blue-600" />
+            </button>
+          )}
+        </div>
       </div>
       <div className="space-y-3">
         {tasks.map(task => (
-          <div key={task.id} className="flex items-start space-x-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <div key={task.id} className="group flex items-start space-x-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             {showCheckboxes ? (
               <input 
                 type="checkbox" 
@@ -112,9 +127,20 @@ export default function TasksList({
                   )}
                 </div>
                 
-                {task.urgent && (
-                  <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                )}
+                <div className="flex items-center gap-1">
+                  {showEditButtons && onTaskEdit && (
+                    <button
+                      onClick={() => onTaskEdit(task)}
+                      className="p-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors opacity-0 group-hover:opacity-100"
+                      title="Edit task"
+                    >
+                      <Edit3 className="w-3 h-3 text-gray-600" />
+                    </button>
+                  )}
+                  {task.urgent && (
+                    <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  )}
+                </div>
               </div>
             </div>
           </div>
