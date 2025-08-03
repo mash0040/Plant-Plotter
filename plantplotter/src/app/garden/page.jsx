@@ -239,9 +239,24 @@ export default function GardenPlannerPage() {
         
         // Set garden data
         setCurrentGarden(garden);
+        
+        // FIXED: Better dimension handling - try multiple sources
+        const gardenWidth = garden.width || garden.dimensions?.width || 20;
+        const gardenHeight = garden.height || garden.dimensions?.height || 12;
+        
+        console.log('🔍 Loading garden dimensions:', {
+          gardenId,
+          directWidth: garden.width,
+          directHeight: garden.height,
+          nestedWidth: garden.dimensions?.width,
+          nestedHeight: garden.dimensions?.height,
+          finalWidth: gardenWidth,
+          finalHeight: gardenHeight
+        });
+        
         setDimensions({
-          width: garden.dimensions?.width ?? 20,
-          height: garden.dimensions?.height ?? 12
+          width: gardenWidth,
+          height: gardenHeight
         });
         
         // Convert planted items from storage format to planner format
