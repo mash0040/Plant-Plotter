@@ -25,9 +25,28 @@ const safeParseField = (field) => {
   return [];
 };
 
+// Helper function to safely stringify arrays for database storage
+const safeStringifyField = (field) => {
+  if (!field) return JSON.stringify([]);
+  if (Array.isArray(field)) return JSON.stringify(field);
+  if (typeof field === 'string') {
+    // If it looks like JSON, return as is, otherwise treat as comma-separated
+    if (field.trim().startsWith('[')) {
+      return field;
+    } else {
+      // Convert comma-separated to JSON array
+      const array = field.split(',').map(item => item.trim()).filter(item => item.length > 0);
+      return JSON.stringify(array);
+    }
+  }
+  return JSON.stringify([]);
+};
+
 // GET /api/plants - Get plant library
 router.get('/', verifyToken, async (req, res) => {
   try {
+    console.log('📚 Fetching plant library...');
+    
     const [plants] = await db.execute(`
       SELECT 
         id,
@@ -84,10 +103,10 @@ router.get('/', verifyToken, async (req, res) => {
       }
     });
 
-    console.log(`Plant library loaded: ${transformedPlants.length} plants`);
+    console.log(`✅ Plant library loaded: ${transformedPlants.length} plants`);
     res.json(transformedPlants);
   } catch (error) {
-    console.error('Error fetching plant library:', error);
+    console.error('❌ Error fetching plant library:', error);
     res.status(500).json({ error: 'Failed to fetch plant library' });
   }
 });
@@ -95,6 +114,8 @@ router.get('/', verifyToken, async (req, res) => {
 // GET /api/plants/:id - Get specific plant
 router.get('/:id', verifyToken, async (req, res) => {
   try {
+    console.log(`🔍 Fetching plant: ${req.params.id}`);
+    
     const [plant] = await db.execute(
       'SELECT * FROM plant_library WHERE id = ?',
       [req.params.id]
@@ -115,10 +136,345 @@ router.get('/:id', verifyToken, async (req, res) => {
       difficulty: plant[0].difficulty || 'Medium'
     };
 
+    console.log(`✅ Plant found: ${transformedPlant.name}`);
     res.json(transformedPlant);
   } catch (error) {
-    console.error('Error fetching plant:', error);
+    console.error('❌ Error fetching plant:', error);
     res.status(500).json({ error: 'Failed to fetch plant' });
+  }
+});
+
+// POST /api/plants - Add new plant to library
+router.post('/', verifyToken, async (req, res) => {
+  try {
+    console.log('🆕 Creating new plant in library...');
+    console.log('📋 Plant data received:', req.body);
+    
+    const {
+      id,
+      name,
+      emoji,
+      size,
+      category,
+      description,
+      spacing,
+      sunlight,
+      water_needs,
+      days_to_maturity,
+      companion_plants,
+      avoid_plants,
+      soil_types,
+      difficulty,
+      planting_depth
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !category) {
+      return res.status(400).json({ 
+        error: 'Plant name and category are required',
+        received: { name, category }
+      });
+    }
+
+    // Generate ID if not provided
+    const plantId = id || name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+
+    // Check if plant with this ID already exists
+    const [existing] = await db.execute(
+      'SELECT id FROM plant_library WHERE id = ?',
+      [plantId]
+    );
+
+    if (existing.length > 0) {
+      return res.status(409).json({ 
+        error: 'Plant with this ID already exists',
+        existingId: plantId
+      });
+    }
+
+    // Prepare data for insertion
+    const plantData = {
+      id: plantId,
+      name: name.trim(),
+      emoji: emoji || '🌱',
+      size: parseInt(size) || 1,
+      category: category,
+      description: description || '',
+      spacing: spacing || null,
+      sunlight: sunlight || 'Full Sun',
+      water_needs: water_needs || 'Moderate',
+      days_to_maturity: days_to_maturity ? parseInt(days_to_maturity) : null,
+      companion_plants: safeStringifyField(companion_plants),
+      avoid_plants: safeStringifyField(avoid_plants),
+      soil_types: safeStringifyField(soil_types),
+      difficulty: difficulty || 'Medium',
+      planting_depth: planting_depth || null
+    };
+
+    console.log('💾 Inserting plant data:', plantData);
+
+    // Insert into database
+    const [result] = await db.execute(`
+      INSERT INTO plant_library (
+        id, name, emoji, size, category, description, spacing, sunlight, 
+        water_needs, days_to_maturity, companion_plants, avoid_plants, 
+        soil_types, difficulty, planting_depth
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      plantData.id,
+      plantData.name,
+      plantData.emoji,
+      plantData.size,
+      plantData.category,
+      plantData.description,
+      plantData.spacing,
+      plantData.sunlight,
+      plantData.water_needs,
+      plantData.days_to_maturity,
+      plantData.companion_plants,
+      plantData.avoid_plants,
+      plantData.soil_types,
+      plantData.difficulty,
+      plantData.planting_depth
+    ]);
+
+    // Fetch the created plant to return
+    const [newPlant] = await db.execute(
+      'SELECT * FROM plant_library WHERE id = ?',
+      [plantData.id]
+    );
+
+    const transformedPlant = {
+      ...newPlant[0],
+      companion_plants: safeParseField(newPlant[0].companion_plants),
+      avoid_plants: safeParseField(newPlant[0].avoid_plants),
+      soil_types: safeParseField(newPlant[0].soil_types)
+    };
+
+    console.log(`✅ Plant created successfully: ${transformedPlant.name}`);
+    res.status(201).json(transformedPlant);
+
+  } catch (error) {
+    console.error('❌ Error creating plant:', error);
+    
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ 
+        error: 'Plant with this ID already exists',
+        message: error.message
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to create plant',
+      message: error.message
+    });
+  }
+});
+
+// PUT /api/plants/:id - Update plant in library
+router.put('/:id', verifyToken, async (req, res) => {
+  try {
+    console.log(`📝 Updating plant: ${req.params.id}`);
+    console.log('📋 Update data received:', req.body);
+    
+    const plantId = req.params.id;
+    const {
+      name,
+      emoji,
+      size,
+      category,
+      description,
+      spacing,
+      sunlight,
+      water_needs,
+      days_to_maturity,
+      companion_plants,
+      avoid_plants,
+      soil_types,
+      difficulty,
+      planting_depth
+    } = req.body;
+
+    // Check if plant exists
+    const [existing] = await db.execute(
+      'SELECT id FROM plant_library WHERE id = ?',
+      [plantId]
+    );
+
+    if (existing.length === 0) {
+      return res.status(404).json({ error: 'Plant not found' });
+    }
+
+    // Validate required fields
+    if (!name || !category) {
+      return res.status(400).json({ 
+        error: 'Plant name and category are required',
+        received: { name, category }
+      });
+    }
+
+    // Prepare data for update
+    const plantData = {
+      name: name.trim(),
+      emoji: emoji || '🌱',
+      size: parseInt(size) || 1,
+      category: category,
+      description: description || '',
+      spacing: spacing || null,
+      sunlight: sunlight || 'Full Sun',
+      water_needs: water_needs || 'Moderate',
+      days_to_maturity: days_to_maturity ? parseInt(days_to_maturity) : null,
+      companion_plants: safeStringifyField(companion_plants),
+      avoid_plants: safeStringifyField(avoid_plants),
+      soil_types: safeStringifyField(soil_types),
+      difficulty: difficulty || 'Medium',
+      planting_depth: planting_depth || null
+    };
+
+    console.log('💾 Updating with data:', plantData);
+
+    // Update in database
+    const [result] = await db.execute(`
+      UPDATE plant_library SET 
+        name = ?, emoji = ?, size = ?, category = ?, description = ?, 
+        spacing = ?, sunlight = ?, water_needs = ?, days_to_maturity = ?, 
+        companion_plants = ?, avoid_plants = ?, soil_types = ?, 
+        difficulty = ?, planting_depth = ?, updated_at = NOW()
+      WHERE id = ?
+    `, [
+      plantData.name,
+      plantData.emoji,
+      plantData.size,
+      plantData.category,
+      plantData.description,
+      plantData.spacing,
+      plantData.sunlight,
+      plantData.water_needs,
+      plantData.days_to_maturity,
+      plantData.companion_plants,
+      plantData.avoid_plants,
+      plantData.soil_types,
+      plantData.difficulty,
+      plantData.planting_depth,
+      plantId
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Plant not found or no changes made' });
+    }
+
+    // Fetch the updated plant to return
+    const [updatedPlant] = await db.execute(
+      'SELECT * FROM plant_library WHERE id = ?',
+      [plantId]
+    );
+
+    const transformedPlant = {
+      ...updatedPlant[0],
+      companion_plants: safeParseField(updatedPlant[0].companion_plants),
+      avoid_plants: safeParseField(updatedPlant[0].avoid_plants),
+      soil_types: safeParseField(updatedPlant[0].soil_types)
+    };
+
+    console.log(`✅ Plant updated successfully: ${transformedPlant.name}`);
+    res.json(transformedPlant);
+
+  } catch (error) {
+    console.error('❌ Error updating plant:', error);
+    res.status(500).json({ 
+      error: 'Failed to update plant',
+      message: error.message
+    });
+  }
+});
+
+// DELETE /api/plants/:id - Delete plant from library
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    console.log(`🗑️ Deleting plant: ${req.params.id}`);
+    
+    const plantId = req.params.id;
+
+    // Check if plant exists
+    const [existing] = await db.execute(
+      'SELECT id, name FROM plant_library WHERE id = ?',
+      [plantId]
+    );
+
+    if (existing.length === 0) {
+      return res.status(404).json({ error: 'Plant not found' });
+    }
+
+    const plantName = existing[0].name;
+
+    // Check if plant is used in any gardens (optional - warn user)
+    const [usage] = await db.execute(
+      'SELECT COUNT(*) as count FROM planted_items WHERE plant_id = ?',
+      [plantId]
+    );
+
+    const usageCount = usage[0].count;
+
+    // Delete the plant
+    const [result] = await db.execute(
+      'DELETE FROM plant_library WHERE id = ?',
+      [plantId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Plant not found' });
+    }
+
+    console.log(`✅ Plant deleted successfully: ${plantName}`);
+    res.json({ 
+      message: 'Plant deleted successfully',
+      deletedPlant: plantName,
+      wasUsedInGardens: usageCount > 0,
+      affectedGardenPlants: usageCount
+    });
+
+  } catch (error) {
+    console.error('❌ Error deleting plant:', error);
+    
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+      return res.status(409).json({ 
+        error: 'Cannot delete plant - it is being used in gardens',
+        message: 'Remove this plant from all gardens before deleting it from the library'
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to delete plant',
+      message: error.message
+    });
+  }
+});
+
+// GET /api/plants/search/:query - Search plants by name or category
+router.get('/search/:query', verifyToken, async (req, res) => {
+  try {
+    console.log(`🔍 Searching plants for: ${req.params.query}`);
+    
+    const query = req.params.query;
+    const [plants] = await db.execute(`
+      SELECT * FROM plant_library 
+      WHERE name LIKE ? OR category LIKE ? OR description LIKE ?
+      ORDER BY name
+    `, [`%${query}%`, `%${query}%`, `%${query}%`]);
+
+    const transformedPlants = plants.map(plant => ({
+      ...plant,
+      companion_plants: safeParseField(plant.companion_plants),
+      avoid_plants: safeParseField(plant.avoid_plants),
+      soil_types: safeParseField(plant.soil_types)
+    }));
+
+    console.log(`✅ Found ${transformedPlants.length} plants matching "${query}"`);
+    res.json(transformedPlants);
+
+  } catch (error) {
+    console.error('❌ Error searching plants:', error);
+    res.status(500).json({ error: 'Failed to search plants' });
   }
 });
 

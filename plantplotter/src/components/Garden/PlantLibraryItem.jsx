@@ -94,13 +94,36 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
     };
   };
 
+  // FIXED: Better edit button click handling without invalid React event methods
+  const handleEditClick = (e) => {
+    console.log('🖊️ Edit button clicked!');
+    console.log('🛑 Stopping propagation');
+    
+    // FIXED: Remove stopImmediatePropagation - not available in React synthetic events
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('🌱 Plant to edit:', plant.name);
+    console.log('🔧 onEdit function exists:', !!onEdit);
+    
+    // Close tooltip if open
+    setShowTooltip(false);
+    
+    // Call edit handler
+    if (onEdit) {
+      console.log('📞 Calling onEdit...');
+      onEdit(plant);
+      console.log('✅ onEdit called successfully');
+    } else {
+      console.error('❌ onEdit function is not available');
+    }
+  };
+
   return (
     <div className="relative" ref={itemRef}>
       <div
         ref={setNodeRef}
         style={style}
-        {...listeners}
-        {...attributes}
         className={`
           flex items-center gap-3 p-3 rounded-lg cursor-grab active:cursor-grabbing
           ${colors.bg} ${colors.border} border-2 
@@ -110,12 +133,9 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
           group
           select-none
         `}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-        }}
-        onTouchStart={(e) => {
-          e.stopPropagation();
-        }}
+        // Only apply drag listeners to the container, not buttons
+        {...listeners}
+        {...attributes}
       >
         {/* Plant emoji with background circle */}
         <div className={`
@@ -146,16 +166,23 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
             </span>
             
             {/* Action buttons */}
-            <div className="flex items-center gap-1">
-              {/* Edit button */}
+            <div className="flex items-center gap-1 pointer-events-auto">
+              {/* FIXED: Edit button with proper event handling */}
               {showEditButton && onEdit && (
                 <button 
-                  className="w-5 h-5 bg-orange-100 hover:bg-orange-200 rounded-full flex items-center justify-center transition-colors cursor-pointer pointer-events-auto"
-                  onClick={(e) => {
+                  className="w-5 h-5 bg-orange-100 hover:bg-orange-200 rounded-full flex items-center justify-center transition-colors cursor-pointer z-10"
+                  onClick={handleEditClick}
+                  onMouseDown={(e) => {
+                    console.log('🖱️ Edit button mouse down');
                     e.stopPropagation();
-                    onEdit(plant);
+                  }}
+                  onTouchStart={(e) => {
+                    console.log('👆 Edit button touch start');
+                    e.stopPropagation();
                   }}
                   title="Edit plant"
+                  type="button"
+                  style={{ pointerEvents: 'auto' }}
                 >
                   <Edit3 className="w-3 h-3 text-orange-600" />
                 </button>
@@ -163,13 +190,16 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
               
               {/* Info icon */}
               <div 
-                className="relative pointer-events-auto"
+                className="relative"
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   setShowTooltip(!showTooltip);
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
               >
                 <div className="w-5 h-5 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition-colors cursor-help">
                   <Info className="w-3 h-3 text-blue-600" />

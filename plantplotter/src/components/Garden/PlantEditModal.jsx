@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { X, Save, Trash2, Edit3, AlertCircle } from 'lucide-react';
+import { X, Save, Trash2, Edit3, AlertCircle, Plus } from 'lucide-react';
 
 export default function PlantEditModal({ 
   isOpen, 
@@ -17,19 +17,21 @@ export default function PlantEditModal({
     category: 'vegetables',
     description: '',
     spacing: '',
-    sunlight: 'full',
-    waterNeeds: 'medium',
+    sunlight: 'Full Sun',
+    waterNeeds: 'Moderate',
     daysToMaturity: '',
     companionPlants: [],
     avoidPlants: [],
     soilTypes: [],
-    difficulty: 'medium',
+    difficulty: 'Medium',
     plantingDepth: '',
     notes: ''
   });
   
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [companionPlantsText, setCompanionPlantsText] = useState('');
+  const [avoidPlantsText, setAvoidPlantsText] = useState('');
 
   // Categories available for selection
   const categories = [
@@ -40,35 +42,50 @@ export default function PlantEditModal({
     { value: 'other', label: 'Other', emoji: '🌱' }
   ];
 
+  // FIXED: Match database enum values exactly
   const sunlightOptions = [
-    { value: 'full', label: 'Full Sun' },
-    { value: 'partial', label: 'Partial Sun' },
-    { value: 'shade', label: 'Shade' }
+    { value: 'Full Sun', label: 'Full Sun' },
+    { value: 'Partial Sun', label: 'Partial Sun' },
+    { value: 'Shade', label: 'Shade' }
   ];
 
+  // FIXED: Match database enum values exactly
   const waterNeedsOptions = [
-    { value: 'low', label: 'Low' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' }
+    { value: 'Low', label: 'Low' },
+    { value: 'Moderate', label: 'Moderate' },
+    { value: 'High', label: 'High' }
   ];
 
+  // FIXED: Match database enum values exactly
   const difficultyOptions = [
-    { value: 'easy', label: 'Easy' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'hard', label: 'Hard' }
+    { value: 'Easy', label: 'Easy' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'Hard', label: 'Hard' }
   ];
 
   const soilTypeOptions = [
     { value: 'sandy', label: 'Sandy' },
     { value: 'loamy', label: 'Loamy' },
     { value: 'clay', label: 'Clay' },
-    { value: 'acidic', label: 'Acidic' },
-    { value: 'alkaline', label: 'Alkaline' }
+    { value: 'silt', label: 'Silt' },
+    { value: 'peat', label: 'Peat' },
+    { value: 'chalk', label: 'Chalk' }
   ];
+
+  // Check if this is a new plant (no ID or empty name)
+  const isNewPlant = !plant?.id || !plant?.name;
 
   // Load plant data when modal opens
   useEffect(() => {
     if (isOpen && plant) {
+      console.log('🌱 Loading plant data into modal:', plant);
+      
+      // Convert arrays to text for display
+      const companionText = Array.isArray(plant.companionPlants) ? 
+        plant.companionPlants.join(', ') : '';
+      const avoidText = Array.isArray(plant.avoidPlants) ? 
+        plant.avoidPlants.join(', ') : '';
+      
       setFormData({
         name: plant.name || '',
         emoji: plant.emoji || '🌱',
@@ -76,19 +93,43 @@ export default function PlantEditModal({
         category: plant.category || 'vegetables',
         description: plant.description || '',
         spacing: plant.spacing || '',
-        sunlight: plant.sunlight || 'full',
-        waterNeeds: plant.waterNeeds || 'medium',
+        sunlight: plant.sunlight === 'full' ? 'Full Sun' : 
+           plant.sunlight === 'partial' ? 'Partial Sun' :
+           plant.sunlight === 'shade' ? 'Shade' :
+           plant.sunlight || 'Full Sun',
+           
+        waterNeeds: plant.waterNeeds === 'low' ? 'Low' :
+                  plant.waterNeeds === 'medium' ? 'Moderate' :
+                  plant.waterNeeds === 'high' ? 'High' :
+                  plant.waterNeeds || 'Moderate',
+                  
+        difficulty: plant.difficulty === 'easy' ? 'Easy' :
+                  plant.difficulty === 'medium' ? 'Medium' :
+                  plant.difficulty === 'hard' ? 'Hard' :
+                  plant.difficulty || 'Medium',
         daysToMaturity: plant.daysToMaturity || '',
         companionPlants: Array.isArray(plant.companionPlants) ? plant.companionPlants : [],
         avoidPlants: Array.isArray(plant.avoidPlants) ? plant.avoidPlants : [],
         soilTypes: Array.isArray(plant.soilTypes) ? plant.soilTypes : [],
-        difficulty: plant.difficulty || 'medium',
         plantingDepth: plant.plantingDepth || '',
         notes: plant.notes || ''
       });
+      
+      setCompanionPlantsText(companionText);
+      setAvoidPlantsText(avoidText);
       setError('');
     }
   }, [isOpen, plant]);
+
+  // Debug modal state changes
+  useEffect(() => {
+    console.log('📊 PlantEditModal state changed:', {
+      isOpen,
+      hasPlant: !!plant,
+      plantName: plant?.name,
+      isNewPlant: isNewPlant
+    });
+  }, [isOpen, plant, isNewPlant]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -97,20 +138,84 @@ export default function PlantEditModal({
     }));
   };
 
-  const handleArrayInput = (field, value) => {
+  // FIXED: Better companion plants handling
+  const handleCompanionPlantsChange = (value) => {
+    setCompanionPlantsText(value);
     // Convert comma-separated string to array
     const arrayValue = value.split(',').map(item => item.trim()).filter(Boolean);
     setFormData(prev => ({
       ...prev,
-      [field]: arrayValue
+      companionPlants: arrayValue
     }));
+  };
+
+  // FIXED: Better avoid plants handling
+  const handleAvoidPlantsChange = (value) => {
+    setAvoidPlantsText(value);
+    // Convert comma-separated string to array
+    const arrayValue = value.split(',').map(item => item.trim()).filter(Boolean);
+    setFormData(prev => ({
+      ...prev,
+      avoidPlants: arrayValue
+    }));
+  };
+
+  // FIXED: Plant name validation
+  const validatePlantName = (name) => {
+    if (!name || !name.trim()) {
+      return 'Plant name is required';
+    }
+    
+    // Check for valid characters (letters, numbers, spaces, hyphens)
+    const validNamePattern = /^[a-zA-Z0-9\s\-']+$/;
+    if (!validNamePattern.test(name)) {
+      return 'Plant name can only contain letters, numbers, spaces, hyphens, and apostrophes';
+    }
+    
+    if (name.trim().length < 2) {
+      return 'Plant name must be at least 2 characters long';
+    }
+    
+    if (name.trim().length > 50) {
+      return 'Plant name must be less than 50 characters';
+    }
+    
+    return null;
+  };
+
+  // FIXED: Form validation
+  const validateForm = () => {
+    // Validate plant name
+    const nameError = validatePlantName(formData.name);
+    if (nameError) {
+      setError(nameError);
+      return false;
+    }
+
+    // Validate required fields
+    if (!formData.category) {
+      setError('Category is required');
+      return false;
+    }
+
+    // Validate numeric fields
+    if (formData.daysToMaturity && (isNaN(formData.daysToMaturity) || formData.daysToMaturity < 1)) {
+      setError('Days to maturity must be a positive number');
+      return false;
+    }
+
+    if (!formData.size || formData.size < 1 || formData.size > 4) {
+      setError('Size must be between 1 and 4');
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
-      setError('Plant name is required');
+    if (!validateForm()) {
       return;
     }
 
@@ -127,11 +232,20 @@ export default function PlantEditModal({
         soilTypes: Array.isArray(formData.soilTypes) ? formData.soilTypes : []
       };
 
+      console.log('💾 Saving plant data:', updatedPlant);
       await onSave(updatedPlant);
       onClose();
     } catch (error) {
       console.error('Failed to save plant:', error);
-      setError(error.message || 'Failed to save plant');
+      
+      // Handle specific database errors
+      if (error.message.includes('Data truncated')) {
+        setError('One of the values is too long for the database. Please shorten your inputs.');
+      } else if (error.message.includes('Duplicate entry')) {
+        setError('A plant with this name already exists. Please choose a different name.');
+      } else {
+        setError(error.message || 'Failed to save plant');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -151,24 +265,61 @@ export default function PlantEditModal({
     }
   };
 
-  if (!isOpen) return null;
+  // Add click outside to close
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      console.log('🚪 Closing modal via backdrop click');
+      onClose();
+    }
+  };
+
+  // Don't render if not open
+  if (!isOpen) {
+    console.log('🚫 Modal not open, not rendering');
+    return null;
+  }
+
+  console.log('✅ Rendering PlantEditModal for plant:', plant?.name || 'New Plant');
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      style={{ 
+        zIndex: 999999,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0
+      }}
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+        style={{ zIndex: 1000000 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* FIXED: Header shows correct title */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <Edit3 className="w-5 h-5 text-green-600" />
+              {isNewPlant ? (
+                <Plus className="w-5 h-5 text-green-600" />
+              ) : (
+                <Edit3 className="w-5 h-5 text-green-600" />
+              )}
             </div>
             <h2 className="text-xl font-bold text-gray-800">
-              {isPlaced ? 'Edit Placed Plant' : 'Edit Plant'}
+              {isNewPlant ? 'Add New Plant' : (isPlaced ? 'Edit Placed Plant' : 'Edit Plant')}
             </h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              console.log('❌ Closing modal via X button');
+              onClose();
+            }}
             className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+            type="button"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -195,9 +346,13 @@ export default function PlantEditModal({
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="e.g., Tomato"
+                placeholder="e.g., Tomato, Basil, Lettuce"
                 required
+                maxLength="50"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Use common plant names. Letters, numbers, spaces, and hyphens only.
+              </p>
             </div>
 
             <div>
@@ -259,6 +414,7 @@ export default function PlantEditModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               rows="3"
               placeholder="Brief description of the plant..."
+              maxLength="500"
             />
           </div>
 
@@ -329,6 +485,7 @@ export default function PlantEditModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="e.g., 65"
                 min="1"
+                max="365"
               />
             </div>
 
@@ -342,6 +499,7 @@ export default function PlantEditModal({
                 onChange={(e) => handleInputChange('spacing', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="e.g., 12-18"
+                maxLength="20"
               />
             </div>
 
@@ -355,11 +513,12 @@ export default function PlantEditModal({
                 onChange={(e) => handleInputChange('plantingDepth', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="e.g., 1/4 inch"
+                maxLength="20"
               />
             </div>
           </div>
 
-          {/* Companion and Avoid Plants */}
+          {/* FIXED: Companion and Avoid Plants */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -367,12 +526,15 @@ export default function PlantEditModal({
               </label>
               <input
                 type="text"
-                value={Array.isArray(formData.companionPlants) ? formData.companionPlants.join(', ') : ''}
-                onChange={(e) => handleArrayInput('companionPlants', e.target.value)}
+                value={companionPlantsText}
+                onChange={(e) => handleCompanionPlantsChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="e.g., basil, carrot, lettuce"
+                placeholder="e.g., tomato, basil, carrot"
+                maxLength="200"
               />
-              <p className="text-xs text-gray-500 mt-1">Separate with commas</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Separate plant names with commas. Use common names.
+              </p>
             </div>
 
             <div>
@@ -381,12 +543,15 @@ export default function PlantEditModal({
               </label>
               <input
                 type="text"
-                value={Array.isArray(formData.avoidPlants) ? formData.avoidPlants.join(', ') : ''}
-                onChange={(e) => handleArrayInput('avoidPlants', e.target.value)}
+                value={avoidPlantsText}
+                onChange={(e) => handleAvoidPlantsChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="e.g., pepper, walnut"
+                maxLength="200"
               />
-              <p className="text-xs text-gray-500 mt-1">Separate with commas</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Separate plant names with commas. Use common names.
+              </p>
             </div>
           </div>
 
@@ -428,6 +593,7 @@ export default function PlantEditModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 rows="2"
                 placeholder="Personal notes about this plant..."
+                maxLength="500"
               />
             </div>
           )}
@@ -436,7 +602,7 @@ export default function PlantEditModal({
         {/* Footer */}
         <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
           <div>
-            {(onDelete && !isPlaced) && (
+            {(onDelete && !isPlaced && !isNewPlant) && (
               <button
                 type="button"
                 onClick={handleDelete}
@@ -479,7 +645,7 @@ export default function PlantEditModal({
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  Save Changes
+                  {isNewPlant ? 'Add Plant' : 'Save Changes'}
                 </>
               )}
             </button>

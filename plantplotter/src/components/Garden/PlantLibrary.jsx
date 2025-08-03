@@ -1,8 +1,7 @@
 'use client';
 import { ArrowLeft, X, Search, ChevronDown, ChevronUp, Heart, AlertTriangle, Info, Plus } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import PlantLibraryItem from './PlantLibraryItem';
-import PlantEditModal from './PlantEditModal';
 import apiClient from '@/lib/api';
 
 export default function PlantLibrary({ 
@@ -11,7 +10,8 @@ export default function PlantLibrary({
   isOpen, 
   onToggle,
   placedPlants = [],
-  onPlantsLoaded // Callback to pass plants to parent
+  onPlantsLoaded, // 🔄 AUTO-REFRESH: Enhanced callback to pass plants AND refresh function
+  onEditPlant // Callback to handle edit requests
 }) {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +19,6 @@ export default function PlantLibrary({
   
   const [showCompanionGuide, setShowCompanionGuide] = useState(false);
   const [expandedPlants, setExpandedPlants] = useState({});
-  
-  // Edit modal state
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingPlant, setEditingPlant] = useState(null);
 
   // Helper function to safely parse JSON or comma-separated strings
   const safeJsonParse = (value, fallback = []) => {
@@ -69,10 +65,7 @@ export default function PlantLibrary({
     });
   };
 
-  useEffect(() => {
-    loadPlants();
-  }, []);
-
+  // 🔄 AUTO-REFRESH: Enhanced loadPlants function
   const loadPlants = async () => {
     try {
       setLoading(true);
@@ -142,10 +135,7 @@ export default function PlantLibrary({
       console.log('✅ Transformed plants:', transformedPlants);
       setPlants(transformedPlants);
       
-      // Pass plants to parent component
-      if (onPlantsLoaded) {
-        onPlantsLoaded(transformedPlants);
-      }
+      return transformedPlants; // 🔄 AUTO-REFRESH: Return plants for immediate use
       
     } catch (err) {
       console.error('❌ Failed to load plant library:', err);
@@ -206,14 +196,34 @@ export default function PlantLibrary({
       console.log('📦 Using fallback plants:', fallbackPlants);
       setPlants(fallbackPlants);
       
-      // Pass fallback plants to parent
-      if (onPlantsLoaded) {
-        onPlantsLoaded(fallbackPlants);
-      }
+      return fallbackPlants; // 🔄 AUTO-REFRESH: Return fallback plants
     } finally {
       setLoading(false);
     }
   };
+
+  // 🔄 AUTO-REFRESH: Create refresh function that can be called from parent
+  const refreshPlants = useCallback(async () => {
+    console.log('🔄 Refreshing plant library...');
+    const refreshedPlants = await loadPlants();
+    return refreshedPlants;
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    loadPlants();
+  }, []);
+
+  // 🔄 AUTO-REFRESH: Pass both plants AND refresh function to parent
+  useEffect(() => {
+    if (onPlantsLoaded && plants.length > 0) {
+      console.log('📤 Passing plants and refresh function to parent:', {
+        plantsCount: plants.length,
+        hasRefreshFunction: !!refreshPlants
+      });
+      onPlantsLoaded(plants, refreshPlants);
+    }
+  }, [plants.length, onPlantsLoaded, refreshPlants]);
 
   const filteredPlants = plants.filter(plant => 
     plant.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -355,82 +365,42 @@ export default function PlantLibrary({
     return suggestions;
   }, [placedPlants, plants]);
 
-  // Plant editing functions
+  // Plant editing functions - Pass to parent
   const handleEditPlant = (plant) => {
-    setEditingPlant(plant);
-    setShowEditModal(true);
-  };
-
-  const handleSavePlant = async (updatedPlant) => {
-    try {
-      // Transform data for API
-      const plantData = {
-        name: updatedPlant.name,
-        emoji: updatedPlant.emoji,
-        size: updatedPlant.size,
-        category: updatedPlant.category,
-        description: updatedPlant.description,
-        spacing: updatedPlant.spacing,
-        sunlight: updatedPlant.sunlight,
-        water_needs: updatedPlant.waterNeeds,
-        days_to_maturity: updatedPlant.daysToMaturity,
-        companion_plants: JSON.stringify(updatedPlant.companionPlants),
-        avoid_plants: JSON.stringify(updatedPlant.avoidPlants),
-        soil_types: JSON.stringify(updatedPlant.soilTypes),
-        difficulty: updatedPlant.difficulty,
-        planting_depth: updatedPlant.plantingDepth
-      };
-
-      if (updatedPlant.id) {
-        // Update existing plant
-        await apiClient.updatePlant(updatedPlant.id, plantData);
-      } else {
-        // Add new plant
-        await apiClient.addPlantToLibrary(plantData);
-      }
-
-      // Reload plants to reflect changes
-      await loadPlants();
-      
-      console.log('✅ Plant saved successfully');
-    } catch (error) {
-      console.error('❌ Failed to save plant:', error);
-      throw error;
-    }
-  };
-
-  const handleDeletePlant = async (plant) => {
-    try {
-      await apiClient.deletePlantFromLibrary(plant.id);
-      
-      // Reload plants to reflect changes
-      await loadPlants();
-      
-      console.log('✅ Plant deleted successfully');
-    } catch (error) {
-      console.error('❌ Failed to delete plant:', error);
-      throw error;
+    console.log('🖊️ Edit plant requested in PlantLibrary:', plant.name);
+    // Pass the edit request to the parent component
+    if (onEditPlant) {
+      onEditPlant(plant);
+    } else {
+      console.error('❌ onEditPlant callback not provided to PlantLibrary');
     }
   };
 
   const handleAddNewPlant = () => {
-    setEditingPlant({
+    console.log('➕ Add new plant requested');
+    // Create a new plant template and pass to parent
+    const newPlantTemplate = {
       name: '',
       emoji: '🌱',
       size: 1,
       category: 'vegetables',
       description: '',
       spacing: '',
-      sunlight: 'full',
-      waterNeeds: 'medium',
+      sunlight: 'Full Sun',
+      waterNeeds: 'Moderate',
       daysToMaturity: '',
       companionPlants: [],
       avoidPlants: [],
       soilTypes: [],
-      difficulty: 'medium',
+      difficulty: 'Medium',
       plantingDepth: ''
-    });
-    setShowEditModal(true);
+    };
+    
+    if (onEditPlant) {
+      onEditPlant(newPlantTemplate);
+    } else {
+      console.error('❌ onEditPlant callback not provided to PlantLibrary');
+    }
   };
 
   // Add loading and error states
@@ -717,7 +687,7 @@ export default function PlantLibrary({
                   <PlantLibraryItem 
                     key={plant.id} 
                     plant={plant}
-                    onEdit={handleEditPlant}
+                    onEdit={handleEditPlant} // Pass the handler that calls parent
                     showEditButton={true}
                     // Pass additional props for better drag handling
                     isInScrollContainer={true}
@@ -749,19 +719,6 @@ export default function PlantLibrary({
           </p>
         </div>
       </div>
-      
-      {/* Plant Edit Modal */}
-      <PlantEditModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingPlant(null);
-        }}
-        plant={editingPlant}
-        onSave={handleSavePlant}
-        onDelete={editingPlant?.id ? handleDeletePlant : null}
-        isPlaced={false}
-      />
     </>
   );
 }

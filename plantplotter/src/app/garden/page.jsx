@@ -17,6 +17,7 @@ import ControlPanel from '@/components/Garden/ControlPanel';
 import DraggablePlant from '@/components/Garden/DraggablePlant';
 import SaveGardenModel from '@/components/Garden/SaveGardenModel';
 import LoadGardenModel from '@/components/Garden/LoadGardenModel';
+import PlantEditModal from '@/components/Garden/PlantEditModal';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
 import { snapToGrid, checkPlantOverlap, isWithinBounds } from '@/components/Garden/Utils/GardenUtils';
 import apiClient from '@/lib/api';
@@ -45,6 +46,13 @@ export default function GardenPlannerPage() {
   // State to store plant library data
   const [libraryPlants, setLibraryPlants] = useState([]);
 
+  // 🔄 AUTO-REFRESH: Store refresh function
+  const [refreshPlantsFunction, setRefreshPlantsFunction] = useState(null);
+
+  // Plant Edit Modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPlant, setEditingPlant] = useState(null);
+
   // Enhanced sensor configuration to prevent sidebar dragging
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -71,10 +79,110 @@ export default function GardenPlannerPage() {
   // Helper function to convert grid units to pixels
   const gridToPixels = (gridUnits) => gridUnits * gridSize;
 
-  // Callback to receive plants from PlantLibrary component
-  const handlePlantsLoaded = (plants) => {
+  // 🔄 AUTO-REFRESH: Enhanced callback to receive plants AND refresh function
+  const handlePlantsLoaded = (plants, refreshFunction) => {
     console.log('📚 Plants loaded in main component:', plants);
     setLibraryPlants(plants);
+    
+    // Store the refresh function for later use
+    if (refreshFunction) {
+      setRefreshPlantsFunction(() => refreshFunction);
+      console.log('🔄 Refresh function stored successfully');
+    }
+  };
+
+  // Handle edit plant requests from PlantLibrary
+  const handleEditPlant = (plant) => {
+    console.log('🖊️ Edit plant requested in main page:', plant.name || 'New Plant');
+    setEditingPlant(plant);
+    setShowEditModal(true);
+  };
+
+  // 🔄 AUTO-REFRESH: Enhanced save plant function
+  const handleSavePlant = async (updatedPlant) => {
+    try {
+      console.log('💾 Saving plant in main page:', updatedPlant);
+      
+      // FIXED: Transform data for API with correct enum values
+      const plantData = {
+        name: updatedPlant.name,
+        emoji: updatedPlant.emoji,
+        size: updatedPlant.size,
+        category: updatedPlant.category,
+        description: updatedPlant.description,
+        spacing: updatedPlant.spacing,
+        
+        // FIXED: Map frontend values to database enum values
+        sunlight: updatedPlant.sunlight, // Should be "Full Sun", "Partial Sun", or "Shade"
+        water_needs: updatedPlant.waterNeeds, // Should be "Low", "Moderate", or "High"
+        difficulty: updatedPlant.difficulty, // Should be "Easy", "Medium", or "Hard"
+        
+        days_to_maturity: updatedPlant.daysToMaturity ? parseInt(updatedPlant.daysToMaturity) : null,
+        companion_plants: JSON.stringify(updatedPlant.companionPlants || []),
+        avoid_plants: JSON.stringify(updatedPlant.avoidPlants || []),
+        soil_types: JSON.stringify(updatedPlant.soilTypes || []),
+        planting_depth: updatedPlant.plantingDepth
+      };
+
+      console.log('📋 Transformed plant data for API:', plantData);
+
+      if (updatedPlant.id) {
+        // Update existing plant
+        console.log('📝 Updating existing plant:', updatedPlant.id);
+        await apiClient.updatePlant(updatedPlant.id, plantData);
+      } else {
+        // Add new plant - generate ID from name
+        const newId = updatedPlant.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        plantData.id = newId;
+        console.log('🆕 Adding new plant to library with ID:', newId);
+        await apiClient.addPlantToLibrary(plantData);
+      }
+
+      console.log('✅ Plant saved successfully');
+      
+      // 🔄 AUTO-REFRESH: Call the refresh function to reload plant library
+      if (refreshPlantsFunction) {
+        console.log('🔄 Auto-refreshing plant library...');
+        try {
+          await refreshPlantsFunction();
+          console.log('✅ Plant library refreshed successfully');
+        } catch (refreshError) {
+          console.error('❌ Failed to refresh plant library:', refreshError);
+        }
+      } else {
+        console.warn('⚠️ No refresh function available');
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to save plant:', error);
+      throw error;
+    }
+  };
+
+  // 🔄 AUTO-REFRESH: Enhanced delete plant function
+  const handleDeletePlant = async (plant) => {
+    try {
+      console.log('🗑️ Deleting plant:', plant.name);
+      await apiClient.deletePlantFromLibrary(plant.id);
+      console.log('✅ Plant deleted successfully');
+      
+      // 🔄 AUTO-REFRESH: Call the refresh function to reload plant library
+      if (refreshPlantsFunction) {
+        console.log('🔄 Auto-refreshing plant library after delete...');
+        try {
+          await refreshPlantsFunction();
+          console.log('✅ Plant library refreshed successfully after delete');
+        } catch (refreshError) {
+          console.error('❌ Failed to refresh plant library after delete:', refreshError);
+        }
+      } else {
+        console.warn('⚠️ No refresh function available for delete');
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to delete plant:', error);
+      throw error;
+    }
   };
 
   // Get active plant for drag overlay with proper plant resolution
@@ -700,6 +808,7 @@ export default function GardenPlannerPage() {
             onToggle={() => setSidebarOpen(!sidebarOpen)}
             placedPlants={placedPlants}
             onPlantsLoaded={handlePlantsLoaded}
+            onEditPlant={handleEditPlant}
           />
         </div>
 
@@ -790,6 +899,21 @@ export default function GardenPlannerPage() {
         
       </DndContext>
 
+      {/* Plant Edit Modal - RENDERED AT ROOT LEVEL */}
+      <PlantEditModal
+        isOpen={showEditModal}
+        onClose={() => {
+          console.log('🚪 Closing plant edit modal');
+          setShowEditModal(false);
+          setEditingPlant(null);
+        }}
+        plant={editingPlant}
+        onSave={handleSavePlant}
+        onDelete={editingPlant?.id ? handleDeletePlant : null}
+        isPlaced={false}
+      />
+
+      {/* Save Garden Modal */}
       <SaveGardenModel
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
@@ -804,6 +928,7 @@ export default function GardenPlannerPage() {
         }}
       />
 
+      {/* Load Garden Modal */}
       <LoadGardenModel
         isOpen={showLoadModal}
         onClose={() => setShowLoadModal(false)}
