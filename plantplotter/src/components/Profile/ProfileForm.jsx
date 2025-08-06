@@ -212,18 +212,18 @@ export default function ProfileForm() {
                 {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
               </span>
             </div>
-            <div>
+            {/* <div>
               <span className="text-gray-500">Email verified:</span>
               <span className={`ml-2 font-medium ${user?.email_verified ? 'text-green-600' : 'text-red-600'}`}>
                 {user?.email_verified ? 'Yes' : 'No'}
               </span>
-            </div>
-            <div>
+            </div> */}
+            {/* <div>
               <span className="text-gray-500">Account status:</span>
               <span className={`ml-2 font-medium ${user?.is_active ? 'text-green-600' : 'text-red-600'}`}>
                 {user?.is_active ? 'Active' : 'Inactive'}
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
 

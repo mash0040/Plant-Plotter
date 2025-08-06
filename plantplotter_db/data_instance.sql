@@ -35,6 +35,18 @@ INSERT INTO users (
  TRUE,
  '{"theme": "light", "units": "metric", "notifications": false, "beginner_mode": true}');
 
+update users 
+set preferences =  '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenRemainders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
+where id = 1;
+
+update users 
+set preferences = '{"language":"en", "theme": "dark", "notifications": {"email":true,"push":true,"gardenRemainders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":true}, "garden":{"defaultUnits": "imperial", "autoSave":true, "gridSize":40}}'
+where id = 2;
+
+update users 
+set preferences = '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenRemainders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
+where id = 3;
+
 
 -- Insert some default plants in library
 -- Insert companion plants data into plant_library table
