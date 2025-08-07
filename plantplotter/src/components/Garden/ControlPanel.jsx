@@ -2,26 +2,12 @@
 import { Plus, Minus, Grid, Ruler, Save, FolderOpen, Menu, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
-export default function ControlPanel({
-  dimensions,
-  gridSize,
-  showGrid,
-  showRuler,
-  onDimensionChange,
-  onGridSizeChange,
-  onToggleGrid,
-  onToggleRuler,
-  onSave,
-  hasUnsavedChanges,
-  onToggleSidebar,
-  gardenName,
-  onBackClick
-}) {
-  const [unit, setUnit] = useState('metric'); // 'metric' or 'imperial'
+export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler, onDimensionChange, onGridSizeChange, onToggleGrid, onToggleRuler, onSave, hasUnsavedChanges, onToggleSidebar, gardenName, onBackClick }) {
+  const [unit, setUnit] = useState('metric');
   const [inputValues, setInputValues] = useState({
     width: dimensions.width.toString(),
     height: dimensions.height.toString(),
-    grid: (gridSize / 40).toFixed(1) // Convert px to meters
+    grid: (gridSize / 40).toFixed(1)
   });
 
   // Conversion functions

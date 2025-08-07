@@ -174,9 +174,7 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
   };
 
   // Enhanced edit button click handling
-  const handleEditClick = (e) => {
-    console.log('🖊️ Edit button clicked!');
-    
+  const handleEditClick = (e) => {    
     e.preventDefault();
     e.stopPropagation();
     
@@ -184,10 +182,9 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
     setShowTooltip(false);
     
     if (onEdit) {
-      console.log('📞 Calling onEdit for:', plant.name);
       onEdit(plant);
     } else {
-      console.error('❌ onEdit function is not available');
+      console.error('onEdit function is not available');
     }
   };
 

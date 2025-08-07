@@ -44,7 +44,6 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
         location: fullGarden.location,
         status: fullGarden.status,
         plantCount: fullGarden.plant_count,
-        // Transform planted_items to match planner expectations
         plantedItems: fullGarden.plantedItems?.map(item => ({
           id: item.id,
           plantId: item.plant_id,

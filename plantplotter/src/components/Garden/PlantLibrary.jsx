@@ -10,8 +10,8 @@ export default function PlantLibrary({
   isOpen, 
   onToggle,
   placedPlants = [],
-  onPlantsLoaded, // 🔄 AUTO-REFRESH: Enhanced callback to pass plants AND refresh function
-  onEditPlant // Callback to handle edit requests
+  onPlantsLoaded, 
+  onEditPlant 
 }) {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,15 +65,13 @@ export default function PlantLibrary({
     });
   };
 
-  // 🔄 AUTO-REFRESH: Enhanced loadPlants function
+  // Enhanced loadPlants function
   const loadPlants = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('🌱 Loading plant library...');
       const plantLibrary = await apiClient.getPlantLibrary();
-      console.log('📚 Raw plant library response:', plantLibrary);
       
       if (!Array.isArray(plantLibrary)) {
         throw new Error('Plant library response is not an array');
@@ -85,13 +83,7 @@ export default function PlantLibrary({
           const companionPlants = safeJsonParse(plant.companion_plants, []);
           const avoidPlants = safeJsonParse(plant.avoid_plants, []);
           const soilTypes = safeJsonParse(plant.soil_types, []);
-          
-          console.log(`🌿 Processing plant ${plant.name}:`, {
-            companionPlants,
-            avoidPlants,
-            soilTypes
-          });
-          
+                    
           return {
             id: plant.id,
             name: plant.name,
@@ -110,7 +102,7 @@ export default function PlantLibrary({
             plantingDepth: plant.planting_depth
           };
         } catch (plantError) {
-          console.error(`❌ Failed to transform plant ${plant.name}:`, plantError);
+          console.error(`Failed to transform plant ${plant.name}:`, plantError);
           // Return a basic version of the plant if transformation fails
           return {
             id: plant.id,
@@ -132,13 +124,12 @@ export default function PlantLibrary({
         }
       });
       
-      console.log('✅ Transformed plants:', transformedPlants);
       setPlants(transformedPlants);
       
-      return transformedPlants; // 🔄 AUTO-REFRESH: Return plants for immediate use
+      return transformedPlants;
       
     } catch (err) {
-      console.error('❌ Failed to load plant library:', err);
+      console.error('Failed to load plant library:', err);
       setError(`Failed to load plant library: ${err.message}`);
       
       // Fallback to a basic plant set if API fails
@@ -193,18 +184,16 @@ export default function PlantLibrary({
         }
       ];
       
-      console.log('📦 Using fallback plants:', fallbackPlants);
       setPlants(fallbackPlants);
       
-      return fallbackPlants; // 🔄 AUTO-REFRESH: Return fallback plants
+      return fallbackPlants;
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔄 AUTO-REFRESH: Create refresh function that can be called from parent
+  // Create refresh function that can be called from parent
   const refreshPlants = useCallback(async () => {
-    console.log('🔄 Refreshing plant library...');
     const refreshedPlants = await loadPlants();
     return refreshedPlants;
   }, []);
@@ -214,13 +203,9 @@ export default function PlantLibrary({
     loadPlants();
   }, []);
 
-  // 🔄 AUTO-REFRESH: Pass both plants AND refresh function to parent
+  // Pass both plants AND refresh function to parent
   useEffect(() => {
     if (onPlantsLoaded && plants.length > 0) {
-      console.log('📤 Passing plants and refresh function to parent:', {
-        plantsCount: plants.length,
-        hasRefreshFunction: !!refreshPlants
-      });
       onPlantsLoaded(plants, refreshPlants);
     }
   }, [plants.length, onPlantsLoaded, refreshPlants]);
@@ -238,16 +223,9 @@ export default function PlantLibrary({
   // Enhanced companion suggestions with better matching logic
   const companionSuggestionsByPlant = useMemo(() => {
     if (placedPlants.length === 0 || plants.length === 0) return [];
-
-    console.log('🔍 DEBUG: Calculating companion suggestions...');
-    console.log('🔍 Placed plants:', placedPlants.map(p => ({ id: p.plantId, name: p.name })));
-    console.log('🔍 Available plants in library:', plants.map(p => ({ id: p.id, name: p.name })));
-
     const suggestions = [];
 
-    placedPlants.forEach(placedPlant => {
-      console.log(`🔍 Processing placed plant: ${placedPlant.name} (ID: ${placedPlant.plantId})`);
-      
+    placedPlants.forEach(placedPlant => {      
       // Try to find the plant in the library by multiple matching criteria
       let plantData = plants.find(p => p.id === placedPlant.plantId);
       
@@ -267,20 +245,12 @@ export default function PlantLibrary({
       }
 
       if (plantData) {
-        console.log(`✅ Found plant data for ${placedPlant.name}:`, {
-          id: plantData.id,
-          name: plantData.name,
-          companionPlants: plantData.companionPlants,
-          avoidPlants: plantData.avoidPlants
-        });
-
         const companions = [];
         const avoid = [];
 
         // Get companion plants that aren't already placed
         if (plantData.companionPlants && Array.isArray(plantData.companionPlants)) {
           plantData.companionPlants.forEach(companionRef => {
-            console.log(`🔍 Looking for companion: ${companionRef}`);
             
             // Check if this companion is already placed
             const alreadyPlaced = placedPlants.some(placed => 
@@ -296,10 +266,8 @@ export default function PlantLibrary({
               if (companionMatches.length > 0) {
                 // Use the best match (first one)
                 const companionPlant = companionMatches[0];
-                console.log(`✅ Found companion plant: ${companionPlant.name}`);
                 companions.push(companionPlant);
               } else {
-                console.log(`⚠️ Companion plant not found in library: ${companionRef}`);
                 // Create a placeholder entry for missing plants
                 companions.push({
                   id: companionRef,
@@ -310,16 +278,14 @@ export default function PlantLibrary({
                 });
               }
             } else {
-              console.log(`⏭️ Companion ${companionRef} already placed`);
+              console.log(`⏭Companion ${companionRef} already placed`);
             }
           });
         }
 
         // Get avoid plants that aren't already placed
         if (plantData.avoidPlants && Array.isArray(plantData.avoidPlants)) {
-          plantData.avoidPlants.forEach(avoidRef => {
-            console.log(`🔍 Looking for avoid plant: ${avoidRef}`);
-            
+          plantData.avoidPlants.forEach(avoidRef => {           
             // Check if this avoid plant is already placed (WARNING!)
             const alreadyPlaced = placedPlants.some(placed => 
               placed.plantId === avoidRef || 
@@ -351,33 +317,26 @@ export default function PlantLibrary({
             avoid: avoid.slice(0, 4)
           });
           
-          console.log(`✅ Added suggestions for ${plantData.name}:`, {
-            companions: companions.length,
-            avoid: avoid.length
-          });
         }
       } else {
-        console.log(`❌ No plant data found for ${placedPlant.name} (ID: ${placedPlant.plantId})`);
+        console.log(`No plant data found for ${placedPlant.name} (ID: ${placedPlant.plantId})`);
       }
     });
 
-    console.log(`✅ Total companion suggestions: ${suggestions.length}`);
     return suggestions;
   }, [placedPlants, plants]);
 
   // Plant editing functions - Pass to parent
   const handleEditPlant = (plant) => {
-    console.log('🖊️ Edit plant requested in PlantLibrary:', plant.name);
     // Pass the edit request to the parent component
     if (onEditPlant) {
       onEditPlant(plant);
     } else {
-      console.error('❌ onEditPlant callback not provided to PlantLibrary');
+      console.error('onEditPlant callback not provided to PlantLibrary');
     }
   };
 
   const handleAddNewPlant = () => {
-    console.log('➕ Add new plant requested');
     // Create a new plant template and pass to parent
     const newPlantTemplate = {
       name: '',
@@ -399,7 +358,7 @@ export default function PlantLibrary({
     if (onEditPlant) {
       onEditPlant(newPlantTemplate);
     } else {
-      console.error('❌ onEditPlant callback not provided to PlantLibrary');
+      console.error('onEditPlant callback not provided to PlantLibrary');
     }
   };
 
@@ -687,9 +646,8 @@ export default function PlantLibrary({
                   <PlantLibraryItem 
                     key={plant.id} 
                     plant={plant}
-                    onEdit={handleEditPlant} // Pass the handler that calls parent
+                    onEdit={handleEditPlant}
                     showEditButton={true}
-                    // Pass additional props for better drag handling
                     isInScrollContainer={true}
                   />
                 ))}

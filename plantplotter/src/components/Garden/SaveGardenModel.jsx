@@ -4,24 +4,21 @@ import { X, Save, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
 
 export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden, onNavigateToGardens }) {
-  // Database field limits (conservative approach based on your database issue)
   const FIELD_LIMITS = {
-    name: 50,         // Very conservative limit based on your database error
-    description: 1000, // Conservative limit for description  
-    location: 100,    // Conservative limit for location
-    soilType: 50,     // Conservative limit for soil type
-    status: 30        // Conservative limit for status
+    name: 50, 
+    description: 1000,  
+    location: 100,
+    soilType: 50,
+    status: 30 
   };
 
   const getInitialGardenName = () => {
     if (!currentGarden?.name) return '';
     
-    // ✅ CRITICAL FIX: Handle case where name might be an object
     if (typeof currentGarden.name === 'string') {
       return currentGarden.name;
     } else if (typeof currentGarden.name === 'object' && currentGarden.name !== null) {
       console.warn('⚠️ Garden name is an object, extracting string:', currentGarden.name);
-      // Extract string from object if it somehow became one
       return currentGarden.name.name || currentGarden.name.value || String(currentGarden.name);
     } else {
       return String(currentGarden.name || '');
@@ -75,7 +72,7 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
     const truncated = text.substring(0, maxLength);
     const lastSpace = truncated.lastIndexOf(' ');
     
-    if (lastSpace > maxLength * 0.8) { // If space is reasonably close to end
+    if (lastSpace > maxLength * 0.8) { 
       return truncated.substring(0, lastSpace) + '...';
     } else {
       return truncated + '...';
@@ -112,7 +109,6 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
 
   const handleSave = async () => {
     try {
-      // ✅ CRITICAL FIX: ALWAYS ensure gardenName is a clean string
       let cleanName;
       
       console.log('🔍 Debug gardenName before cleaning:', { 
@@ -122,21 +118,14 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
         value: gardenName 
       });
       
-      // ✅ ENHANCED: Handle all possible cases more robustly
       if (typeof gardenName === 'string') {
         cleanName = gardenName.trim();
         
-        // Check for corrupted "[object Object]" string
         if (cleanName === '[object Object]' || cleanName === 'undefined' || cleanName === 'null') {
-          console.log('⚠️ Garden name is corrupted string, using fallback');
           cleanName = 'My Garden';
         }
         
       } else if (typeof gardenName === 'object' && gardenName !== null) {
-        console.log('❌ NAME IS AN OBJECT! Converting to string...');
-        console.log('❌ Object keys:', Object.keys(gardenName));
-        console.log('❌ Object values:', Object.values(gardenName));
-        
         // Try to extract a meaningful string from the object
         if (gardenName.name && typeof gardenName.name === 'string') {
           cleanName = gardenName.name.trim();
@@ -145,9 +134,7 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
         } else if (gardenName.title && typeof gardenName.title === 'string') {
           cleanName = gardenName.title.trim();
         } else {
-          // If we can't extract anything meaningful, use a default
           cleanName = 'My Garden';
-          console.log('⚠️ Could not extract meaningful string from object, using default');
         }
         
       } else {
@@ -178,13 +165,9 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
       setSaving(true);
       setError(null);
       
-      console.log('💾 Saving garden with GUARANTEED clean string name:', cleanName);
-      console.log('💾 Clean name type:', typeof cleanName);
-      console.log('💾 Clean name length:', cleanName.length);
-      
-      // ✅ CRITICAL FIX: Create garden data with GUARANTEED string values
+      // Create garden data with GUARANTEED string values
       const gardenData = {
-        name: cleanName, // ✅ ALWAYS a clean string, never an object!
+        name: cleanName, 
         description: String(currentGarden?.description || '').substring(0, 1000),
         width: currentGarden?.dimensions?.width || currentGarden?.width || 10,
         height: currentGarden?.dimensions?.height || currentGarden?.height || 8,
@@ -197,14 +180,11 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
       if (currentGarden?.id) {
         gardenData.id = currentGarden.id;
       }
-      
-      console.log('📝 Final garden data (GUARANTEED no objects):', gardenData);
-      console.log('📝 Garden data name type check:', typeof gardenData.name);
 
-      // ✅ Additional validation before sending
+      // Additional validation before sending
       Object.keys(gardenData).forEach(key => {
         if (typeof gardenData[key] === 'object' && gardenData[key] !== null && key !== 'id') {
-          console.error(`❌ CRITICAL: ${key} is still an object!`, gardenData[key]);
+          console.error(`CRITICAL: ${key} is still an object!`, gardenData[key]);
           throw new Error(`Data validation failed: ${key} is an object`);
         }
       });
@@ -223,16 +203,12 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
           notes: String(plant.notes || '').substring(0, 1000)
         };
         
-        console.log('🌱 Cleaned plant (no undefined values):', cleanPlant);
         return cleanPlant;
       });
 
-      console.log('🌱 All planted items cleaned:', plantedItems);
-
-      // ✅ Save with GUARANTEED clean data
+      // Save with clean data
       const savedGarden = await apiClient.saveCompleteGarden(gardenData, plantedItems);
       
-      console.log('✅ Garden saved successfully:', savedGarden);
       
       // Transform response back to component format
       const transformedGarden = {
@@ -267,7 +243,7 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
       // Navigation can be triggered manually if needed
       
     } catch (error) {
-      console.error('❌ Save failed:', error);
+      console.error('Save failed:', error);
       setError(error.message || 'Failed to save garden. Please try again.');
     } finally {
       setSaving(false);

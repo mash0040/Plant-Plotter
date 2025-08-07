@@ -77,9 +77,7 @@ export default function PlantEditModal({
 
   // Load plant data when modal opens
   useEffect(() => {
-    if (isOpen && plant) {
-      console.log('🌱 Loading plant data into modal:', plant);
-      
+    if (isOpen && plant) {      
       // Convert arrays to text for display
       const companionText = Array.isArray(plant.companionPlants) ? 
         plant.companionPlants.join(', ') : '';
@@ -232,12 +230,10 @@ export default function PlantEditModal({
         soilTypes: Array.isArray(formData.soilTypes) ? formData.soilTypes : []
       };
 
-      console.log('💾 Saving plant data:', updatedPlant);
       await onSave(updatedPlant);
       onClose();
     } catch (error) {
-      console.error('Failed to save plant:', error);
-      
+      console.error('Failed to save plant:', error);      
       // Handle specific database errors
       if (error.message.includes('Data truncated')) {
         setError('One of the values is too long for the database. Please shorten your inputs.');
@@ -268,18 +264,15 @@ export default function PlantEditModal({
   // Add click outside to close
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
-      console.log('🚪 Closing modal via backdrop click');
       onClose();
     }
   };
 
   // Don't render if not open
   if (!isOpen) {
-    console.log('🚫 Modal not open, not rendering');
+    console.log('Modal not open, not rendering');
     return null;
   }
-
-  console.log('✅ Rendering PlantEditModal for plant:', plant?.name || 'New Plant');
 
   return (
     <div 
@@ -315,7 +308,6 @@ export default function PlantEditModal({
           </div>
           <button
             onClick={() => {
-              console.log('❌ Closing modal via X button');
               onClose();
             }}
             className="p-2 hover:bg-white/50 rounded-lg transition-colors"

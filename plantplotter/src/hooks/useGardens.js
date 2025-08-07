@@ -46,14 +46,11 @@ export const useGardens = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('🔄 Fetching gardens with planted items...');
-      
+           
       // Use the API method that now returns array directly
       const data = await apiClient.getGardens();
       
       // Data is already transformed by the API client
-      console.log('✅ Gardens loaded:', data);
       setGardens(data);
       
     } catch (err) {
