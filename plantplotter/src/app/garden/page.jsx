@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, MouseSensor, TouchSensor } from '@dnd-kit/core';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, MouseSensor, TouchSensor} from '@dnd-kit/core';
 import PlantLibrary from '@/components/Garden/PlantLibrary';
 import GardenCanvas from '@/components/Garden/GardenCanvas';
 import ControlPanel from '@/components/Garden/ControlPanel';
@@ -37,7 +37,7 @@ export default function GardenPlannerPage() {
   // State to store plant library data
   const [libraryPlants, setLibraryPlants] = useState([]);
 
-  // 🔄 AUTO-REFRESH: Store refresh function
+  // Store refresh function
   const [refreshPlantsFunction, setRefreshPlantsFunction] = useState(null);
 
   // Plant Edit Modal state
@@ -48,12 +48,12 @@ export default function GardenPlannerPage() {
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8, // Require 8px movement before starting drag
+        distance: 8,
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250, // Require 250ms hold before starting drag on touch
+        delay: 250,
         tolerance: 8,
       },
     }),
@@ -70,31 +70,25 @@ export default function GardenPlannerPage() {
   // Helper function to convert grid units to pixels
   const gridToPixels = (gridUnits) => gridUnits * gridSize;
 
-  // 🔄 AUTO-REFRESH: Enhanced callback to receive plants AND refresh function
+  // Enhanced callback to receive plants AND refresh function
   const handlePlantsLoaded = (plants, refreshFunction) => {
-    console.log('📚 Plants loaded in main component:', plants);
     setLibraryPlants(plants);
     
-    // Store the refresh function for later use
     if (refreshFunction) {
       setRefreshPlantsFunction(() => refreshFunction);
-      console.log('🔄 Refresh function stored successfully');
     }
   };
 
   // Handle edit plant requests from PlantLibrary
   const handleEditPlant = (plant) => {
-    console.log('🖊️ Edit plant requested in main page:', plant.name || 'New Plant');
     setEditingPlant(plant);
     setShowEditModal(true);
   };
 
-  // 🔄 AUTO-REFRESH: Enhanced save plant function
+  // Enhanced save plant function
   const handleSavePlant = async (updatedPlant) => {
     try {
-      console.log('💾 Saving plant in main page:', updatedPlant);
-      
-      // FIXED: Transform data for API with correct enum values
+      // Transform data for API with correct enum values
       const plantData = {
         name: updatedPlant.name,
         emoji: updatedPlant.emoji,
@@ -103,10 +97,10 @@ export default function GardenPlannerPage() {
         description: updatedPlant.description,
         spacing: updatedPlant.spacing,
         
-        // FIXED: Map frontend values to database enum values
-        sunlight: updatedPlant.sunlight, // Should be "Full Sun", "Partial Sun", or "Shade"
-        water_needs: updatedPlant.waterNeeds, // Should be "Low", "Moderate", or "High"
-        difficulty: updatedPlant.difficulty, // Should be "Easy", "Medium", or "Hard"
+        // Map frontend values to database enum values
+        sunlight: updatedPlant.sunlight,
+        water_needs: updatedPlant.waterNeeds,
+        difficulty: updatedPlant.difficulty,
         
         days_to_maturity: updatedPlant.daysToMaturity ? parseInt(updatedPlant.daysToMaturity) : null,
         companion_plants: JSON.stringify(updatedPlant.companionPlants || []),
@@ -115,63 +109,47 @@ export default function GardenPlannerPage() {
         planting_depth: updatedPlant.plantingDepth
       };
 
-      console.log('📋 Transformed plant data for API:', plantData);
-
       if (updatedPlant.id) {
         // Update existing plant
-        console.log('📝 Updating existing plant:', updatedPlant.id);
         await apiClient.updatePlant(updatedPlant.id, plantData);
       } else {
         // Add new plant - generate ID from name
         const newId = updatedPlant.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
         plantData.id = newId;
-        console.log('🆕 Adding new plant to library with ID:', newId);
         await apiClient.addPlantToLibrary(plantData);
       }
-
-      console.log('✅ Plant saved successfully');
       
-      // 🔄 AUTO-REFRESH: Call the refresh function to reload plant library
+      // Auto-refresh plant library
       if (refreshPlantsFunction) {
-        console.log('🔄 Auto-refreshing plant library...');
         try {
           await refreshPlantsFunction();
-          console.log('✅ Plant library refreshed successfully');
         } catch (refreshError) {
-          console.error('❌ Failed to refresh plant library:', refreshError);
+          console.error('Failed to refresh plant library:', refreshError);
         }
-      } else {
-        console.warn('⚠️ No refresh function available');
       }
       
     } catch (error) {
-      console.error('❌ Failed to save plant:', error);
+      console.error('Failed to save plant:', error);
       throw error;
     }
   };
 
-  // 🔄 AUTO-REFRESH: Enhanced delete plant function
+  // Enhanced delete plant function
   const handleDeletePlant = async (plant) => {
     try {
-      console.log('🗑️ Deleting plant:', plant.name);
       await apiClient.deletePlantFromLibrary(plant.id);
-      console.log('✅ Plant deleted successfully');
       
-      // 🔄 AUTO-REFRESH: Call the refresh function to reload plant library
+      // Auto-refresh plant library
       if (refreshPlantsFunction) {
-        console.log('🔄 Auto-refreshing plant library after delete...');
         try {
           await refreshPlantsFunction();
-          console.log('✅ Plant library refreshed successfully after delete');
         } catch (refreshError) {
-          console.error('❌ Failed to refresh plant library after delete:', refreshError);
+          console.error('Failed to refresh plant library after delete:', refreshError);
         }
-      } else {
-        console.warn('⚠️ No refresh function available for delete');
       }
       
     } catch (error) {
-      console.error('❌ Failed to delete plant:', error);
+      console.error('Failed to delete plant:', error);
       throw error;
     }
   };
@@ -180,36 +158,29 @@ export default function GardenPlannerPage() {
   const activePlant = useMemo(() => {
     if (!activeId) return null;
     
-    console.log('🔍 Looking for active plant with ID:', activeId);
-    
     // First check if it's a placed plant
     const placedPlant = placedPlants.find(p => p.id === activeId);
     if (placedPlant) {
-      console.log('✅ Found placed plant:', placedPlant);
       return placedPlant;
     }
     
     // Then check if it's from the library
     if (activeId.startsWith('library-')) {
       const libraryId = activeId.replace('library-', '');
-      console.log('🔍 Looking for library plant with ID:', libraryId);
       
       // Check in the loaded library plants
       const libraryPlant = libraryPlants.find(p => p.id === libraryId);
       if (libraryPlant) {
-        console.log('✅ Found library plant:', libraryPlant);
         return libraryPlant;
       }
       
       // Fallback to PLANT_LIBRARY constant
       const fallbackPlant = PLANT_LIBRARY?.find(p => p.id === libraryId);
       if (fallbackPlant) {
-        console.log('✅ Found fallback plant:', fallbackPlant);
         return fallbackPlant;
       }
     }
     
-    console.log('❌ No plant found for activeId:', activeId);
     return null;
   }, [activeId, placedPlants, libraryPlants]);
 
@@ -231,19 +202,9 @@ export default function GardenPlannerPage() {
         // Set garden data
         setCurrentGarden(garden);
         
-        // FIXED: Better dimension handling - try multiple sources
+        // Better dimension handling - try multiple sources
         const gardenWidth = garden.width || garden.dimensions?.width || 20;
         const gardenHeight = garden.height || garden.dimensions?.height || 12;
-        
-        console.log('🔍 Loading garden dimensions:', {
-          gardenId,
-          directWidth: garden.width,
-          directHeight: garden.height,
-          nestedWidth: garden.dimensions?.width,
-          nestedHeight: garden.dimensions?.height,
-          finalWidth: gardenWidth,
-          finalHeight: gardenHeight
-        });
         
         setDimensions({
           width: gardenWidth,
@@ -323,44 +284,25 @@ export default function GardenPlannerPage() {
     }
   };
 
-  // Enhanced handleDragStart with debug logging
   const handleDragStart = (event) => {
     const { active } = event;
     const draggedData = active.data.current;
-    
-    console.log('🚀 Drag Start:', {
-      activeId: active.id,
-      isFromLibrary: draggedData?.isFromLibrary,
-      draggedData: draggedData,
-      libraryPlantsCount: libraryPlants.length,
-      placedPlantsCount: placedPlants.length
-    });
 
     // Only set active ID if it's a valid draggable item
     if (draggedData && (draggedData.isFromLibrary !== undefined)) {
       setActiveId(active.id);
     } else {
-      console.warn('⚠️ Invalid drag data, canceling drag');
       return;
     }
   };
 
-  // Enhanced handleDragEnd with better scroll container handling
   const handleDragEnd = (event) => {
     const { active, over, delta, activatorEvent } = event;
     
-    console.log('🏁 Drag End:', {
-      activeId: active.id,
-      overId: over?.id,
-      delta: delta,
-      hasActivatorEvent: !!activatorEvent
-    });
-
     setActiveId(null);
 
     // Must drop over the garden canvas
     if (!over || over.id !== 'garden-canvas') {
-      console.log('❌ Not dropped over canvas, over =', over?.id);
       return;
     }
 
@@ -368,15 +310,12 @@ export default function GardenPlannerPage() {
     
     if (draggedData?.isFromLibrary) {
       // Adding new plant from library
-      console.log('🌱 Adding new plant from library');
-      
       const canvasElement = document.querySelector('[data-canvas="true"]');
       if (!canvasElement) {
-        console.error('❌ Canvas element not found');
         return;
       }
 
-      // Enhanced: Better scroll container detection and handling
+      // Enhanced scroll container detection and handling
       const canvasRect = canvasElement.getBoundingClientRect();
       
       // Find all possible scroll containers
@@ -388,22 +327,7 @@ export default function GardenPlannerPage() {
       const mainScrollTop = mainScrollContainer ? mainScrollContainer.scrollTop : 0;
       const sidebarScrollTop = sidebarScrollContainer ? sidebarScrollContainer.scrollTop : 0;
 
-      console.log('📏 Enhanced Canvas Info:', {
-        canvasRect: {
-          left: canvasRect.left,
-          top: canvasRect.top,
-          width: canvasRect.width,
-          height: canvasRect.height
-        },
-        scroll: { 
-          mainLeft: mainScrollLeft, 
-          mainTop: mainScrollTop,
-          sidebarTop: sidebarScrollTop
-        },
-        delta: delta
-      });
-
-      // Enhanced: Better drop position calculation considering all scroll offsets
+      // Better drop position calculation considering all scroll offsets
       let dropX, dropY;
 
       if (activatorEvent) {
@@ -415,29 +339,22 @@ export default function GardenPlannerPage() {
           // Calculate final position considering scroll offsets
           dropX = startX + delta.x;
           dropY = startY + delta.y;
-          
-          console.log('✅ Using activator + delta method with scroll compensation');
-          console.log('📍 Calculated drop position:', { dropX, dropY });
         }
       }
 
       // Fallback methods if primary calculation fails
       if (!dropX || !dropY || dropX < 0 || dropY < 0) {
-        // Method 2: Use canvas center as fallback
+        // Use canvas center as fallback
         dropX = canvasRect.left + canvasRect.width / 2;
         dropY = canvasRect.top + canvasRect.height / 2;
-        console.log('⚠️ Using canvas center fallback:', { dropX, dropY });
       }
 
       // Convert screen coordinates to canvas coordinates
       const canvasX = (dropX - canvasRect.left) + mainScrollLeft;
       const canvasY = (dropY - canvasRect.top) + mainScrollTop;
 
-      console.log('🎯 Final canvas coordinates:', { canvasX, canvasY });
-
       // Validate drop is within canvas bounds
       if (canvasX < 0 || canvasY < 0 || canvasX > canvasRect.width || canvasY > canvasRect.height) {
-        console.log('❌ Drop outside canvas bounds, using center');
         // Force to canvas center if outside bounds
         const centerX = canvasRect.width / 2;
         const centerY = canvasRect.height / 2;
@@ -467,7 +384,6 @@ export default function GardenPlannerPage() {
         };
 
         setPlacedPlants(prev => [...prev, newPlant]);
-        console.log('🎉 Plant placed at canvas center!');
         
         if (window.innerWidth < 1024) {
           setSidebarOpen(false);
@@ -475,26 +391,18 @@ export default function GardenPlannerPage() {
         return;
       }
 
-      // Normal placement logic continues...
+      // Normal placement logic
       const plantSize = (draggedData.size || 1) * gridSize;
       let plantX = canvasX - (plantSize / 2);
       let plantY = canvasY - (plantSize / 2);
-
-      console.log('📍 Plant Position Calculation:', {
-        canvasCoords: { x: canvasX, y: canvasY },
-        plantSize: plantSize,
-        rawPlantPos: { x: plantX, y: plantY }
-      });
 
       // Apply grid snapping if enabled
       if (showGrid) {
         plantX = snapToGrid(Math.max(0, plantX), gridSize);
         plantY = snapToGrid(Math.max(0, plantY), gridSize);
-        console.log('📐 After grid snapping:', { x: plantX, y: plantY });
       } else {
         plantX = Math.max(0, plantX);
         plantY = Math.max(0, plantY);
-        console.log('🔄 No grid snapping, clamped to bounds:', { x: plantX, y: plantY });
       }
 
       // Ensure plant stays within garden boundaries
@@ -502,16 +410,6 @@ export default function GardenPlannerPage() {
       const maxY = (dimensions.height * gridSize) - plantSize;
       plantX = Math.min(plantX, Math.max(0, maxX));
       plantY = Math.min(plantY, Math.max(0, maxY));
-
-      console.log('🏡 Final Position:', {
-        final: { x: plantX, y: plantY },
-        grid: { 
-          x: Math.round(plantX / gridSize), 
-          y: Math.round(plantY / gridSize) 
-        },
-        bounds: { maxX, maxY },
-        dimensions: dimensions
-      });
 
       // Create new plant object
       const newPlant = {
@@ -528,22 +426,14 @@ export default function GardenPlannerPage() {
       const withinBounds = isWithinBoundsFlexible(newPlant, dimensions, gridSize, showGrid);
       const hasOverlap = checkPlantOverlapFlexible(newPlant, placedPlants, gridSize, showGrid);
 
-      console.log('🔍 Placement Validation:', {
-        withinBounds: withinBounds,
-        hasOverlap: hasOverlap,
-        plantCount: placedPlants.length
-      });
-
       if (withinBounds && !hasOverlap) {
         setPlacedPlants(prev => [...prev, newPlant]);
-        console.log('🎉 Plant placed successfully!');
         
         // Auto-close sidebar on mobile after successful placement
         if (window.innerWidth < 1024) {
           setSidebarOpen(false);
         }
       } else {
-        console.log('❌ Placement validation failed');
         if (!withinBounds) {
           alert('Cannot place plant outside garden boundaries.');
         } else {
@@ -553,8 +443,6 @@ export default function GardenPlannerPage() {
       
     } else if (!draggedData?.isFromLibrary) {
       // Moving existing plant
-      console.log('🔄 Moving existing plant');
-      
       setPlacedPlants(prev => prev.map(plant => {
         if (plant.id === active.id) {
           let newX, newY;
@@ -573,10 +461,8 @@ export default function GardenPlannerPage() {
           const otherPlants = prev.filter(p => p.id !== plant.id);
           if (isWithinBoundsFlexible(updatedPlant, dimensions, gridSize, showGrid) && 
               !checkPlantOverlapFlexible(updatedPlant, otherPlants, gridSize, showGrid)) {
-            console.log('✅ Plant moved to:', { x: newX, y: newY });
             return updatedPlant;
           } else {
-            console.log('❌ Invalid move position, keeping original');
             return plant;
           }
         }
@@ -588,8 +474,6 @@ export default function GardenPlannerPage() {
   // Save garden using apiClient
   const handleSaveGarden = async (gardenName) => {
     try {
-      console.log('🎯 Starting garden save process...');
-      
       // Convert planner format to API format
       const plantedItems = placedPlants.map(plant => ({
         plant_id: plant.plantId || plant.id?.replace('plant-', '') || 'unknown',
@@ -607,8 +491,6 @@ export default function GardenPlannerPage() {
         notes: plant.notes || ''
       }));
 
-      console.log('📊 Processed planted items:', plantedItems);
-
       const gardenData = {
         name: gardenName,
         description: currentGarden?.description || '',
@@ -624,8 +506,6 @@ export default function GardenPlannerPage() {
         gardenData.id = currentGarden.id;
       }
 
-      console.log('🏡 Garden data to save:', gardenData);
-
       // Use the enhanced save method
       const savedGarden = await apiClient.saveCompleteGarden(gardenData, plantedItems);
       
@@ -637,16 +517,15 @@ export default function GardenPlannerPage() {
           height: savedGarden.height
         },
         soilType: savedGarden.soil_type || savedGarden.soilType,
-        plantedItems: placedPlants // Keep the planner format for the UI
+        plantedItems: placedPlants
       });
       
       setHasUnsavedChanges(false);
       
-      console.log('✅ Garden save completed successfully');
       return savedGarden;
       
     } catch (error) {
-      console.error('❌ Garden save failed:', error);
+      console.error('Garden save failed:', error);
       throw error;
     }
   };
@@ -665,7 +544,6 @@ export default function GardenPlannerPage() {
       return garden.name;
     } else if (typeof garden.name === 'object' && garden.name !== null) {
       // If somehow it's still an actual object, extract string
-      console.warn('Garden name is an object:', garden.name);
       return garden.name.name || garden.name.value || `Garden ${garden.id || 'Untitled'}`;
     } else {
       return String(garden.name || 'Garden');
@@ -848,7 +726,7 @@ export default function GardenPlannerPage() {
           </div>
         </div>
 
-        {/* Enhanced DragOverlay with better visibility and debugging */}
+        {/* DragOverlay with enhanced visibility */}
         <DragOverlay
           dropAnimation={{
             duration: 200,
@@ -893,23 +771,15 @@ export default function GardenPlannerPage() {
                 Drop on canvas
               </div>
             </div>
-          ) : (
-            // Debug: Show when no plant is found
-            activeId && (
-              <div className="bg-red-100 border-2 border-red-500 rounded p-2 text-red-800 text-xs">
-                Debug: No plant found for ID: {activeId}
-              </div>
-            )
-          )}
+          ) : null}
         </DragOverlay>
         
       </DndContext>
 
-      {/* Plant Edit Modal - RENDERED AT ROOT LEVEL */}
+      {/* Plant Edit Modal */}
       <PlantEditModal
         isOpen={showEditModal}
         onClose={() => {
-          console.log('🚪 Closing plant edit modal');
           setShowEditModal(false);
           setEditingPlant(null);
         }}

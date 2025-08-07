@@ -105,7 +105,7 @@ export default function Navbar() {
           className="text-white text-xl font-bold flex items-center gap-2 hover:text-green-100 transition-colors"
           title={user ? 'Go to My Gardens' : 'Sign in to access your gardens'}
         >
-          <Image src="/logo.svg" alt="PlantPlotter Logo" width={32} height={32} /> 
+          <Image src="/PlantPlotter.svg" alt="PlantPlotter Logo" width={32} height={32} /> 
           <span>PlantPlotter</span>
         </Link>
 

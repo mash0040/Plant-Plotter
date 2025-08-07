@@ -18,18 +18,6 @@ export default function AllGardensPage() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Debug: Add connection test
-  const testAPIConnection = async () => {
-    try {
-      const isConnected = await apiClient.testConnection();
-      console.log('API Connection test:', isConnected);
-      return isConnected;
-    } catch (error) {
-      console.error('API Connection failed:', error);
-      return false;
-    }
-  };
-
   // Check for success parameters from garden planner
   useEffect(() => {
     const saved = searchParams.get('saved');
@@ -58,9 +46,7 @@ export default function AllGardensPage() {
       setLoading(true);
       setError(null);
       
-      // Debug: Test authentication
       const isAuth = apiClient.isAuthenticated();
-      console.log('Is authenticated:', isAuth);
       
       if (!isAuth) {
         setError('Not authenticated. Please log in.');
@@ -69,9 +55,7 @@ export default function AllGardensPage() {
         return;
       }
 
-      console.log('Attempting to load gardens from API...');
       const gardens = await apiClient.getGardens();
-      console.log('Gardens loaded successfully:', gardens);
       
       if (!Array.isArray(gardens)) {
         throw new Error('Invalid response format from API');
@@ -86,9 +70,7 @@ export default function AllGardensPage() {
       
       // Fallback to localStorage
       try {
-        console.log('Attempting localStorage fallback...');
         const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-        console.log('Local gardens found:', localGardens);
         
         if (Array.isArray(localGardens) && localGardens.length > 0) {
           setGardens(localGardens);
@@ -125,7 +107,6 @@ export default function AllGardensPage() {
   };
 
   const handleView = (garden) => {
-    console.log('View garden:', garden);
     // Navigate to garden detail page
     window.location.href = `/gardens/${garden.id}`;
   };
@@ -136,7 +117,6 @@ export default function AllGardensPage() {
   };
 
   const handleEdit = (garden) => {
-    console.log('Editing garden:', garden);
     setSelectedGarden(garden);
     setIsFormOpen(true);
   };
