@@ -17,9 +17,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware
 app.use((req, res, next) => {
-  console.log(`📨 ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
   if (req.body && Object.keys(req.body).length > 0) {
-    console.log('📝 Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
   }
   next();
 });
@@ -36,9 +36,7 @@ const advisoryRoutes = require('./routes/advisory');
 let authRoutes;
 try {
   authRoutes = require('./routes/auth');
-  console.log('✅ Auth routes loaded successfully');
 } catch (error) {
-  console.log('⚠️  routes/auth.js not found - you need to create it');
   console.error('Auth route error:', error.message);
   authRoutes = null;
 }
@@ -47,9 +45,7 @@ try {
 try {
   const debugRoutes = require('./routes/debug'); // You'll need to create this
   app.use('/api/debug', debugRoutes);
-  console.log('🔧 Debug routes enabled');
 } catch (error) {
-  console.log('⚠️  Debug routes not found - creating inline debug endpoints');
   
   // Inline debug endpoints
   app.get('/api/debug/health', async (req, res) => {
@@ -85,56 +81,49 @@ try {
 // Register main routes with error handling
 try {
   app.use('/api/users', userRoutes);
-  console.log('✅ User routes registered');
 } catch (error) {
-  console.error('❌ Failed to register user routes:', error.message);
+  console.error('Failed to register user routes:', error.message);
 }
 
 try {
   app.use('/api/gardens', gardenRoutes);
-  console.log('✅ Garden routes registered');
 } catch (error) {
-  console.error('❌ Failed to register garden routes:', error.message);
+  console.error('Failed to register garden routes:', error.message);
 }
 
 try {
   app.use('/api/plants', plantLibraryRoutes);
-  console.log('✅ Plant library routes registered');
 } catch (error) {
-  console.error('❌ Failed to register plant routes:', error.message);
+  console.error('Failed to register plant routes:', error.message);
 }
 
 try {
   app.use('/api/tasks', taskRoutes);
-  console.log('✅ Task routes registered');
 } catch (error) {
-  console.error('❌ Failed to register task routes:', error.message);
+  console.error('Failed to register task routes:', error.message);
 }
 
 try {
   app.use('/api/activities', activityRoutes);
-  console.log('✅ Activity routes registered');
 } catch (error) {
-  console.error('❌ Failed to register activity routes:', error.message);
+  console.error('Failed to register activity routes:', error.message);
 }
 
 try {
   app.use('/api', advisoryRoutes);
-  console.log('✅ Advisory routes registered');
 } catch (error) {
-  console.error('❌ Failed to register advisory routes:', error.message);
+  console.error('Failed to register advisory routes:', error.message);
 }
 
 // Register auth routes if available
 if (authRoutes) {
   try {
     app.use('/api/auth', authRoutes);
-    console.log('✅ Auth routes registered');
   } catch (error) {
-    console.error('❌ Failed to register auth routes:', error.message);
+    console.error('Failed to register auth routes:', error.message);
   }
 } else {
-  console.log('❌ Auth endpoints missing - create routes/auth.js');
+  console.log('Auth endpoints missing - create routes/auth.js');
 }
 
 // Health check endpoint
@@ -151,7 +140,7 @@ app.get('/api/health', async (req, res) => {
       totalUsers: result[0].count
     });
   } catch (error) {
-    console.error('❌ Health check failed:', error);
+    console.error('Health check failed:', error);
     res.status(500).json({ 
       status: 'error', 
       message: 'Database connection failed',
@@ -162,7 +151,7 @@ app.get('/api/health', async (req, res) => {
 
 app.get('/', (req, res) => {
   res.json({
-    message: '🌱 Plant Potter backend is running!',
+    message: 'Plant Potter backend is running!',
     timestamp: new Date().toISOString(),
     endpoints: {
       health: '/api/health',
@@ -176,7 +165,7 @@ app.get('/', (req, res) => {
 
 // Enhanced error handling middleware
 app.use((err, req, res, next) => {
-  console.error('🔥 UNHANDLED ERROR:');
+  console.error('UNHANDLED ERROR:');
   console.error('Request:', req.method, req.originalUrl);
   console.error('Body:', req.body);
   console.error('Error:', err);
@@ -194,7 +183,7 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use((req, res) => {
-  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
     error: 'Route not found',
     path: req.originalUrl,
@@ -210,26 +199,26 @@ app.use((req, res) => {
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received, shutting down gracefully');
+  console.log('SIGTERM received, shutting down gracefully');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('🛑 SIGINT received, shutting down gracefully');
+  console.log('SIGINT received, shutting down gracefully');
   process.exit(0);
 });
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
-  console.log('🚀 ================================');
-  console.log(`🌱 Plant Potter server running on port ${PORT}`);
-  console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🔧 Debug: http://localhost:${PORT}/api/debug/health`);
+  console.log('================================');
+  console.log(`Plant Potter server running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/api/health`);
+  console.log(`Debug: http://localhost:${PORT}/api/debug/health`);
   
   if (authRoutes) {
-    console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth/login`);
+    console.log(`Auth endpoints: http://localhost:${PORT}/api/auth/login`);
   } else {
-    console.log(`❌ Auth endpoints missing - create routes/auth.js`);
+    console.log(`Auth endpoints missing - create routes/auth.js`);
   }
-  console.log('🚀 ================================');
+  console.log('================================');
 });

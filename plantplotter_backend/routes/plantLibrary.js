@@ -44,9 +44,7 @@ const safeStringifyField = (field) => {
 
 // GET /api/plants - Get plant library
 router.get('/', verifyToken, async (req, res) => {
-  try {
-    console.log('📚 Fetching plant library...');
-    
+  try {  
     const [plants] = await db.execute(`
       SELECT 
         id,
@@ -103,7 +101,6 @@ router.get('/', verifyToken, async (req, res) => {
       }
     });
 
-    console.log(`✅ Plant library loaded: ${transformedPlants.length} plants`);
     res.json(transformedPlants);
   } catch (error) {
     console.error('❌ Error fetching plant library:', error);
@@ -113,9 +110,7 @@ router.get('/', verifyToken, async (req, res) => {
 
 // GET /api/plants/:id - Get specific plant
 router.get('/:id', verifyToken, async (req, res) => {
-  try {
-    console.log(`🔍 Fetching plant: ${req.params.id}`);
-    
+  try {   
     const [plant] = await db.execute(
       'SELECT * FROM plant_library WHERE id = ?',
       [req.params.id]
@@ -136,7 +131,6 @@ router.get('/:id', verifyToken, async (req, res) => {
       difficulty: plant[0].difficulty || 'Medium'
     };
 
-    console.log(`✅ Plant found: ${transformedPlant.name}`);
     res.json(transformedPlant);
   } catch (error) {
     console.error('❌ Error fetching plant:', error);
@@ -146,10 +140,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 
 // POST /api/plants - Add new plant to library
 router.post('/', verifyToken, async (req, res) => {
-  try {
-    console.log('🆕 Creating new plant in library...');
-    console.log('📋 Plant data received:', req.body);
-    
+  try {  
     const {
       id,
       name,
@@ -211,8 +202,6 @@ router.post('/', verifyToken, async (req, res) => {
       planting_depth: planting_depth || null
     };
 
-    console.log('💾 Inserting plant data:', plantData);
-
     // Insert into database
     const [result] = await db.execute(`
       INSERT INTO plant_library (
@@ -251,7 +240,6 @@ router.post('/', verifyToken, async (req, res) => {
       soil_types: safeParseField(newPlant[0].soil_types)
     };
 
-    console.log(`✅ Plant created successfully: ${transformedPlant.name}`);
     res.status(201).json(transformedPlant);
 
   } catch (error) {
@@ -273,10 +261,7 @@ router.post('/', verifyToken, async (req, res) => {
 
 // PUT /api/plants/:id - Update plant in library
 router.put('/:id', verifyToken, async (req, res) => {
-  try {
-    console.log(`📝 Updating plant: ${req.params.id}`);
-    console.log('📋 Update data received:', req.body);
-    
+  try {    
     const plantId = req.params.id;
     const {
       name,
@@ -331,8 +316,6 @@ router.put('/:id', verifyToken, async (req, res) => {
       planting_depth: planting_depth || null
     };
 
-    console.log('💾 Updating with data:', plantData);
-
     // Update in database
     const [result] = await db.execute(`
       UPDATE plant_library SET 
@@ -376,7 +359,6 @@ router.put('/:id', verifyToken, async (req, res) => {
       soil_types: safeParseField(updatedPlant[0].soil_types)
     };
 
-    console.log(`✅ Plant updated successfully: ${transformedPlant.name}`);
     res.json(transformedPlant);
 
   } catch (error) {
@@ -390,9 +372,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 
 // DELETE /api/plants/:id - Delete plant from library
 router.delete('/:id', verifyToken, async (req, res) => {
-  try {
-    console.log(`🗑️ Deleting plant: ${req.params.id}`);
-    
+  try {    
     const plantId = req.params.id;
 
     // Check if plant exists
@@ -425,7 +405,6 @@ router.delete('/:id', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Plant not found' });
     }
 
-    console.log(`✅ Plant deleted successfully: ${plantName}`);
     res.json({ 
       message: 'Plant deleted successfully',
       deletedPlant: plantName,
@@ -452,9 +431,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
 
 // GET /api/plants/search/:query - Search plants by name or category
 router.get('/search/:query', verifyToken, async (req, res) => {
-  try {
-    console.log(`🔍 Searching plants for: ${req.params.query}`);
-    
+  try {   
     const query = req.params.query;
     const [plants] = await db.execute(`
       SELECT * FROM plant_library 
@@ -469,7 +446,6 @@ router.get('/search/:query', verifyToken, async (req, res) => {
       soil_types: safeParseField(plant.soil_types)
     }));
 
-    console.log(`✅ Found ${transformedPlants.length} plants matching "${query}"`);
     res.json(transformedPlants);
 
   } catch (error) {

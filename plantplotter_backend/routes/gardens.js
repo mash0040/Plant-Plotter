@@ -112,7 +112,7 @@ const sanitizeForDatabase = {
     if (typeof value === 'string') {
       // Check if it's the corrupted "[object Object]" string
       if (value === '[object Object]') {
-        console.log(`⚠️ ${fieldName} is corrupted "[object Object]" string, using fallback`);
+        console.log(`${fieldName} is corrupted "[object Object]" string, using fallback`);
         cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
       } else {
         cleanValue = value.trim();
@@ -128,7 +128,7 @@ const sanitizeForDatabase = {
         cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
       }
       
-      console.log(`⚠️ ${fieldName} was an object, extracted: "${cleanValue}"`);
+      console.log(`${fieldName} was an object, extracted: "${cleanValue}"`);
     } else {
       cleanValue = String(value).trim();
     }
@@ -136,19 +136,19 @@ const sanitizeForDatabase = {
     // Remove any remaining object indicators
     if (cleanValue === '[object Object]' || cleanValue === 'undefined' || cleanValue === 'null') {
       cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
-      console.log(`⚠️ ${fieldName} had invalid value, using fallback: "${cleanValue}"`);
+      console.log(`${fieldName} had invalid value, using fallback: "${cleanValue}"`);
     }
     
     // Truncate if too long
     if (cleanValue.length > maxLength) {
-      console.log(`⚠️ ${fieldName} too long (${cleanValue.length} chars), truncating to ${maxLength}`);
+      console.log(`${fieldName} too long (${cleanValue.length} chars), truncating to ${maxLength}`);
       cleanValue = cleanValue.substring(0, maxLength).trim();
     }
     
     // Ensure it's not empty
     if (!cleanValue) {
       cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
-      console.log(`⚠️ ${fieldName} was empty, using fallback: "${cleanValue}"`);
+      console.log(`${fieldName} was empty, using fallback: "${cleanValue}"`);
     }
     
     return cleanValue;
@@ -181,9 +181,7 @@ const sanitizeForDatabase = {
 router.get("/", verifyToken, async (req, res) => {
   const userId = req.user.id;
 
-  try {
-    console.log(`🔍 Fetching all gardens for user: ${userId}`);
-    
+  try {    
     // Get all gardens for this specific user
     const [gardens] = await db.execute(
       `SELECT 
@@ -202,8 +200,6 @@ router.get("/", verifyToken, async (req, res) => {
        ORDER BY g.updated_at DESC`,
       [userId]
     );
-
-    console.log(`🏡 Found ${gardens.length} gardens for user ${userId}`);
 
     if (gardens.length === 0) {
       return res.json([]);
@@ -234,8 +230,6 @@ router.get("/", verifyToken, async (req, res) => {
       gardenIds
     );
 
-    console.log(`🌱 Found ${allPlantedItems.length} total planted items across all gardens`);
-
     // Group planted items by garden_id
     const plantsByGarden = {};
     allPlantedItems.forEach(plant => {
@@ -248,7 +242,6 @@ router.get("/", verifyToken, async (req, res) => {
     // Transform each garden with its planted items
     const gardensWithPlants = gardens.map(garden => {
       const gardenPlants = plantsByGarden[garden.id] || [];
-      console.log(`🏡 Garden "${garden.name}" (ID: ${garden.id}) has ${gardenPlants.length} plants`);
       
       return {
         id: garden.id,
@@ -289,11 +282,10 @@ router.get("/", verifyToken, async (req, res) => {
       };
     });
 
-    console.log(`✅ Successfully processed ${gardens.length} gardens for user ${userId}`);
     res.json(gardensWithPlants);
 
   } catch (err) {
-    console.error(`❌ Error fetching gardens for user ${userId}:`, err);
+    console.error(`Error fetching gardens for user ${userId}:`, err);
     res.status(500).json({ 
       message: "Server error", 
       error: err.message,
@@ -308,7 +300,6 @@ router.get('/:id', verifyToken, async (req, res) => {
   const gardenId = req.params.id;
 
   try {
-    console.log(`🔍 Fetching garden ${gardenId} for user ${userId}`);
     
     // Get specific garden for this user
     const [gardens] = await db.execute(
@@ -329,12 +320,10 @@ router.get('/:id', verifyToken, async (req, res) => {
     );
 
     if (gardens.length === 0) {
-      console.log(`❌ Garden ${gardenId} not found for user ${userId}`);
       return res.status(404).json({ error: 'Garden not found or access denied' });
     }
 
     const garden = gardens[0];
-    console.log(`🏡 Found garden: "${garden.name}"`);
 
     // Get all planted items for this garden
     const [plantedItems] = await db.execute(
@@ -357,8 +346,6 @@ router.get('/:id', verifyToken, async (req, res) => {
        ORDER BY pi.created_at DESC`,
       [gardenId]
     );
-
-    console.log(`🌱 Found ${plantedItems.length} plants in garden "${garden.name}"`);
 
     // Transform garden with detailed summary
     const gardenWithSummary = transformGardenWithSummary(garden, plantedItems);
@@ -383,11 +370,10 @@ router.get('/:id', verifyToken, async (req, res) => {
       recommendations: generateRecommendations(garden, plantedItems)
     };
 
-    console.log(`✅ Successfully fetched garden ${gardenId} with detailed summary`);
     res.json(gardenWithSummary);
 
   } catch (error) {
-    console.error(`❌ Error fetching garden ${gardenId} for user ${userId}:`, error);
+    console.error(`Error fetching garden ${gardenId} for user ${userId}:`, error);
     res.status(500).json({ 
       error: 'Failed to fetch garden', 
       message: error.message,
@@ -455,9 +441,7 @@ router.get('/:id/plants', verifyToken, async (req, res) => {
   const userId = req.user.id;
   const gardenId = req.params.id;
 
-  try {
-    console.log(`🌱 Fetching plants for garden ${gardenId}, user ${userId}`);
-    
+  try {   
     // Verify garden belongs to user
     const [gardenCheck] = await db.execute(
       'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
@@ -504,11 +488,10 @@ router.get('/:id/plants', verifyToken, async (req, res) => {
       updated_at: plant.updated_at
     }));
 
-    console.log(`✅ Found ${transformedPlants.length} plants for garden ${gardenId}`);
     res.json(transformedPlants);
 
   } catch (error) {
-    console.error(`❌ Error fetching plants for garden ${gardenId}:`, error);
+    console.error(`Error fetching plants for garden ${gardenId}:`, error);
     res.status(500).json({ error: 'Failed to fetch planted items' });
   }
 });
@@ -519,9 +502,6 @@ router.post('/', verifyToken, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    console.log('🆕 ===== CREATING GARDEN WITH SANITIZATION =====');
-    console.log('📋 Raw data received:', JSON.stringify(rawData, null, 2));
-
     // Sanitize data for database
     const sanitizedData = {
       name: sanitizeForDatabase.shortString(rawData.name, 'Garden name'),
@@ -532,8 +512,6 @@ router.post('/', verifyToken, async (req, res) => {
       location: sanitizeForDatabase.longString(rawData.location || 'Garden', 'Location'),
       status: sanitizeForDatabase.shortString(rawData.status || 'Planning', 'Status')
     };
-
-    console.log('✅ Sanitized data for database:', sanitizedData);
 
     if (!sanitizedData.name) {
       return res.status(400).json({ 
@@ -588,11 +566,10 @@ router.post('/', verifyToken, async (req, res) => {
       updatedAt: garden.updated_at
     };
 
-    console.log('✅ Garden created successfully with sanitized data');
     res.status(201).json(transformedGarden);
 
   } catch (error) {
-    console.error('❌ Error creating garden:', error);
+    console.error('Error creating garden:', error);
     
     if (error.code === 'ER_DATA_TOO_LONG') {
       return res.status(400).json({ 
@@ -617,12 +594,7 @@ router.put('/:id', verifyToken, async (req, res) => {
   const rawData = req.body;
 
   try {
-    console.log('🔍 ===== GARDEN UPDATE DEBUG =====');
-    console.log('🔍 Raw request body:', JSON.stringify(rawData, null, 2));
-    console.log('🔍 Raw name field:', rawData.name);
-    console.log('🔍 Name type:', typeof rawData.name);
-
-    // ✅ CRITICAL FIX: Use the sanitization helper we already defined
+    // Use the sanitization helper
     const sanitizedData = {
       name: sanitizeForDatabase.shortString(rawData.name, 'Garden name'),
       description: sanitizeForDatabase.string(rawData.description, 65535, 'Description'),
@@ -633,13 +605,9 @@ router.put('/:id', verifyToken, async (req, res) => {
       status: sanitizeForDatabase.shortString(rawData.status || 'Active', 'Status')
     };
 
-    console.log('✅ Sanitized data:', sanitizedData);
-    console.log('✅ Sanitized name:', sanitizedData.name);
-    console.log('✅ Sanitized name type:', typeof sanitizedData.name);
-
     // Validate required fields after sanitization
     if (!sanitizedData.name) {
-      console.log('❌ Garden name is empty after sanitization');
+      console.log('Garden name is empty after sanitization');
       return res.status(400).json({ 
         message: 'Garden name is required',
         received: rawData.name,
@@ -664,7 +632,7 @@ router.put('/:id', verifyToken, async (req, res) => {
            soil_type = ?, location = ?, status = ?, updated_at = NOW()
        WHERE id = ? AND user_id = ?`,
       [
-        sanitizedData.name,        // ✅ Always a clean string
+        sanitizedData.name,
         sanitizedData.description,
         sanitizedData.width,
         sanitizedData.height,
@@ -676,8 +644,6 @@ router.put('/:id', verifyToken, async (req, res) => {
       ]
     );
 
-    console.log('✅ Update completed, affected rows:', updateResult.affectedRows);
-
     // Fetch updated garden to verify
     const [updatedGarden] = await db.execute(
       'SELECT * FROM gardens WHERE id = ?',
@@ -685,14 +651,12 @@ router.put('/:id', verifyToken, async (req, res) => {
     );
 
     const garden = updatedGarden[0];
-    console.log('✅ Garden name in database after update:', garden.name);
-    console.log('✅ Garden name type after update:', typeof garden.name);
 
     const response = {
       message: 'Garden updated successfully',
       garden: {
         id: garden.id,
-        name: garden.name, // Should now be clean string
+        name: garden.name,
         description: garden.description || '',
         width: garden.width,
         height: garden.height,
@@ -710,12 +674,10 @@ router.put('/:id', verifyToken, async (req, res) => {
       }
     };
 
-    console.log('📤 Sending response with name:', response.garden.name);
-    console.log('📤 Response name type:', typeof response.garden.name);
     res.json(response);
 
   } catch (error) {
-    console.error('❌ Update error:', error);
+    console.error('Update error:', error);
     
     // Handle specific database errors
     if (error.code === 'ER_DATA_TOO_LONG') {
@@ -739,8 +701,6 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
   const userId = req.user.id;
   const { plantedItems = [] } = req.body;
 
-  console.log('🌱 SAVING PLANTS for garden', gardenId, '- Plants:', plantedItems.length);
-
   try {
     // Verify garden ownership
     const [garden] = await db.execute(
@@ -753,12 +713,10 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
     }
 
     // Clear existing plants first
-    console.log('🗑️ Clearing existing plants from garden', gardenId);
     const [deleteResult] = await db.execute(
       'DELETE FROM planted_items WHERE garden_id = ?',
       [gardenId]
     );
-    console.log('✅ Cleared', deleteResult.affectedRows, 'existing plants');
 
     // Add new plants
     let plantsAdded = 0;
@@ -796,15 +754,12 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
         );
 
         plantsAdded++;
-        console.log(`✅ Added plant ${plantsAdded}/${plantedItems.length}: ${safePlant.plant_name}`);
 
       } catch (plantError) {
-        console.error(`❌ Failed to add plant ${plant.plant_name}:`, plantError.message);
+        console.error(`Failed to add plant ${plant.plant_name}:`, plantError.message);
         // Continue with other plants
       }
     }
-
-    console.log(`✅ Plants saved: ${plantsAdded}/${plantedItems.length} successful`);
 
     res.json({
       message: 'Plants saved successfully',
@@ -813,7 +768,7 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Plant saving failed:', error);
+    console.error('Plant saving failed:', error);
     res.status(500).json({ 
       message: 'Failed to save plants', 
       error: error.message 
@@ -826,9 +781,7 @@ router.delete('/:id/plants', verifyToken, async (req, res) => {
   const userId = req.user.id;
   const gardenId = req.params.id;
 
-  try {
-    console.log(`🗑️ Clearing all plants from garden ${gardenId} for user ${userId}`);
-    
+  try {    
     // Verify garden belongs to user
     const [garden] = await db.execute(
       'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
@@ -845,14 +798,13 @@ router.delete('/:id/plants', verifyToken, async (req, res) => {
       [gardenId]
     );
 
-    console.log(`✅ Cleared ${result.affectedRows} plants from garden ${gardenId}`);
     res.json({ 
       message: 'Plants cleared successfully', 
       deletedCount: result.affectedRows 
     });
 
   } catch (error) {
-    console.error(`❌ Error clearing plants from garden ${gardenId}:`, error);
+    console.error(`Error clearing plants from garden ${gardenId}:`, error);
     res.status(500).json({ error: 'Failed to clear plants' });
   }
 });
@@ -862,9 +814,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
   const gardenId = req.params.id;
   const userId = req.user.id;
 
-  try {
-    console.log(`🗑️ Deleting garden ${gardenId} for user ${userId}`);
-    
+  try {    
     // First delete all planted items
     const [plantDeleteResult] = await db.execute(
       "DELETE FROM planted_items WHERE garden_id = ?", 
@@ -881,14 +831,13 @@ router.delete("/:id", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "Garden not found or unauthorized" });
     }
 
-    console.log(`✅ Garden ${gardenId} and ${plantDeleteResult.affectedRows} plants deleted for user ${userId}`);
     res.json({ 
       message: "Garden deleted successfully",
       deletedPlants: plantDeleteResult.affectedRows 
     });
 
   } catch (err) {
-    console.error(`❌ Error deleting garden ${gardenId} for user ${userId}:`, err);
+    console.error(`Error deleting garden ${gardenId} for user ${userId}:`, err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
@@ -900,9 +849,7 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
   const { plant_id, plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, notes } = req.body;
 
   try {
-    console.log('🌱 ===== ADDING PLANT TO GARDEN =====');
-    console.log(`🌱 Adding plant "${plant_name}" to garden ${gardenId} for user ${userId}`);
-    console.log('📋 Plant data received:', {
+    console.log('Plant data received:', {
       plant_id,
       plant_name,
       plant_emoji,
@@ -915,7 +862,7 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     
     // Step 1: Validate required fields
     if (!plant_name) {
-      console.log('❌ Validation failed: plant_name is required');
+      console.log('Validation failed: plant_name is required');
       return res.status(400).json({ 
         error: 'Plant name is required',
         field: 'plant_name',
@@ -924,22 +871,19 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     }
 
     // Step 2: Verify garden belongs to user
-    console.log('🔍 Verifying garden ownership...');
     const [garden] = await db.execute(
       'SELECT id, name FROM gardens WHERE id = ? AND user_id = ?',
       [gardenId, userId]
     );
 
     if (garden.length === 0) {
-      console.log('❌ Garden not found or access denied');
+      console.log('Garden not found or access denied');
       return res.status(404).json({ 
         error: 'Garden not found or access denied',
         gardenId: gardenId,
         userId: userId
       });
     }
-
-    console.log('✅ Garden verified:', garden[0]);
 
     // Step 3: Prepare plant data with defaults
     const plantData = {
@@ -955,11 +899,8 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
       planted_date: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
     };
 
-    console.log('📝 Prepared plant data:', plantData);
 
-    // Step 4: Insert plant into database
-    console.log('💾 Inserting plant into database...');
-    
+    // Step 4: Insert plant into database   
     const insertSQL = `
       INSERT INTO planted_items 
       (garden_id, plant_id, plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, notes, planted_date, created_at, updated_at) 
@@ -979,25 +920,21 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
       plantData.planted_date
     ];
 
-    console.log('📝 SQL Query:', insertSQL);
-    console.log('📋 SQL Params:', insertParams);
-
     const [result] = await db.execute(insertSQL, insertParams);
 
-    console.log('✅ Plant inserted successfully:', { 
+    console.log('Plant inserted successfully:', { 
       insertId: result.insertId, 
       affectedRows: result.affectedRows 
     });
 
     // Step 5: Fetch the newly created plant
-    console.log('🔍 Fetching newly created plant...');
     const [newPlant] = await db.execute(
       'SELECT * FROM planted_items WHERE id = ?',
       [result.insertId]
     );
 
     if (newPlant.length === 0) {
-      console.log('❌ Failed to retrieve created plant');
+      console.log('Failed to retrieve created plant');
       return res.status(500).json({ 
         error: 'Plant created but could not be retrieved',
         insertId: result.insertId
@@ -1005,7 +942,6 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     }
 
     // Step 6: Transform for frontend
-    console.log('🔄 Transforming plant data for frontend...');
     const plant = newPlant[0];
     const transformedPlant = {
       id: plant.id,
@@ -1022,27 +958,24 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
       updated_at: plant.updated_at
     };
 
-    console.log('✅ Transformed plant:', transformedPlant);
-    console.log('🎉 ===== PLANT ADDED SUCCESSFULLY =====');
-
     res.status(201).json(transformedPlant);
 
   } catch (error) {
-    console.error('🔥 ===== PLANT ADDITION ERROR =====');
-    console.error(`❌ Error adding plant to garden ${gardenId} for user ${userId}`);
-    console.error('❌ Error details:', {
+    console.error('===== PLANT ADDITION ERROR =====');
+    console.error(`Error adding plant to garden ${gardenId} for user ${userId}`);
+    console.error('Error details:', {
       message: error.message,
       code: error.code,
       errno: error.errno,
       sqlState: error.sqlState,
       sqlMessage: error.sqlMessage
     });
-    console.error('❌ Full error object:', error);
-    console.error('❌ Stack trace:', error.stack);
+    console.error('Full error object:', error);
+    console.error('Stack trace:', error.stack);
     
     // Handle specific database errors
     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
-      console.log('❌ Foreign key constraint failed');
+      console.log('Foreign key constraint failed');
       return res.status(400).json({ 
         error: 'Invalid garden ID or user ID',
         message: error.message,
@@ -1053,7 +986,7 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     }
     
     if (error.code === 'ER_BAD_FIELD_ERROR') {
-      console.log('❌ Bad field error - column does not exist');
+      console.log('Bad field error - column does not exist');
       return res.status(500).json({ 
         error: 'Database schema error - missing column',
         message: error.message,
@@ -1063,7 +996,7 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     }
     
     if (error.code === 'ER_DATA_TOO_LONG') {
-      console.log('❌ Data too long for field');
+      console.log('Data too long for field');
       return res.status(400).json({ 
         error: 'One or more fields exceed maximum length',
         message: error.message,
@@ -1072,7 +1005,7 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     }
 
     if (error.code === 'ER_BAD_NULL_ERROR') {
-      console.log('❌ Required field is null');
+      console.log('Required field is null');
       return res.status(400).json({ 
         error: 'Required field is missing',
         message: error.message,
@@ -1081,7 +1014,7 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     }
 
     if (error.code === 'ECONNREFUSED') {
-      console.log('❌ Database connection refused');
+      console.log('Database connection refused');
       return res.status(503).json({ 
         error: 'Database connection failed',
         message: 'Cannot connect to database server',
@@ -1108,9 +1041,7 @@ router.put('/:id/plants/:plantId', verifyToken, async (req, res) => {
   const plantId = req.params.plantId;
   const { plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, notes } = req.body;
 
-  try {
-    console.log(`📝 Updating plant ${plantId} in garden ${gardenId} for user ${userId}`);
-    
+  try {    
     // Verify garden belongs to user
     const [garden] = await db.execute(
       'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
@@ -1152,11 +1083,10 @@ router.put('/:id/plants/:plantId', verifyToken, async (req, res) => {
       updated_at: updatedPlant[0].updated_at
     };
 
-    console.log(`✅ Plant ${plantId} updated successfully in garden ${gardenId}`);
     res.json(transformedPlant);
 
   } catch (error) {
-    console.error(`❌ Error updating plant ${plantId} for user ${userId}:`, error);
+    console.error(`Error updating plant ${plantId} for user ${userId}:`, error);
     res.status(500).json({ error: 'Failed to update plant', message: error.message });
   }
 });
@@ -1167,9 +1097,7 @@ router.delete('/:id/plants/:plantId', verifyToken, async (req, res) => {
   const gardenId = req.params.id;
   const plantId = req.params.plantId;
 
-  try {
-    console.log(`🗑️ Removing plant ${plantId} from garden ${gardenId} for user ${userId}`);
-    
+  try {    
     // Verify garden belongs to user
     const [garden] = await db.execute(
       'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
@@ -1189,11 +1117,10 @@ router.delete('/:id/plants/:plantId', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Plant not found in this garden' });
     }
 
-    console.log(`✅ Plant ${plantId} removed successfully from garden ${gardenId}`);
     res.json({ message: 'Plant removed successfully' });
 
   } catch (error) {
-    console.error(`❌ Error removing plant ${plantId} for user ${userId}:`, error);
+    console.error(`Error removing plant ${plantId} for user ${userId}:`, error);
     res.status(500).json({ error: 'Failed to remove plant', message: error.message });
   }
 });

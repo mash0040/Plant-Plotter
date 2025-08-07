@@ -64,7 +64,7 @@ router.get('/debug/demo-user', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Debug error:', error);
+    console.error('Debug error:', error);
     res.status(500).json({ error: 'Debug failed', message: error.message });
   }
 });
@@ -128,9 +128,7 @@ router.post('/fix-demo-user', async (req, res) => {
       WHERE u.id = 1 
       GROUP BY u.id, u.email
     `);
-    
-    console.log('✅ Demo user fixed successfully');
-    
+        
     res.json({
       message: 'Demo user fixed successfully',
       verification: verification[0] || null,
@@ -138,16 +136,14 @@ router.post('/fix-demo-user', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Fix failed:', error);
+    console.error('Fix failed:', error);
     res.status(500).json({ error: 'Fix failed', message: error.message });
   }
 });
 
 // Test demo login endpoint
 router.post('/test-demo-login', async (req, res) => {
-  try {
-    console.log('🔐 TESTING: Demo login...');
-    
+  try {    
     // Find demo user
     const [users] = await db.execute(
       'SELECT id, email, username, role FROM users WHERE email = ? AND is_active = TRUE',
@@ -187,7 +183,7 @@ router.post('/test-demo-login', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Demo login test failed:', error);
+    console.error('Demo login test failed:', error);
     res.status(500).json({ error: 'Demo login test failed', message: error.message });
   }
 });
