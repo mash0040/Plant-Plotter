@@ -1,20 +1,31 @@
 'use client';
-import { useState } from 'react';
-import { User, Mail, Camera, Save, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Mail, Save, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function ProfileForm() {
   const { user, updateProfile, loading } = useAuth();
   
   const [formData, setFormData] = useState({
-    username: user?.username || '',
-    email: user?.email || '',
-    avatar: user?.avatar || ''
+    username: '',
+    email: '',
+    avatar: ''
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [errors, setErrors] = useState({});
+
+  // Update form data when user data changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username || '',
+        email: user.email || '',
+        avatar: user.avatar || ''
+      });
+    }
+  }, [user]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -47,9 +58,13 @@ export default function ProfileForm() {
     setIsSubmitting(true);
     
     try {
-      // TODO: Implement updateProfile in useAuth hook
       await updateProfile(formData);
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage({ type: '', text: '' });
+      }, 3000);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
     } finally {
@@ -62,18 +77,6 @@ export default function ProfileForm() {
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  const handleAvatarUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // TODO: Implement actual file upload
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFormData(prev => ({ ...prev, avatar: e.target.result }));
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -112,38 +115,6 @@ export default function ProfileForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Avatar Section */}
-        <div className="flex items-center gap-6">
-          <div className="relative">
-            <div className="w-20 h-20 bg-gray-100 rounded-full overflow-hidden">
-              {formData.avatar ? (
-                <img 
-                  src={formData.avatar} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-green-100">
-                  <User className="w-8 h-8 text-green-600" />
-                </div>
-              )}
-            </div>
-            <label className="absolute bottom-0 right-0 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-green-700 transition-colors">
-              <Camera className="w-3 h-3 text-white" />
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                onChange={handleAvatarUpload}
-              />
-            </label>
-          </div>
-          <div>
-            <h3 className="font-medium text-gray-800">Profile Picture</h3>
-            <p className="text-sm text-gray-500">Click the camera icon to upload a new photo</p>
-          </div>
-        </div>
-
         {/* Username Field */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -212,18 +183,6 @@ export default function ProfileForm() {
                 {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
               </span>
             </div>
-            {/* <div>
-              <span className="text-gray-500">Email verified:</span>
-              <span className={`ml-2 font-medium ${user?.email_verified ? 'text-green-600' : 'text-red-600'}`}>
-                {user?.email_verified ? 'Yes' : 'No'}
-              </span>
-            </div> */}
-            {/* <div>
-              <span className="text-gray-500">Account status:</span>
-              <span className={`ml-2 font-medium ${user?.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                {user?.is_active ? 'Active' : 'Inactive'}
-              </span>
-            </div> */}
           </div>
         </div>
 

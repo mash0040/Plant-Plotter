@@ -29,7 +29,7 @@ export default function PreferencesForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Load user preferences on mount
+  // Load user preferences when user data changes
   useEffect(() => {
     if (user?.preferences) {
       try {
@@ -37,10 +37,29 @@ export default function PreferencesForm() {
           ? JSON.parse(user.preferences) 
           : user.preferences;
         
-        setPreferences(prev => ({
-          ...prev,
-          ...userPrefs
-        }));
+        // Deep merge preferences to ensure all default values are preserved
+        const mergedPreferences = {
+          language: userPrefs.language || 'en',
+          theme: userPrefs.theme || 'light',
+          notifications: {
+            email: userPrefs.notifications?.email ?? true,
+            push: userPrefs.notifications?.push ?? false,
+            gardenReminders: userPrefs.notifications?.gardenReminders ?? true,
+            weatherAlerts: userPrefs.notifications?.weatherAlerts ?? true
+          },
+          privacy: {
+            profileVisible: userPrefs.privacy?.profileVisible ?? true,
+            shareGardens: userPrefs.privacy?.shareGardens ?? false
+          },
+          garden: {
+            defaultUnits: userPrefs.garden?.defaultUnits || 'metric',
+            autoSave: userPrefs.garden?.autoSave ?? true,
+            gridSize: userPrefs.garden?.gridSize || 40
+          }
+        };
+        
+        setPreferences(mergedPreferences);
+        
       } catch (error) {
         console.error('Error parsing user preferences:', error);
       }
@@ -53,9 +72,13 @@ export default function PreferencesForm() {
     setIsSubmitting(true);
     
     try {
-      // TODO: Implement updatePreferences in useAuth hook
       await updatePreferences(preferences);
       setMessage({ type: 'success', text: 'Preferences saved successfully!' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setMessage({ type: '', text: '' });
+      }, 3000);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Failed to save preferences' });
     } finally {
@@ -70,6 +93,10 @@ export default function PreferencesForm() {
       let current = newPrefs;
       
       for (let i = 0; i < keys.length - 1; i++) {
+        // Create nested object if it doesn't exist
+        if (!current[keys[i]] || typeof current[keys[i]] !== 'object') {
+          current[keys[i]] = {};
+        }
         current = current[keys[i]];
       }
       

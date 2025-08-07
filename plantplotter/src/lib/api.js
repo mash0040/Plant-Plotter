@@ -142,30 +142,43 @@ class ApiClient {
 
   // Register new user
   async register(name, email, password) {
-  try {
-    console.log('📝 Attempting registration for:', email);
-    const response = await this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        username: name,  // ← Note: using 'username' to match your schema
-        email, 
-        password 
-      }),
-    });
+    try {
+      console.log('📝 Attempting registration for:', email);
+      const response = await this.request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          username: name,  // ← Note: using 'username' to match your schema
+          email, 
+          password 
+        }),
+      });
 
-    if (response.token && typeof window !== 'undefined') {
-      console.log('✅ Registration successful, storing token');
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('authToken', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      if (response.token && typeof window !== 'undefined') {
+        console.log('✅ Registration successful, storing token');
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
+
+      return response;
+    } catch (error) {
+      console.error('❌ Registration failed:', error);
+      throw error;
     }
-
-    return response;
-  } catch (error) {
-    console.error('❌ Registration failed:', error);
-    throw error;
   }
-}
+
+  // Get user profile with preferences
+  async getProfile() {
+    try {
+      const response = await this.request('/users/profile', {
+        method: 'GET'
+      });
+      
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   // Get gardens with complete plant data for authenticated user
   async getGardens() {

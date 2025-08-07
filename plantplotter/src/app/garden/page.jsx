@@ -1,16 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { 
-  DndContext, 
-  closestCenter, 
-  PointerSensor, 
-  useSensor, 
-  useSensors, 
-  DragOverlay,
-  MouseSensor,
-  TouchSensor
-} from '@dnd-kit/core';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, MouseSensor, TouchSensor } from '@dnd-kit/core';
 import PlantLibrary from '@/components/Garden/PlantLibrary';
 import GardenCanvas from '@/components/Garden/GardenCanvas';
 import ControlPanel from '@/components/Garden/ControlPanel';
@@ -828,7 +819,7 @@ export default function GardenPlannerPage() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-screen min-w-0 relative z-20">
+        <div className="flex-1 flex flex-col h-screen min-w-0 relative">
           <ControlPanel
             dimensions={dimensions}
             gridSize={gridSize}

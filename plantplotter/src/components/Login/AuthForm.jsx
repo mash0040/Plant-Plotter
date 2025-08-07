@@ -165,7 +165,7 @@ export default function AuthForm() {
       )}
 
       {/* Demo Login Button - only show on login mode */}
-      {mode === 'login' && (
+      {/* {mode === 'login' && (
         <>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-blue-800 text-sm mb-2">
@@ -190,7 +190,7 @@ export default function AuthForm() {
             </div>
           </div>
         </>
-      )}
+      )}*/}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
