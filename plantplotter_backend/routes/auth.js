@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController.js');
-const verifyToken = require('../middleware/verifyToken'); // Add this import
+const verifyToken = require('../middleware/verifyToken');
 
 // POST /api/auth/login
 router.post('/login', userController.loginUser);
@@ -9,7 +9,7 @@ router.post('/login', userController.loginUser);
 // POST /api/auth/register  
 router.post('/register', userController.registerUser);
 
-// ADD THIS: Auth verification endpoint (missing from your current auth.js)
+// Auth verification endpoint
 router.get('/verify', verifyToken, (req, res) => {
   res.json({
     message: 'Token is valid',
@@ -25,7 +25,7 @@ router.get('/verify', verifyToken, (req, res) => {
 // Debug endpoint to check demo user and gardens
 router.get('/debug/demo-user', async (req, res) => {
   try {
-    console.log('🔍 DEBUG: Checking demo user and gardens...');
+    const db = require('../config/db');
     
     // Check demo user
     const [demoUser] = await db.execute(
@@ -72,7 +72,7 @@ router.get('/debug/demo-user', async (req, res) => {
 // Fix demo user endpoint
 router.post('/fix-demo-user', async (req, res) => {
   try {
-    console.log('🔧 FIXING: Demo user setup...');
+    const db = require('../config/db');
     
     // Ensure demo user exists
     await db.execute(`
@@ -144,6 +144,8 @@ router.post('/fix-demo-user', async (req, res) => {
 // Test demo login endpoint
 router.post('/test-demo-login', async (req, res) => {
   try {    
+    const db = require('../config/db');
+    
     // Find demo user
     const [users] = await db.execute(
       'SELECT id, email, username, role FROM users WHERE email = ? AND is_active = TRUE',

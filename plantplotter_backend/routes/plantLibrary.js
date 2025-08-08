@@ -103,7 +103,7 @@ router.get('/', verifyToken, async (req, res) => {
 
     res.json(transformedPlants);
   } catch (error) {
-    console.error('❌ Error fetching plant library:', error);
+    console.error('Error fetching plant library:', error);
     res.status(500).json({ error: 'Failed to fetch plant library' });
   }
 });
@@ -133,7 +133,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 
     res.json(transformedPlant);
   } catch (error) {
-    console.error('❌ Error fetching plant:', error);
+    console.error('Error fetching plant:', error);
     res.status(500).json({ error: 'Failed to fetch plant' });
   }
 });
@@ -243,7 +243,7 @@ router.post('/', verifyToken, async (req, res) => {
     res.status(201).json(transformedPlant);
 
   } catch (error) {
-    console.error('❌ Error creating plant:', error);
+    console.error('Error creating plant:', error);
     
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ 
@@ -362,7 +362,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     res.json(transformedPlant);
 
   } catch (error) {
-    console.error('❌ Error updating plant:', error);
+    console.error('Error updating plant:', error);
     res.status(500).json({ 
       error: 'Failed to update plant',
       message: error.message
@@ -413,7 +413,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error deleting plant:', error);
+    console.error('Error deleting plant:', error);
     
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
       return res.status(409).json({ 
@@ -449,7 +449,7 @@ router.get('/search/:query', verifyToken, async (req, res) => {
     res.json(transformedPlants);
 
   } catch (error) {
-    console.error('❌ Error searching plants:', error);
+    console.error('Error searching plants:', error);
     res.status(500).json({ error: 'Failed to search plants' });
   }
 });

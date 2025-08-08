@@ -9,15 +9,12 @@ class ApiClient {
   getAuthToken() {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      if (!token) {
-        console.log('No auth token found in localStorage');
-      }
       return token;
     }
     return null;
   }
 
-  // Generic request method with improved debugging
+  // Generic request method
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     const token = this.getAuthToken();
@@ -32,12 +29,6 @@ class ApiClient {
     };
 
     try {
-      console.log('Request config:', {
-        method: config.method || 'GET',
-        headers: { ...config.headers, Authorization: token ? 'Bearer [REDACTED]' : 'None' },
-        body: config.body ? JSON.parse(config.body) : 'None'
-      });
-      
       const response = await fetch(url, config);
             
       if (!response.ok) {
@@ -47,22 +38,18 @@ class ApiClient {
         try {
           errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
-          console.error('API Error Response:', errorData);
         } catch (parseError) {
-          console.warn('Failed to parse error response:', parseError);
           try {
             const textResponse = await response.text();
-            console.warn('Error response as text:', textResponse);
             errorMessage = textResponse || errorMessage;
           } catch (textError) {
-            console.warn('Failed to get text response:', textError);
+            // Use default error message
           }
         }
         
         // Handle specific status codes
         switch (response.status) {
           case 401:
-            console.log('Unauthorized - clearing auth data');
             if (typeof window !== 'undefined') {
               localStorage.removeItem('token');
               localStorage.removeItem('authToken');
@@ -181,13 +168,11 @@ class ApiClient {
         // Fallback for old format
         gardens = response.gardens;
       } else {
-        console.warn('⚠️ Unexpected response structure:', response);
         return [];
       }
             
       // Transform gardens to ensure consistent format for frontend
       const transformedGardens = gardens.map(garden => {
-        
         return {
           id: garden.id,
           name: garden.name,
@@ -213,7 +198,6 @@ class ApiClient {
           summary: garden.summary || null
         };
       });
-      
       
       return transformedGardens;
       
@@ -249,7 +233,6 @@ class ApiClient {
         const plants = await this.request(`/gardens/${id}/plants`);
         plantedItems = Array.isArray(plants) ? plants : [];
       } catch (plantError) {
-        console.warn(`Failed to fetch plants for garden ${id}:`, plantError);
         plantedItems = garden.plantedItems || [];
       }
       
@@ -313,32 +296,6 @@ class ApiClient {
 
   async updateGarden(id, gardenData) {
     try {      
-      // Check if it's an object
-      if (typeof gardenData.name === 'object' && gardenData.name !== null) {
-        console.log('NAME IS AN OBJECT!');
-      }
-      
-      // Check each character if it's a string
-      if (typeof gardenData.name === 'string') {
-        for (let i = 0; i < Math.min(gardenData.name.length, 20); i++) {
-          console.log(`  [${i}]: "${gardenData.name[i]}" (charCode: ${gardenData.name.charCodeAt(i)})`);
-        }
-        
-        // Check for hidden characters
-        console.log('Name as hex bytes:', [...gardenData.name].map(c => c.charCodeAt(0).toString(16)).join(' '));
-      }
-      
-      // Check all fields
-      Object.entries(gardenData).forEach(([key, value]) => {
-        console.log(`🔍 ${key}:`, {
-          value: value,
-          type: typeof value,
-          length: typeof value === 'string' ? value.length : 'N/A',
-          json: JSON.stringify(value)
-        });
-      });
-            
-      // Continue with your normal updateGarden code...
       const response = await this.request(`/gardens/${id}`, {
         method: 'PUT',
         body: JSON.stringify(gardenData),
@@ -484,13 +441,11 @@ class ApiClient {
           });          
           
         } catch (plantError) {
-          console.warn('Plant saving failed, trying individual plant saves:', plantError.message);
-          
           // Fallback: Clear plants first, then add individually
           try {
             await this.clearGardenPlants(garden.id);
           } catch (clearError) {
-            console.warn('Could not clear existing plants:', clearError.message);
+            // Continue even if clear fails
           }
           
           // Add plants individually
@@ -504,15 +459,12 @@ class ApiClient {
             }
           }          
         }
-      } else {
-        console.log('No plants to save');
       }
       
       return garden;
       
     } catch (error) {
-      console.error('===== COMPLETE GARDEN SAVE FAILED =====');
-      console.error('Error details:', error);
+      console.error('Complete garden save failed:', error);
       throw error;
     }
   }
@@ -520,56 +472,48 @@ class ApiClient {
   // Plant library methods
   async getPlantLibrary() {
     try {
-      console.log('📚 Fetching plant library...');
       const plants = await this.request('/plants');
-      console.log('✅ Plant library loaded:', plants);
       return plants;
     } catch (error) {
-      console.error('❌ Failed to fetch plant library:', error);
+      console.error('Failed to fetch plant library:', error);
       throw error;
     }
   }
 
   async updatePlant(plantId, plantData) {
     try {
-      console.log('📝 Updating plant in library:', plantId, plantData);
       const response = await this.request(`/plants/${plantId}`, {
         method: 'PUT',
         body: JSON.stringify(plantData),
       });
-      console.log('✅ Plant updated in library:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to update plant in library:', error);
+      console.error('Failed to update plant in library:', error);
       throw error;
     }
   }
 
   async addPlantToLibrary(plantData) {
     try {
-      console.log('🆕 Adding plant to library:', plantData);
       const response = await this.request('/plants', {
         method: 'POST',
         body: JSON.stringify(plantData),
       });
-      console.log('✅ Plant added to library:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to add plant to library:', error);
+      console.error('Failed to add plant to library:', error);
       throw error;
     }
   }
 
   async deletePlantFromLibrary(plantId) {
     try {
-      console.log('🗑️ Deleting plant from library:', plantId);
       const response = await this.request(`/plants/${plantId}`, {
         method: 'DELETE',
       });
-      console.log('✅ Plant deleted from library:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to delete plant from library:', error);
+      console.error('Failed to delete plant from library:', error);
       throw error;
     }
   }
@@ -577,7 +521,6 @@ class ApiClient {
   // Activity methods
   async addActivity(activityData) {
     try {
-      console.log('📝 Adding activity:', activityData);
       const response = await this.request('/activities', {
         method: 'POST',
         body: JSON.stringify({
@@ -588,10 +531,9 @@ class ApiClient {
           activity_date: activityData.date
         }),
       });
-      console.log('✅ Activity added:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to add activity:', error);
+      console.error('Failed to add activity:', error);
       throw error;
     }
   }
@@ -608,19 +550,16 @@ class ApiClient {
         url += `?${params.toString()}`;
       }
       
-      console.log('📚 Fetching activities:', url);
       const activities = await this.request(url);
-      console.log('✅ Activities loaded:', activities);
       return activities;
     } catch (error) {
-      console.error('❌ Failed to fetch activities:', error);
+      console.error('Failed to fetch activities:', error);
       throw error;
     }
   }
 
   async updateActivity(activityId, activityData) {
     try {
-      console.log('📝 Updating activity:', activityId, activityData);
       const response = await this.request(`/activities/${activityId}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -631,24 +570,21 @@ class ApiClient {
           activity_date: activityData.activity_date
         }),
       });
-      console.log('✅ Activity updated:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to update activity:', error);
+      console.error('Failed to update activity:', error);
       throw error;
     }
   }
 
   async deleteActivity(activityId) {
     try {
-      console.log('🗑️ Deleting activity:', activityId);
       const response = await this.request(`/activities/${activityId}`, {
         method: 'DELETE',
       });
-      console.log('✅ Activity deleted:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to delete activity:', error);
+      console.error('Failed to delete activity:', error);
       throw error;
     }
   }
@@ -661,56 +597,48 @@ class ApiClient {
         url += `?gardenId=${gardenId}`;
       }
       
-      console.log('📋 Fetching tasks:', url);
       const tasks = await this.request(url);
-      console.log('✅ Tasks loaded:', tasks);
       return tasks;
     } catch (error) {
-      console.error('❌ Failed to fetch tasks:', error);
+      console.error('Failed to fetch tasks:', error);
       throw error;
     }
   }
 
   async createTask(taskData) {
     try {
-      console.log('🆕 Creating task:', taskData);
       const response = await this.request('/tasks', {
         method: 'POST',
         body: JSON.stringify(taskData),
       });
-      console.log('✅ Task created:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to create task:', error);
+      console.error('Failed to create task:', error);
       throw error;
     }
   }
 
   async updateTask(taskId, taskData) {
     try {
-      console.log('📝 Updating task:', taskId, taskData);
       const response = await this.request(`/tasks/${taskId}`, {
         method: 'PUT',
         body: JSON.stringify(taskData),
       });
-      console.log('✅ Task updated:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to update task:', error);
+      console.error('Failed to update task:', error);
       throw error;
     }
   }
 
   async deleteTask(taskId) {
     try {
-      console.log('🗑️ Deleting task:', taskId);
       const response = await this.request(`/tasks/${taskId}`, {
         method: 'DELETE',
       });
-      console.log('✅ Task deleted:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to delete task:', error);
+      console.error('Failed to delete task:', error);
       throw error;
     }
   }
@@ -718,38 +646,26 @@ class ApiClient {
   // Preferences methods
   async updatePreferences(preferences) {
     try {
-      console.log('⚙️ Updating user preferences:', preferences);
-      console.log('⚙️ Request URL will be:', `${this.baseURL}/users/preferences`);
-      console.log('⚙️ Auth token available:', !!this.getAuthToken());
-      
       const response = await this.request('/users/preferences', {
         method: 'PUT',
         body: JSON.stringify(preferences),
       });
-      console.log('✅ Preferences updated:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to update preferences:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      });
+      console.error('Failed to update preferences:', error);
       throw error;
     }
   }
 
   async updateProfile(profileData) {
     try {
-      console.log('👤 Updating user profile:', profileData);
       const response = await this.request('/users/profile', {
         method: 'PUT',
         body: JSON.stringify(profileData),
       });
-      console.log('✅ Profile updated:', response);
       return response;
     } catch (error) {
-      console.error('❌ Failed to update profile:', error);
+      console.error('Failed to update profile:', error);
       throw error;
     }
   }
@@ -757,17 +673,13 @@ class ApiClient {
   // Helper methods
   isAuthenticated() {
     const token = this.getAuthToken();
-    const isAuth = !!token;
-    console.log('🔑 Authentication check:', isAuth ? 'Authenticated' : 'Not authenticated');
-    return isAuth;
+    return !!token;
   }
 
   getCurrentUser() {
     if (typeof window !== 'undefined') {
       const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      console.log('👤 Current user:', user ? `${user.email} (ID: ${user.id})` : 'None');
-      return user;
+      return userStr ? JSON.parse(userStr) : null;
     }
     return null;
   }
@@ -775,20 +687,16 @@ class ApiClient {
   // Debug methods
   async testConnection() {
     try {
-      console.log('🔗 Testing API connection...');
       const response = await fetch(`${this.baseURL}/health`);
-      const isConnected = response.ok;
-      console.log('🔗 API connection:', isConnected ? '✅ Connected' : '❌ Failed');
-      return isConnected;
+      return response.ok;
     } catch (error) {
-      console.error('❌ API connection test failed:', error);
+      console.error('API connection test failed:', error);
       return false;
     }
   }
 
   async testGardensEndpoint() {
     try {
-      console.log('🔗 Testing gardens endpoint...');
       const response = await fetch(`${this.baseURL}/gardens`, {
         headers: {
           'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -796,25 +704,13 @@ class ApiClient {
         }
       });
       
-      console.log('🔗 Gardens endpoint status:', response.status, response.statusText);
-      
       if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Gardens endpoint test successful');
-        console.log('📊 Gardens data preview:', {
-          type: typeof data,
-          isArray: Array.isArray(data),
-          gardensKey: data.gardens ? `array with ${data.gardens.length} items` : 'not present',
-          directArray: Array.isArray(data) ? `${data.length} items` : 'not array'
-        });
         return true;
       } else {
-        const errorText = await response.text();
-        console.log('❌ Gardens endpoint failed:', errorText);
         return false;
       }
     } catch (error) {
-      console.error('❌ Gardens endpoint test failed:', error);
+      console.error('Gardens endpoint test failed:', error);
       return false;
     }
   }

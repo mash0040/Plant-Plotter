@@ -1,4 +1,3 @@
-// Simple verifyToken.js - No special demo handling
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
@@ -7,7 +6,6 @@ const verifyToken = (req, res, next) => {
     const authHeader = req.header('Authorization');
     
     if (!authHeader) {
-      console.log('No Authorization header found');
       return res.status(401).json({ 
         message: 'Access denied. No token provided.',
         error: 'NO_AUTH_HEADER'
@@ -20,7 +18,6 @@ const verifyToken = (req, res, next) => {
       : authHeader;
 
     if (!token) {
-      console.log('No token found in Authorization header');
       return res.status(401).json({ 
         message: 'Access denied. Invalid token format.',
         error: 'INVALID_TOKEN_FORMAT'
@@ -31,7 +28,6 @@ const verifyToken = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'plantplotter_secret_key');
     
     if (!decoded.id) {
-      console.log('Token missing user ID');
       return res.status(401).json({ 
         message: 'Invalid token. User ID missing.',
         error: 'MISSING_USER_ID'
@@ -42,7 +38,6 @@ const verifyToken = (req, res, next) => {
     const userId = parseInt(decoded.id);
     
     if (isNaN(userId)) {
-      console.log('Invalid user ID format:', decoded.id);
       return res.status(401).json({ 
         message: 'Invalid token. User ID format invalid.',
         error: 'INVALID_USER_ID_FORMAT'

@@ -15,12 +15,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Request logging middleware
+// Request logging middleware (only log method and URL, not body)
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-  }
   next();
 });
 
@@ -43,10 +40,9 @@ try {
 
 // Add debug routes (remove in production)
 try {
-  const debugRoutes = require('./routes/debug'); // You'll need to create this
+  const debugRoutes = require('./routes/debug');
   app.use('/api/debug', debugRoutes);
 } catch (error) {
-  
   // Inline debug endpoints
   app.get('/api/debug/health', async (req, res) => {
     try {
@@ -167,7 +163,6 @@ app.get('/', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('UNHANDLED ERROR:');
   console.error('Request:', req.method, req.originalUrl);
-  console.error('Body:', req.body);
   console.error('Error:', err);
   console.error('Stack:', err.stack);
   
@@ -183,7 +178,6 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use((req, res) => {
-  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
     error: 'Route not found',
     path: req.originalUrl,

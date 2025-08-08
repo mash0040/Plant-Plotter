@@ -65,7 +65,6 @@ export default function TrackingPage() {
     try {
       // Try to load from API first
       const gardens = await apiClient.getGardens();
-      console.log('Loaded gardens from API:', gardens);
       
       // Transform gardens for tracker format
       const trackerGardens = gardens.map(garden => ({
@@ -87,7 +86,6 @@ export default function TrackingPage() {
       // Fallback to localStorage
       try {
         const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-        console.log('Loaded gardens from localStorage as fallback:', localGardens);
         
         const trackerGardens = localGardens.map(garden => ({
           id: garden.id,
@@ -148,37 +146,25 @@ export default function TrackingPage() {
   const loadTasks = () => {
     if (!selectedGarden) return;
     
-    console.log('Loading tasks for garden:', selectedGarden.name, selectedGarden.id);
     const today = getTodayTasks(selectedGarden.id);
     const upcoming = getUpcomingTasks(selectedGarden.id);
-    console.log('Today tasks loaded:', today);
-    console.log('Upcoming tasks loaded:', upcoming);
     setTodayTasks(today);
     setUpcomingTasks(upcoming);
   };
 
   // Function to add activity to calendar when task is completed
   const addActivityToCalendar = (date, activityData) => {
-    console.log('Adding activity to calendar:', date, activityData);
     const updatedCalendarData = addActivity(calendarData, date, activityData);
     setCalendarData(updatedCalendarData);
   };
 
   const handleTaskComplete = (taskId) => {
-    console.log('Completing task:', taskId);
-    
     // Complete the task and add activity to calendar
     const success = completeTask(taskId, addActivityToCalendar);
     
     if (success) {
       // Reload tasks to reflect the completed task
       loadTasks();
-      
-      // Show success message
-      console.log(`Task ${taskId} completed successfully and added to calendar`);
-      
-      // You could add a toast notification here
-      // showSuccessToast('Task completed and added to calendar!');
     }
   };
 
@@ -252,9 +238,8 @@ export default function TrackingPage() {
       // Reload tasks
       loadTasks();
       
-      console.log('✅ Task saved successfully');
     } catch (error) {
-      console.error('❌ Failed to save task:', error);
+      console.error('Failed to save task:', error);
       throw error;
     }
   };
@@ -266,9 +251,8 @@ export default function TrackingPage() {
       // Reload tasks
       loadTasks();
       
-      console.log('✅ Task deleted successfully');
     } catch (error) {
-      console.error('❌ Failed to delete task:', error);
+      console.error('Failed to delete task:', error);
       throw error;
     }
   };
@@ -304,9 +288,8 @@ export default function TrackingPage() {
       const updatedCalendarData = addActivity(calendarData, activityData.activity_date, activityData);
       setCalendarData(updatedCalendarData);
       
-      console.log('✅ Activity saved successfully');
     } catch (error) {
-      console.error('❌ Failed to save activity:', error);
+      console.error('Failed to save activity:', error);
       throw error;
     }
   };
@@ -314,9 +297,8 @@ export default function TrackingPage() {
   const handleActivityDelete = async (activityId) => {
     try {
       await apiClient.deleteActivity(activityId);      
-      console.log('✅ Activity deleted successfully');
     } catch (error) {
-      console.error('❌ Failed to delete activity:', error);
+      console.error('Failed to delete activity:', error);
       throw error;
     }
   };
