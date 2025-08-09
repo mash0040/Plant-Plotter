@@ -11,7 +11,8 @@ export default function PlantLibrary({
   onToggle,
   placedPlants = [],
   onPlantsLoaded, 
-  onEditPlant 
+  onEditPlant,
+  onPlantRow  // Add this new prop
 }) {
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,17 +25,13 @@ export default function PlantLibrary({
   const safeJsonParse = (value, fallback = []) => {
     if (!value) return fallback;
     
-    // If it's already an array, return it
     if (Array.isArray(value)) return value;
     
-    // If it's a string, try to parse it
     if (typeof value === 'string') {
-      // First, try JSON.parse
       try {
         const parsed = JSON.parse(value);
         return Array.isArray(parsed) ? parsed : fallback;
       } catch (jsonError) {
-        // If JSON parsing fails, try splitting by comma
         try {
           if (value.includes(',')) {
             return value.split(',').map(item => item.trim()).filter(Boolean);
@@ -50,7 +47,6 @@ export default function PlantLibrary({
     return fallback;
   };
 
-  // Create a mapping function to match plants by multiple criteria
   const findPlantMatches = (searchValue, plantsArray) => {
     if (!searchValue || !plantsArray) return [];
     
@@ -65,7 +61,6 @@ export default function PlantLibrary({
     });
   };
 
-  // Enhanced loadPlants function
   const loadPlants = async () => {
     try {
       setLoading(true);
@@ -79,7 +74,6 @@ export default function PlantLibrary({
       
       const transformedPlants = plantLibrary.map((plant, index) => {
         try {
-          // Safe parsing of JSON fields
           const companionPlants = safeJsonParse(plant.companion_plants, []);
           const avoidPlants = safeJsonParse(plant.avoid_plants, []);
           const soilTypes = safeJsonParse(plant.soil_types, []);
@@ -103,7 +97,6 @@ export default function PlantLibrary({
           };
         } catch (plantError) {
           console.error(`Failed to transform plant ${plant.name}:`, plantError);
-          // Return a basic version of the plant if transformation fails
           return {
             id: plant.id,
             name: plant.name,
@@ -132,7 +125,6 @@ export default function PlantLibrary({
       console.error('Failed to load plant library:', err);
       setError(`Failed to load plant library: ${err.message}`);
       
-      // Fallback to a basic plant set if API fails
       const fallbackPlants = [
         {
           id: 'tomato',
@@ -192,18 +184,15 @@ export default function PlantLibrary({
     }
   };
 
-  // Create refresh function that can be called from parent
   const refreshPlants = useCallback(async () => {
     const refreshedPlants = await loadPlants();
     return refreshedPlants;
   }, []);
 
-  // Initial load
   useEffect(() => {
     loadPlants();
   }, []);
 
-  // Pass both plants AND refresh function to parent
   useEffect(() => {
     if (onPlantsLoaded && plants.length > 0) {
       onPlantsLoaded(plants, refreshPlants);
@@ -220,11 +209,9 @@ export default function PlantLibrary({
     return acc;
   }, {});
 
-  // Enhanced companion suggestions with deduplication
   const companionSuggestionsByPlant = useMemo(() => {
     if (placedPlants.length === 0 || plants.length === 0) return [];
     
-    // Get unique plant types that are planted (deduplicate by plantId/name)
     const uniquePlantedTypes = [];
     const seenPlantTypes = new Set();
     
@@ -239,17 +226,14 @@ export default function PlantLibrary({
     const suggestions = [];
 
     uniquePlantedTypes.forEach(placedPlant => {      
-      // Try to find the plant in the library by multiple matching criteria
       let plantData = plants.find(p => p.id === placedPlant.plantId);
       
       if (!plantData) {
-        // Try matching by name if ID doesn't match
         plantData = plants.find(p => 
           p.name?.toLowerCase() === placedPlant.name?.toLowerCase()
         );
         
         if (!plantData) {
-          // Try partial name matching
           plantData = plants.find(p => 
             p.name?.toLowerCase().includes(placedPlant.name?.toLowerCase()) ||
             placedPlant.name?.toLowerCase().includes(p.name?.toLowerCase())
@@ -261,11 +245,9 @@ export default function PlantLibrary({
         const companions = [];
         const avoid = [];
 
-        // Get companion plants that aren't already placed
         if (plantData.companionPlants && Array.isArray(plantData.companionPlants)) {
           plantData.companionPlants.forEach(companionRef => {
             
-            // Check if this companion is already placed
             const alreadyPlaced = placedPlants.some(placed => 
               placed.plantId === companionRef || 
               placed.name?.toLowerCase() === companionRef.toLowerCase() ||
@@ -273,14 +255,11 @@ export default function PlantLibrary({
             );
 
             if (!alreadyPlaced) {
-              // Find the companion plant in the library
               const companionMatches = findPlantMatches(companionRef, plants);
               
               if (companionMatches.length > 0) {
-                // Use the best match (first one)
                 const companionPlant = companionMatches[0];
                 
-                // Check if this companion is already in our companions list
                 const alreadyInCompanions = companions.some(existing => 
                   existing.id === companionPlant.id || 
                   existing.name?.toLowerCase() === companionPlant.name?.toLowerCase()
@@ -290,7 +269,6 @@ export default function PlantLibrary({
                   companions.push(companionPlant);
                 }
               } else {
-                // Create a placeholder entry for missing plants
                 const placeholderPlant = {
                   id: companionRef,
                   name: companionRef.charAt(0).toUpperCase() + companionRef.slice(1),
@@ -299,7 +277,6 @@ export default function PlantLibrary({
                   description: 'Beneficial companion plant'
                 };
                 
-                // Check if this placeholder is already in our companions list
                 const alreadyInCompanions = companions.some(existing => 
                   existing.id === placeholderPlant.id || 
                   existing.name?.toLowerCase() === placeholderPlant.name?.toLowerCase()
@@ -313,10 +290,8 @@ export default function PlantLibrary({
           });
         }
 
-        // Get avoid plants that aren't already placed
         if (plantData.avoidPlants && Array.isArray(plantData.avoidPlants)) {
           plantData.avoidPlants.forEach(avoidRef => {           
-            // Check if this avoid plant is already placed (WARNING!)
             const alreadyPlaced = placedPlants.some(placed => 
               placed.plantId === avoidRef || 
               placed.name?.toLowerCase() === avoidRef.toLowerCase() ||
@@ -324,12 +299,10 @@ export default function PlantLibrary({
             );
 
             if (alreadyPlaced) {
-              // This is a warning - the user has planted incompatible plants!
               const avoidMatches = findPlantMatches(avoidRef, plants);
               if (avoidMatches.length > 0) {
                 const avoidPlant = avoidMatches[0];
                 
-                // Check if this avoid plant is already in our avoid list
                 const alreadyInAvoid = avoid.some(existing => 
                   existing.id === avoidPlant.id || 
                   existing.name?.toLowerCase() === avoidPlant.name?.toLowerCase()
@@ -340,12 +313,10 @@ export default function PlantLibrary({
                 }
               }
             } else {
-              // Find avoid plants not yet planted
               const avoidMatches = findPlantMatches(avoidRef, plants);
               if (avoidMatches.length > 0) {
                 const avoidPlant = avoidMatches[0];
                 
-                // Check if this avoid plant is already in our avoid list
                 const alreadyInAvoid = avoid.some(existing => 
                   existing.id === avoidPlant.id || 
                   existing.name?.toLowerCase() === avoidPlant.name?.toLowerCase()
@@ -362,9 +333,9 @@ export default function PlantLibrary({
         if (companions.length > 0 || avoid.length > 0) {
           suggestions.push({
             sourcePlant: plantData,
-            placedPlant: placedPlant, // Keep reference to the actual placed plant
-            companions: companions.slice(0, 4), // Limit to 4 companions
-            avoid: avoid.slice(0, 4) // Limit to 4 avoid plants
+            placedPlant: placedPlant,
+            companions: companions.slice(0, 4),
+            avoid: avoid.slice(0, 4)
           });
         }
       }
@@ -373,9 +344,8 @@ export default function PlantLibrary({
     return suggestions;
   }, [placedPlants, plants]);
 
-  // Plant editing functions - Pass to parent
+  // Plant editing functions
   const handleEditPlant = (plant) => {
-    // Pass the edit request to the parent component
     if (onEditPlant) {
       onEditPlant(plant);
     } else {
@@ -383,8 +353,16 @@ export default function PlantLibrary({
     }
   };
 
+  // Row planting function
+  const handlePlantRow = (plant) => {
+    if (onPlantRow) {
+      onPlantRow(plant);
+    } else {
+      console.error('onPlantRow callback not provided to PlantLibrary');
+    }
+  };
+
   const handleAddNewPlant = () => {
-    // Create a new plant template and pass to parent
     const newPlantTemplate = {
       name: '',
       emoji: '🌱',
@@ -409,7 +387,6 @@ export default function PlantLibrary({
     }
   };
 
-  // Add loading and error states
   if (loading) {
     return (
       <div className="fixed lg:relative top-0 left-0 h-screen w-72 sm:w-80 lg:w-64 bg-white border-r border-gray-200 flex items-center justify-center">
@@ -471,7 +448,6 @@ export default function PlantLibrary({
 
   return (
     <>
-      {/* Mobile backdrop overlay */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
@@ -479,7 +455,6 @@ export default function PlantLibrary({
         />
       )}
       
-      {/* Sidebar */}
       <div className={`
         fixed lg:relative 
         top-0 left-0 
@@ -493,7 +468,6 @@ export default function PlantLibrary({
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         flex flex-col
       `}>
-        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -523,7 +497,6 @@ export default function PlantLibrary({
           </div>
         </div>
         
-        {/* Search */}
         <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -537,7 +510,6 @@ export default function PlantLibrary({
           </div>
         </div>
 
-        {/* Companion Plant Guide */}
         {placedPlants.length > 0 && (
           <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50 flex-shrink-0">
             <button
@@ -566,7 +538,6 @@ export default function PlantLibrary({
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {companionSuggestionsByPlant.map((plantSuggestion) => (
                       <div key={plantSuggestion.sourcePlant.id} className="bg-white/70 rounded-lg p-3 border border-white/50">
-                        {/* Source Plant Header */}
                         <button
                           onClick={() => togglePlantSection(plantSuggestion.sourcePlant.id)}
                           className="flex items-center justify-between w-full text-left"
@@ -600,10 +571,8 @@ export default function PlantLibrary({
                           )}
                         </button>
 
-                        {/* Expanded Suggestions */}
                         {expandedPlants[plantSuggestion.sourcePlant.id] && (
                           <div className="mt-3 space-y-3">
-                            {/* Companion Plants */}
                             {plantSuggestion.companions.length > 0 && (
                               <div>
                                 <div className="flex items-center gap-1 mb-2">
@@ -621,7 +590,6 @@ export default function PlantLibrary({
                               </div>
                             )}
 
-                            {/* Avoid Plants */}
                             {plantSuggestion.avoid.length > 0 && (
                               <div>
                                 <div className="flex items-center gap-1 mb-2">
@@ -643,7 +611,6 @@ export default function PlantLibrary({
                       </div>
                     ))}
 
-                    {/* Quick tip */}
                     <div className="text-xs text-gray-500 p-2 bg-white/50 rounded">
                       💡 Tap each plant to see its specific companion suggestions
                     </div>
@@ -663,11 +630,9 @@ export default function PlantLibrary({
           </div>
         )}
 
-        {/* Plant Categories - Better scroll container */}
         <div 
           className="flex-1 overflow-y-auto p-4 space-y-4"
           style={{
-            // Ensure proper scroll behavior for drag and drop
             scrollBehavior: 'smooth',
             overscrollBehavior: 'contain'
           }}
@@ -684,6 +649,7 @@ export default function PlantLibrary({
                     key={plant.id} 
                     plant={plant}
                     onEdit={handleEditPlant}
+                    onPlantRow={handlePlantRow}
                     showEditButton={true}
                     isInScrollContainer={true}
                   />
@@ -692,7 +658,6 @@ export default function PlantLibrary({
             </div>
           ))}
           
-          {/* Empty state */}
           {Object.keys(groupedPlants).length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -703,14 +668,12 @@ export default function PlantLibrary({
             </div>
           )}
           
-          {/* Padding at bottom to ensure last items are draggable */}
           <div className="h-20"></div>
         </div>
 
-        {/* Footer info (mobile only) */}
         <div className="lg:hidden p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
           <p className="text-xs text-gray-500 text-center">
-            Drag plants to the garden to start planting
+            Drag plants to garden or use row planting
           </p>
         </div>
       </div>

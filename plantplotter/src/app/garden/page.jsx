@@ -9,6 +9,7 @@ import DraggablePlant from '@/components/Garden/DraggablePlant';
 import SaveGardenModel from '@/components/Garden/SaveGardenModel';
 import LoadGardenModel from '@/components/Garden/LoadGardenModel';
 import PlantEditModal from '@/components/Garden/PlantEditModal';
+import RowPlantingModal from '@/components/Garden/RowPlantingModal';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
 import { snapToGrid, checkPlantOverlap, isWithinBounds } from '@/components/Garden/Utils/GardenUtils';
 import apiClient from '@/lib/api';
@@ -43,6 +44,10 @@ export default function GardenPlannerPage() {
   // Plant Edit Modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingPlant, setEditingPlant] = useState(null);
+
+  // Row Planting Modal state
+  const [showRowPlantingModal, setShowRowPlantingModal] = useState(false);
+  const [rowPlantingPlant, setRowPlantingPlant] = useState(null);
 
   // Enhanced sensor configuration to prevent sidebar dragging
   const sensors = useSensors(
@@ -92,6 +97,16 @@ export default function GardenPlannerPage() {
   const handleEditPlant = (plant) => {
     setEditingPlant(plant);
     setShowEditModal(true);
+  };
+
+  // Handle row planting requests from PlantLibrary
+  const handlePlantRow = (plant) => {
+    setRowPlantingPlant(plant);
+    setShowRowPlantingModal(true);
+    // Close sidebar on mobile
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
   };
 
   // Enhanced save plant function
@@ -160,6 +175,34 @@ export default function GardenPlannerPage() {
     } catch (error) {
       console.error('Failed to delete plant:', error);
       throw error;
+    }
+  };
+
+  // Row planting execution handler
+  const handleExecuteRowPlanting = (plantsToAdd) => {
+    // Check for overlaps with existing plants
+    const validPlants = [];
+    const invalidPlants = [];
+    
+    plantsToAdd.forEach(plant => {
+      const hasOverlap = checkPlantOverlapFlexible(plant, placedPlants, gridSize, showGrid);
+      if (!hasOverlap) {
+        validPlants.push(plant);
+      } else {
+        invalidPlants.push(plant);
+      }
+    });
+    
+    if (invalidPlants.length > 0) {
+      const proceed = confirm(
+        `${invalidPlants.length} plants would overlap with existing plants. ` +
+        `Place ${validPlants.length} valid plants anyway?`
+      );
+      if (!proceed) return;
+    }
+    
+    if (validPlants.length > 0) {
+      setPlacedPlants(prev => [...prev, ...validPlants]);
     }
   };
 
@@ -714,6 +757,7 @@ export default function GardenPlannerPage() {
             placedPlants={placedPlants}
             onPlantsLoaded={handlePlantsLoaded}
             onEditPlant={handleEditPlant}
+            onPlantRow={handlePlantRow}
           />
         </div>
 
@@ -808,6 +852,19 @@ export default function GardenPlannerPage() {
         onSave={handleSavePlant}
         onDelete={editingPlant?.id ? handleDeletePlant : null}
         isPlaced={false}
+      />
+
+      {/* Row Planting Modal */}
+      <RowPlantingModal
+        isOpen={showRowPlantingModal}
+        onClose={() => {
+          setShowRowPlantingModal(false);
+          setRowPlantingPlant(null);
+        }}
+        plant={rowPlantingPlant}
+        onPlant={handleExecuteRowPlanting}
+        gridSize={gridSize}
+        dimensions={dimensions}
       />
 
       {/* Save Garden Modal */}

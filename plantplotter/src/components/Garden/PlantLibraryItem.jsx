@@ -1,10 +1,10 @@
 'use client';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Info, Edit3 } from 'lucide-react';
+import { Info, Edit3, Grid } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
-export default function PlantLibraryItem({ plant, onEdit, showEditButton = true }) {
+export default function PlantLibraryItem({ plant, onEdit, onPlantRow, showEditButton = true }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: true, left: false });
   const [isDragReady, setIsDragReady] = useState(false);
@@ -36,7 +36,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
       
-      // Check if tooltip would go below viewport when positioned at item top
       const wouldOverflowBottom = itemRect.top + tooltipRect.height > viewportHeight - 20;
       const wouldOverflowRight = itemRect.left + tooltipRect.width > viewportWidth - 20;
       
@@ -49,41 +48,34 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
 
   // Enhanced touch handlers for mobile drag support
   const handleTouchStart = (e) => {
-    // Clear any existing timer
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
 
-    // Start long press timer for mobile drag
     longPressTimer.current = setTimeout(() => {
       setIsDragReady(true);
-      // Add haptic feedback if available
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
       
-      // Visual feedback
       const target = e.currentTarget;
       target.style.transform = 'scale(1.05)';
       target.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
       
-      // Reset after a moment
       setTimeout(() => {
         if (target) {
           target.style.transform = '';
           target.style.boxShadow = '';
         }
       }, 200);
-    }, 500); // 500ms for long press
+    }, 500);
 
-    // Call original touch start if it exists
     if (listeners.onTouchStart) {
       listeners.onTouchStart(e);
     }
   };
 
   const handleTouchEnd = (e) => {
-    // Clear long press timer
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
@@ -91,26 +83,22 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
     
     setIsDragReady(false);
 
-    // Call original touch end if it exists
     if (listeners.onTouchEnd) {
       listeners.onTouchEnd(e);
     }
   };
 
   const handleTouchMove = (e) => {
-    // Cancel long press if user moves finger
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
 
-    // Call original touch move if it exists
     if (listeners.onTouchMove) {
       listeners.onTouchMove(e);
     }
   };
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (longPressTimer.current) {
@@ -119,7 +107,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
     };
   }, []);
 
-  // Get category-based colors for better visual distinction
   const getCategoryColors = (category) => {
     switch (category) {
       case 'vegetables':
@@ -162,7 +149,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
 
   const colors = getCategoryColors(plant.category);
 
-  // Get tooltip styles with responsive positioning
   const getTooltipStyles = () => {
     const baseClasses = 'absolute z-50 w-full max-w-xs sm:max-w-sm';
     
@@ -173,12 +159,10 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
     }
   };
 
-  // Enhanced edit button click handling
   const handleEditClick = (e) => {    
     e.preventDefault();
     e.stopPropagation();
     
-    // Close tooltip if open
     setShowTooltip(false);
     
     if (onEdit) {
@@ -188,7 +172,19 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
     }
   };
 
-  // Enhanced listeners for touch devices
+  const handleRowPlantClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setShowTooltip(false);
+    
+    if (onPlantRow) {
+      onPlantRow(plant);
+    } else {
+      console.error('onPlantRow function is not available');
+    }
+  };
+
   const enhancedListeners = isTouchDevice ? {
     ...listeners,
     onTouchStart: handleTouchStart,
@@ -216,7 +212,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
         {...enhancedListeners}
         {...attributes}
       >
-        {/* Long press indicator for mobile */}
         {isTouchDevice && isDragReady && (
           <div className="absolute inset-0 bg-green-200/30 rounded-lg flex items-center justify-center z-10 pointer-events-none">
             <div className="text-xs font-medium text-green-700 bg-white px-2 py-1 rounded shadow-sm">
@@ -225,7 +220,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
           </div>
         )}
 
-        {/* Plant emoji with enhanced mobile sizing */}
         <div className={`
           w-8 h-8 sm:w-10 sm:h-10 ${colors.emoji} rounded-full 
           flex items-center justify-center flex-shrink-0
@@ -236,7 +230,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
           <span className="text-lg sm:text-xl filter drop-shadow-sm">{plant.emoji}</span>
         </div>
         
-        {/* Plant details with responsive sizing */}
         <div className="flex-1 min-w-0 pointer-events-none">
           <div className="flex items-center justify-between">
             <span className="text-sm sm:text-base font-semibold text-gray-800 truncate">
@@ -247,28 +240,53 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
             </span>
           </div>
           
-          {/* Category and action buttons with enhanced mobile layout */}
           <div className="flex items-center justify-between mt-1">
             <span className="text-xs sm:text-sm text-gray-600 capitalize font-medium">
               {plant.category}
             </span>
             
-            {/* Action buttons with enhanced touch targets */}
-            <div className="flex items-center gap-1 pointer-events-auto">
-              {/* Edit button with larger touch target */}
+            {/* Buttons - show on hover/touch */}
+            <div className="flex items-center gap-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100">
+              {/* Row Plant button */}
+              {onPlantRow && (
+                <button 
+                  className="
+                    w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 hover:bg-blue-200 active:bg-blue-300
+                    rounded-full flex items-center justify-center transition-all duration-200
+                    cursor-pointer z-10 touch-manipulation
+                    hover:scale-110 active:scale-95 flex-shrink-0
+                    transform scale-90 hover:scale-100
+                  "
+                  onClick={handleRowPlantClick}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    if (longPressTimer.current) {
+                      clearTimeout(longPressTimer.current);
+                      longPressTimer.current = null;
+                    }
+                  }}
+                  title="Plant in row"
+                  type="button"
+                >
+                  <Grid className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-600" />
+                </button>
+              )}
+
+              {/* Edit button */}
               {showEditButton && onEdit && (
                 <button 
                   className="
-                    w-6 h-6 sm:w-7 sm:h-7 bg-orange-100 hover:bg-orange-200 active:bg-orange-300
-                    rounded-full flex items-center justify-center transition-colors 
+                    w-5 h-5 sm:w-6 sm:h-6 bg-orange-100 hover:bg-orange-200 active:bg-orange-300
+                    rounded-full flex items-center justify-center transition-all duration-200
                     cursor-pointer z-10 touch-manipulation
-                    hover:scale-110 active:scale-95
+                    hover:scale-110 active:scale-95 flex-shrink-0
+                    transform scale-90 hover:scale-100
                   "
                   onClick={handleEditClick}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => {
                     e.stopPropagation();
-                    // Clear any long press timer when touching edit button
                     if (longPressTimer.current) {
                       clearTimeout(longPressTimer.current);
                       longPressTimer.current = null;
@@ -277,13 +295,12 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
                   title="Edit plant"
                   type="button"
                 >
-                  <Edit3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600" />
+                  <Edit3 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-600" />
                 </button>
               )}
               
-              {/* Info icon with enhanced mobile behavior */}
               <div 
-                className="relative"
+                className="relative flex-shrink-0"
                 onMouseEnter={() => !isTouchDevice && setShowTooltip(true)}
                 onMouseLeave={() => !isTouchDevice && setShowTooltip(false)}
                 onClick={(e) => {
@@ -296,7 +313,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => {
                   e.stopPropagation();
-                  // Clear any long press timer when touching info button
                   if (longPressTimer.current) {
                     clearTimeout(longPressTimer.current);
                     longPressTimer.current = null;
@@ -304,12 +320,13 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
                 }}
               >
                 <div className="
-                  w-6 h-6 sm:w-7 sm:h-7 bg-blue-100 hover:bg-blue-200 active:bg-blue-300
-                  rounded-full flex items-center justify-center transition-colors 
+                  w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 hover:bg-gray-200 active:bg-gray-300
+                  rounded-full flex items-center justify-center transition-all duration-200
                   cursor-help touch-manipulation
-                  hover:scale-110 active:scale-95
+                  hover:scale-110 active:scale-95 flex-shrink-0
+                  transform scale-90 hover:scale-100
                 ">
-                  <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600" />
+                  <Info className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-600" />
                 </div>
               </div>
             </div>
@@ -317,7 +334,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
         </div>
       </div>
 
-      {/* Enhanced tooltip with responsive design */}
       {showTooltip && (
         <div 
           ref={tooltipRef}
@@ -328,7 +344,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
             animate-in fade-in-0 zoom-in-95 duration-200
           `}
         >
-          {/* Arrow indicator */}
           <div 
             className={`
               absolute w-3 h-3 bg-white border transform rotate-45 left-4 sm:left-6
@@ -339,7 +354,6 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
             `}
           />
           
-          {/* Tooltip content with responsive layout */}
           <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <span className="text-lg sm:text-xl">{plant.emoji}</span>
             <span className="font-semibold text-gray-800 text-sm sm:text-base">{plant.name}</span>
@@ -416,13 +430,12 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
           </div>
           
           <div className="mt-2 sm:mt-3 pt-2 border-t border-gray-100 text-xs text-gray-500">
-            <span className="hidden sm:inline">💡 Drag this plant to your garden to add it</span>
-            <span className="sm:hidden">💡 Long press & drag to garden</span>
+            <span className="hidden sm:inline">💡 Drag to garden or use row planting</span>
+            <span className="sm:hidden">💡 Long press & drag or use buttons</span>
           </div>
         </div>
       )}
       
-      {/* Touch dismiss overlay for mobile tooltips */}
       {isTouchDevice && showTooltip && (
         <div 
           className="fixed inset-0 z-40"
