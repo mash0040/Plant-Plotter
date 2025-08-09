@@ -167,9 +167,9 @@ export default function PlantLibraryItem({ plant, onEdit, showEditButton = true 
     const baseClasses = 'absolute z-50 w-full max-w-xs sm:max-w-sm';
     
     if (tooltipPosition.top) {
-      return `${baseClasses} bottom-full mb-2`;
+      return `${baseClasses} top-full mb-2`;
     } else {
-      return `${baseClasses} top-full mt-2`;
+      return `${baseClasses} bottom-full mt-2`;
     }
   };
 
