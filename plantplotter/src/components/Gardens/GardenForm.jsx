@@ -48,12 +48,9 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
   // Update form data when garden prop changes
   useEffect(() => {
-    console.log('GardenForm useEffect - isOpen:', isOpen, 'garden:', garden);
-    
     if (isOpen) {
       if (garden) {
         // Editing existing garden - populate with current data
-        console.log('Populating form with garden data:', garden);
         const newFormData = {
           name: garden.name || '',
           description: garden.description || '',
@@ -63,7 +60,6 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
           location: garden.location || '',
           status: garden.status || 'Planning'
         };
-        console.log('Setting form data:', newFormData);
         setFormData(newFormData);
         
         // Convert to current unit if needed
@@ -76,7 +72,6 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         }
       } else {
         // Creating new garden - use default values
-        console.log('Setting default form values for new garden');
         setFormData({
           name: '',
           description: '',
@@ -117,8 +112,6 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         plantCount: garden?.plantCount || 0,
         plantedItems: garden?.plantedItems || []
       };
-
-      console.log('Submitting garden data:', gardenData);
       
       await onSave?.(gardenData);
       setIsLoading(false);
