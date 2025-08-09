@@ -70,6 +70,15 @@ export default function GardenPlannerPage() {
   // Helper function to convert grid units to pixels
   const gridToPixels = (gridUnits) => gridUnits * gridSize;
 
+  // Enhanced duplicate checking function
+  const checkForDuplicatePlant = (newPlantData, existingPlants) => {
+    return existingPlants.some(existing => 
+      existing.plantId === newPlantData.id || 
+      existing.name?.toLowerCase() === newPlantData.name?.toLowerCase() ||
+      existing.plantId?.toLowerCase() === newPlantData.id?.toLowerCase()
+    );
+  };
+
   // Enhanced callback to receive plants AND refresh function
   const handlePlantsLoaded = (plants, refreshFunction) => {
     setLibraryPlants(plants);
@@ -309,6 +318,18 @@ export default function GardenPlannerPage() {
     const draggedData = active.data.current;
     
     if (draggedData?.isFromLibrary) {
+      // Check for duplicates before placing
+      const isDuplicate = checkForDuplicatePlant(draggedData, placedPlants);
+      
+      if (isDuplicate) {
+        const shouldPlace = confirm(
+          `You already have ${draggedData.name} planted. Add another one?`
+        );
+        if (!shouldPlace) {
+          return; // Cancel placement
+        }
+      }
+
       // Adding new plant from library
       const canvasElement = document.querySelector('[data-canvas="true"]');
       if (!canvasElement) {

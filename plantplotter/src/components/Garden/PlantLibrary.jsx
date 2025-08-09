@@ -220,12 +220,25 @@ export default function PlantLibrary({
     return acc;
   }, {});
 
-  // Enhanced companion suggestions with better matching logic
+  // Enhanced companion suggestions with deduplication
   const companionSuggestionsByPlant = useMemo(() => {
     if (placedPlants.length === 0 || plants.length === 0) return [];
+    
+    // Get unique plant types that are planted (deduplicate by plantId/name)
+    const uniquePlantedTypes = [];
+    const seenPlantTypes = new Set();
+    
+    placedPlants.forEach(placedPlant => {
+      const plantKey = (placedPlant.plantId || placedPlant.name || '').toLowerCase();
+      if (!seenPlantTypes.has(plantKey)) {
+        seenPlantTypes.add(plantKey);
+        uniquePlantedTypes.push(placedPlant);
+      }
+    });
+
     const suggestions = [];
 
-    placedPlants.forEach(placedPlant => {      
+    uniquePlantedTypes.forEach(placedPlant => {      
       // Try to find the plant in the library by multiple matching criteria
       let plantData = plants.find(p => p.id === placedPlant.plantId);
       
@@ -266,19 +279,36 @@ export default function PlantLibrary({
               if (companionMatches.length > 0) {
                 // Use the best match (first one)
                 const companionPlant = companionMatches[0];
-                companions.push(companionPlant);
+                
+                // Check if this companion is already in our companions list
+                const alreadyInCompanions = companions.some(existing => 
+                  existing.id === companionPlant.id || 
+                  existing.name?.toLowerCase() === companionPlant.name?.toLowerCase()
+                );
+                
+                if (!alreadyInCompanions) {
+                  companions.push(companionPlant);
+                }
               } else {
                 // Create a placeholder entry for missing plants
-                companions.push({
+                const placeholderPlant = {
                   id: companionRef,
                   name: companionRef.charAt(0).toUpperCase() + companionRef.slice(1),
                   emoji: '🌱',
                   category: 'unknown',
                   description: 'Beneficial companion plant'
-                });
+                };
+                
+                // Check if this placeholder is already in our companions list
+                const alreadyInCompanions = companions.some(existing => 
+                  existing.id === placeholderPlant.id || 
+                  existing.name?.toLowerCase() === placeholderPlant.name?.toLowerCase()
+                );
+                
+                if (!alreadyInCompanions) {
+                  companions.push(placeholderPlant);
+                }
               }
-            } else {
-              console.log(`⏭Companion ${companionRef} already placed`);
             }
           });
         }
@@ -297,13 +327,33 @@ export default function PlantLibrary({
               // This is a warning - the user has planted incompatible plants!
               const avoidMatches = findPlantMatches(avoidRef, plants);
               if (avoidMatches.length > 0) {
-                avoid.push(avoidMatches[0]);
+                const avoidPlant = avoidMatches[0];
+                
+                // Check if this avoid plant is already in our avoid list
+                const alreadyInAvoid = avoid.some(existing => 
+                  existing.id === avoidPlant.id || 
+                  existing.name?.toLowerCase() === avoidPlant.name?.toLowerCase()
+                );
+                
+                if (!alreadyInAvoid) {
+                  avoid.push(avoidPlant);
+                }
               }
             } else {
               // Find avoid plants not yet planted
               const avoidMatches = findPlantMatches(avoidRef, plants);
               if (avoidMatches.length > 0) {
-                avoid.push(avoidMatches[0]);
+                const avoidPlant = avoidMatches[0];
+                
+                // Check if this avoid plant is already in our avoid list
+                const alreadyInAvoid = avoid.some(existing => 
+                  existing.id === avoidPlant.id || 
+                  existing.name?.toLowerCase() === avoidPlant.name?.toLowerCase()
+                );
+                
+                if (!alreadyInAvoid) {
+                  avoid.push(avoidPlant);
+                }
               }
             }
           });
@@ -313,13 +363,10 @@ export default function PlantLibrary({
           suggestions.push({
             sourcePlant: plantData,
             placedPlant: placedPlant, // Keep reference to the actual placed plant
-            companions: companions.slice(0, 4),
-            avoid: avoid.slice(0, 4)
+            companions: companions.slice(0, 4), // Limit to 4 companions
+            avoid: avoid.slice(0, 4) // Limit to 4 avoid plants
           });
-          
         }
-      } else {
-        console.log(`No plant data found for ${placedPlant.name} (ID: ${placedPlant.plantId})`);
       }
     });
 
@@ -490,7 +537,7 @@ export default function PlantLibrary({
           </div>
         </div>
 
-        {/* Companion Plant Guide - Enhanced with better debugging */}
+        {/* Companion Plant Guide */}
         {placedPlants.length > 0 && (
           <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50 flex-shrink-0">
             <button
@@ -505,10 +552,6 @@ export default function PlantLibrary({
                     {totalSuggestions}
                   </span>
                 )}
-                {/* Debug info */}
-                <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
-                  {companionSuggestionsByPlant.length}
-                </span>
               </div>
               {showCompanionGuide ? (
                 <ChevronUp className="w-4 h-4 text-gray-500" />
@@ -519,12 +562,6 @@ export default function PlantLibrary({
 
             {showCompanionGuide && (
               <div className="px-4 pb-4">
-                {/* Debug info */}
-                <div className="mb-3 p-2 bg-blue-50 rounded text-xs">
-                  <div>🔍 Debug: {placedPlants.length} placed, {plants.length} in library</div>
-                  <div>🔍 Suggestions found: {companionSuggestionsByPlant.length}</div>
-                </div>
-
                 {companionSuggestionsByPlant.length > 0 ? (
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {companionSuggestionsByPlant.map((plantSuggestion) => (
