@@ -31,19 +31,25 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Image Mockups */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="aspect-[4/3] bg-gradient-to-br from-orange-200 to-red-200 rounded-xl shadow-lg overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-br from-orange-300 to-red-300 flex items-center justify-center">
-                  <span className="text-orange-800 font-semibold text-sm">Garden Gallery</span>
+            {/* Garden Screenshots */}
+            <div className="my-8">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-lg shadow-md overflow-hidden">
+                  <img 
+                    src="/Garden_Planner.png" 
+                    alt="Garden Planner Interface" 
+                    className="w-full h-auto object-cover"
+                  />
+                </div>
+                <div className="rounded-lg shadow-md overflow-hidden">
+                  <img 
+                    src="/My_Garden.png" 
+                    alt="Our garden list page" 
+                    className="w-full h-auto object-cover"
+                  />
                 </div>
               </div>
-              <div className="aspect-[4/3] bg-gradient-to-br from-blue-200 to-green-200 rounded-xl shadow-lg overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-br from-sky-300 to-emerald-300 flex items-center justify-center">
-                  <span className="text-emerald-800 font-semibold text-sm">Design Tools</span>
-                </div>
-              </div>
-            </div>
+            </div> 
 
             {/* Features */}
             <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-100">
