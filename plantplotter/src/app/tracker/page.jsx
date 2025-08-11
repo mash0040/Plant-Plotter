@@ -4,11 +4,13 @@ import { Sprout } from 'lucide-react';
 import GardenSelector from '@/components/Tracker/GardenSelector';
 import QuickActions from '@/components/Tracker/QuickActions';
 import TrackingCalendar from '@/components/Tracker/TrackingCalendar';
-import WeatherWidget from '@/components/Tracker/WeatherWidget';
+import WeatherWidget from '@/components/Tracker/WeatherWidget'; // Your updated weather widget
+import DetailedWeatherModal from '@/components/Tracker/DetailedWeatherModal';
 import TasksList from '@/components/Tracker/TasksList';
 import ActivityModal from '@/components/Tracker/ActivityModal';
 import TaskEditModal from '@/components/Tracker/TaskEditModal';
 import ActivityEditModal from '@/components/Tracker/ActivityEditModal';
+import { useWeather } from '@/hooks/useWeather'; 
 import { 
   generateCalendarData, 
   addActivity,
@@ -47,6 +49,12 @@ export default function TrackingPage() {
   const [showActivityEditModal, setShowActivityEditModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
+  
+  // Weather modal state
+  const [showDetailedWeather, setShowDetailedWeather] = useState(false);
+  
+  // Get weather data for the detailed modal
+  const { weatherData } = useWeather();
 
   // Load gardens from the API
   useEffect(() => {
@@ -371,7 +379,11 @@ export default function TrackingPage() {
 
           {/* Right Sidebar */}
           <div className="w-80 space-y-6">
-            <WeatherWidget />
+            {/* Weather Widget - Now clickable for detailed view */}
+            <div onClick={() => setShowDetailedWeather(true)} className="cursor-pointer">
+              <WeatherWidget />
+            </div>
+            
             <TasksList
               title="Today Tasks"
               tasks={todayTasks}
@@ -430,6 +442,13 @@ export default function TrackingPage() {
         onDelete={editingActivity?.id ? handleActivityDelete : null}
         gardens={gardens}
         selectedGarden={selectedGarden}
+      />
+
+      {/* Detailed Weather Modal */}
+      <DetailedWeatherModal
+        isOpen={showDetailedWeather}
+        onClose={() => setShowDetailedWeather(false)}
+        weatherData={weatherData}
       />
     </div>
   );

@@ -319,11 +319,11 @@ export default function AuthForm() {
 
       {/* Toggle between login/register */}
       <div className="text-center text-sm text-gray-600">
-        {mode === 'login' ? (
+        {/* {mode === 'login' ? (
           <p>
             Demo credentials: Any email/password combination works!
           </p>
-        ) : null}
+        ) : null} */}
         
         <div className="mt-3">
           {mode === 'login' ? (
