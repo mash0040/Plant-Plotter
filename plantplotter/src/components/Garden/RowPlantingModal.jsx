@@ -11,7 +11,7 @@ export default function RowPlantingModal({
 }) {
   const [rowConfig, setRowConfig] = useState({
     count: 5,
-    spacing: 1, // grid units between plants
+    spacing: 0, // Changed default to 0 for no spacing
     direction: 'horizontal', // 'horizontal' or 'vertical'
     startX: 1,
     startY: 1
@@ -31,12 +31,15 @@ export default function RowPlantingModal({
       
       if (rowConfig.direction === 'horizontal') {
         // Convert from 1-based display to 0-based internal coordinates
-        x = (rowConfig.startX - 1) + (i * (plantSize + rowConfig.spacing));
+        // When spacing is 0, plants touch each other (only plantSize distance)
+        const effectiveSpacing = rowConfig.spacing === 0 ? 0 : rowConfig.spacing;
+        x = (rowConfig.startX - 1) + (i * (plantSize + effectiveSpacing));
         y = rowConfig.startY - 1;
       } else {
         // Convert from 1-based display to 0-based internal coordinates
+        const effectiveSpacing = rowConfig.spacing === 0 ? 0 : rowConfig.spacing;
         x = rowConfig.startX - 1;
-        y = (rowConfig.startY - 1) + (i * (plantSize + rowConfig.spacing));
+        y = (rowConfig.startY - 1) + (i * (plantSize + effectiveSpacing));
       }
       
       // Check if position is within bounds (0-based coordinates)
@@ -97,9 +100,12 @@ export default function RowPlantingModal({
     return rowConfig.direction === 'horizontal' ? <ArrowRight className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
   };
 
+  // Updated calculation for total length - when spacing is 0, plants just touch
+  const plantSize = plant?.size || 1;
+  const effectiveSpacing = rowConfig.spacing === 0 ? 0 : rowConfig.spacing;
   const totalLength = rowConfig.direction === 'horizontal' 
-    ? (rowConfig.startX - 1) + (rowConfig.count * ((plant?.size || 1) + rowConfig.spacing)) - rowConfig.spacing
-    : (rowConfig.startY - 1) + (rowConfig.count * ((plant?.size || 1) + rowConfig.spacing)) - rowConfig.spacing;
+    ? (rowConfig.startX - 1) + (rowConfig.count * plantSize) + ((rowConfig.count - 1) * effectiveSpacing)
+    : (rowConfig.startY - 1) + (rowConfig.count * plantSize) + ((rowConfig.count - 1) * effectiveSpacing);
 
   const maxLength = rowConfig.direction === 'horizontal' ? dimensions.width : dimensions.height;
   const willFit = totalLength <= maxLength;
@@ -180,11 +186,46 @@ export default function RowPlantingModal({
             </div>
           </div>
 
-          {/* Spacing */}
+          {/* Spacing with Quick Options */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Spacing (grid units)
+              Spacing Between Plants
             </label>
+            
+            {/* Quick spacing options */}
+            <div className="flex gap-2 mb-2">
+              <button
+                onClick={() => handleConfigChange('spacing', 0)}
+                className={`px-3 py-1 text-xs rounded border ${
+                  rowConfig.spacing === 0 
+                    ? 'bg-green-100 border-green-300 text-green-700' 
+                    : 'bg-white border-gray-300'
+                }`}
+              >
+                No Gap
+              </button>
+              <button
+                onClick={() => handleConfigChange('spacing', 0.5)}
+                className={`px-3 py-1 text-xs rounded border ${
+                  rowConfig.spacing === 0.5 
+                    ? 'bg-green-100 border-green-300 text-green-700' 
+                    : 'bg-white border-gray-300'
+                }`}
+              >
+                Small Gap
+              </button>
+              <button
+                onClick={() => handleConfigChange('spacing', 1)}
+                className={`px-3 py-1 text-xs rounded border ${
+                  rowConfig.spacing === 1 
+                    ? 'bg-green-100 border-green-300 text-green-700' 
+                    : 'bg-white border-gray-300'
+                }`}
+              >
+                Normal Gap
+              </button>
+            </div>
+
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleConfigChange('spacing', Math.max(0, rowConfig.spacing - 0.5))}
@@ -207,9 +248,10 @@ export default function RowPlantingModal({
               >
                 <Plus className="w-4 h-4" />
               </button>
+              <span className="text-xs text-gray-500">grid units</span>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Space between each plant (0 = touching)
+              {rowConfig.spacing === 0 ? 'Plants will touch each other' : `${rowConfig.spacing} unit${rowConfig.spacing !== 1 ? 's' : ''} between plants`}
             </p>
           </div>
 
@@ -254,6 +296,7 @@ export default function RowPlantingModal({
                 {getDirectionIcon()}
                 <span>
                   {rowConfig.count} plants in a {rowConfig.direction} row
+                  {rowConfig.spacing === 0 && <span className="text-green-600 font-medium"> (touching)</span>}
                 </span>
               </div>
               
