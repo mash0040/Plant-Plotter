@@ -2,9 +2,34 @@
 import { useState } from 'react';
 import AuthForm from '@/components/Login/AuthForm';
 import Navbar from '@/components/Navbar';
-import { Leaf, Sun, Droplets, Sprout, TrendingUp } from 'lucide-react';
+import { Leaf, Sun, Droplets, Sprout, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function LoginPage() {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  const images = [
+    {
+      src: "/Garden_Planner.png",
+      alt: "Garden Planner Interface",
+      title: "Design Your Garden",
+      description: "Drag and drop plants to create your perfect garden layout"
+    },
+    {
+      src: "/My_Garden.png", 
+      alt: "Our garden list page",
+      title: "Manage Your Gardens",
+      description: "Track multiple gardens and monitor their progress"
+    }
+  ];
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
   return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 relative overflow-hidden">
         {/* Decorative elements */}
@@ -31,22 +56,64 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Garden Screenshots */}
+            {/* Enhanced Garden Screenshots Carousel */}
             <div className="my-8">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg shadow-md overflow-hidden">
+              <div className="relative bg-white/50 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-green-100">
+                {/* Image Display */}
+                <div className="relative aspect-video rounded-xl overflow-hidden shadow-lg bg-white">
                   <img 
-                    src="/Garden_Planner.png" 
-                    alt="Garden Planner Interface" 
-                    className="w-full h-auto object-cover"
+                    src={images[currentImageIndex].src}
+                    alt={images[currentImageIndex].alt}
+                    className="w-full h-full object-contain transition-all duration-500 ease-in-out"
                   />
+                  
+                  {/* Navigation Arrows */}
+                  {images.length > 1 && (
+                    <>
+                      <button
+                        onClick={prevImage}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
+                        aria-label="Previous image"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-gray-700" />
+                      </button>
+                      <button
+                        onClick={nextImage}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white shadow-lg rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
+                        aria-label="Next image"
+                      >
+                        <ChevronRight className="w-5 h-5 text-gray-700" />
+                      </button>
+                    </>
+                  )}
                 </div>
-                <div className="rounded-lg shadow-md overflow-hidden">
-                  <img 
-                    src="/My_Garden.png" 
-                    alt="Our garden list page" 
-                    className="w-full h-auto object-cover"
-                  />
+
+                {/* Image Info */}
+                <div className="mt-4 text-center">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                    {images[currentImageIndex].title}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {images[currentImageIndex].description}
+                  </p>
+                  
+                  {/* Dots Indicator */}
+                  {images.length > 1 && (
+                    <div className="flex justify-center space-x-2">
+                      {images.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentImageIndex(index)}
+                          className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                            index === currentImageIndex 
+                              ? 'bg-green-600 w-6' 
+                              : 'bg-gray-300 hover:bg-gray-400'
+                          }`}
+                          aria-label={`Go to image ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div> 
