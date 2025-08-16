@@ -9,7 +9,7 @@ router.get('/', verifyToken, async (req, res) => {
     const { gardenId, date } = req.query;
     let query = `
       SELECT a.*, g.name as garden_name 
-      FROM activities a 
+      FROM garden_activities a 
       LEFT JOIN gardens g ON a.garden_id = g.id 
       WHERE a.user_id = ?
     `;
@@ -25,7 +25,7 @@ router.get('/', verifyToken, async (req, res) => {
       params.push(date);
     }
 
-    query += ' ORDER BY a.activity_date DESC';
+    query += ' ORDER BY a.activity_date DESC, a.activity_time DESC';
 
     const [activities] = await db.execute(query, params);
     res.json(activities);
@@ -40,14 +40,37 @@ router.post('/', verifyToken, async (req, res) => {
   try {
     const { garden_id, activity_type, plant_name, notes, activity_date } = req.body;
     
+    // Validate required fields
+    if (!garden_id || !activity_type) {
+      return res.status(400).json({ 
+        error: 'garden_id and activity_type are required',
+        received: { garden_id, activity_type }
+      });
+    }
+
+    // Verify garden belongs to user
+    const [garden] = await db.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
+      [garden_id, req.user.id]
+    );
+
+    if (garden.length === 0) {
+      return res.status(404).json({ error: 'Garden not found or access denied' });
+    }
+
+    // Get current date and time
+    const now = new Date();
+    const activityDate = activity_date || now.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const activityTime = now.toTimeString().split(' ')[0]; // HH:MM:SS format
+
     const [result] = await db.execute(
-      `INSERT INTO activities (user_id, garden_id, activity_type, plant_name, notes, activity_date) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [req.user.id, garden_id, activity_type, plant_name, notes, activity_date || new Date()]
+      `INSERT INTO garden_activities (user_id, garden_id, activity_type, plant_name, notes, activity_date, activity_time, created_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [req.user.id, garden_id, activity_type, plant_name || null, notes || null, activityDate, activityTime]
     );
 
     const [newActivity] = await db.execute(
-      'SELECT * FROM activities WHERE id = ?',
+      'SELECT * FROM garden_activities WHERE id = ?',
       [result.insertId]
     );
 
@@ -55,6 +78,56 @@ router.post('/', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error creating activity:', error);
     res.status(500).json({ error: 'Failed to create activity' });
+  }
+});
+
+// PUT /api/activities/:id - Update activity
+router.put('/:id', verifyToken, async (req, res) => {
+  try {
+    const activityId = req.params.id;
+    const { activity_type, plant_name, notes, activity_date } = req.body;
+    
+    const [result] = await db.execute(
+      `UPDATE garden_activities 
+       SET activity_type = ?, plant_name = ?, notes = ?, activity_date = ?
+       WHERE id = ? AND user_id = ?`,
+      [activity_type, plant_name, notes, activity_date, activityId, req.user.id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Activity not found' });
+    }
+
+    const [updatedActivity] = await db.execute(
+      'SELECT * FROM garden_activities WHERE id = ?',
+      [activityId]
+    );
+
+    res.json(updatedActivity[0]);
+  } catch (error) {
+    console.error('Error updating activity:', error);
+    res.status(500).json({ error: 'Failed to update activity' });
+  }
+});
+
+// DELETE /api/activities/:id - Delete activity
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const activityId = req.params.id;
+    
+    const [result] = await db.execute(
+      'DELETE FROM garden_activities WHERE id = ? AND user_id = ?',
+      [activityId, req.user.id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Activity not found' });
+    }
+
+    res.json({ message: 'Activity deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting activity:', error);
+    res.status(500).json({ error: 'Failed to delete activity' });
   }
 });
 

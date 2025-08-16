@@ -9,7 +9,7 @@ router.get('/', verifyToken, async (req, res) => {
     const { gardenId } = req.query;
     let query = `
       SELECT t.*, g.name as garden_name 
-      FROM tasks t 
+      FROM garden_tasks t 
       LEFT JOIN gardens g ON t.garden_id = g.id 
       WHERE t.user_id = ?
     `;
@@ -33,16 +33,62 @@ router.get('/', verifyToken, async (req, res) => {
 // POST /api/tasks
 router.post('/', verifyToken, async (req, res) => {
   try {
-    const { title, description, garden_id, due_date, priority, plant_name } = req.body;
+    const { 
+      title, 
+      description, 
+      garden_id, 
+      due_date, 
+      priority, 
+      plant_name, 
+      task_type,
+      estimated_duration,
+      is_recurring,
+      recurring_pattern,
+      notes
+    } = req.body;
+    
+    // Validate required fields
+    if (!title || !garden_id || !due_date) {
+      return res.status(400).json({ 
+        error: 'title, garden_id, and due_date are required',
+        received: { title, garden_id, due_date }
+      });
+    }
+
+    // Verify garden belongs to user
+    const [garden] = await db.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
+      [garden_id, req.user.id]
+    );
+
+    if (garden.length === 0) {
+      return res.status(404).json({ error: 'Garden not found or access denied' });
+    }
     
     const [result] = await db.execute(
-      `INSERT INTO tasks (user_id, garden_id, title, description, due_date, priority, plant_name, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      [req.user.id, garden_id, title, description, due_date, priority || 'medium', plant_name]
+      `INSERT INTO garden_tasks (
+        user_id, garden_id, title, description, due_date, priority, plant_name, 
+        task_type, status, estimated_duration, is_recurring, recurring_pattern,
+        created_at, updated_at
+      ) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW(), NOW())`,
+      [
+        req.user.id, 
+        garden_id, 
+        title, 
+        description || null, 
+        due_date, 
+        priority || 'medium', 
+        plant_name || null,
+        task_type || 'maintenance',
+        estimated_duration || null,
+        is_recurring || false,
+        recurring_pattern || null
+      ]
     );
 
     const [newTask] = await db.execute(
-      'SELECT * FROM tasks WHERE id = ?',
+      'SELECT * FROM garden_tasks WHERE id = ?',
       [result.insertId]
     );
 
@@ -56,13 +102,40 @@ router.post('/', verifyToken, async (req, res) => {
 // PUT /api/tasks/:id
 router.put('/:id', verifyToken, async (req, res) => {
   try {
-    const { title, description, due_date, priority, status, plant_name } = req.body;
+    const { 
+      title, 
+      description, 
+      due_date, 
+      priority, 
+      status, 
+      plant_name,
+      task_type,
+      estimated_duration,
+      is_recurring,
+      recurring_pattern,
+      notes
+    } = req.body;
     
     const [result] = await db.execute(
-      `UPDATE tasks 
-       SET title = ?, description = ?, due_date = ?, priority = ?, status = ?, plant_name = ?
+      `UPDATE garden_tasks 
+       SET title = ?, description = ?, due_date = ?, priority = ?, status = ?, 
+           plant_name = ?, task_type = ?, estimated_duration = ?, is_recurring = ?, 
+           recurring_pattern = ?, updated_at = NOW()
        WHERE id = ? AND user_id = ?`,
-      [title, description, due_date, priority, status, plant_name, req.params.id, req.user.id]
+      [
+        title, 
+        description, 
+        due_date, 
+        priority, 
+        status, 
+        plant_name,
+        task_type,
+        estimated_duration,
+        is_recurring,
+        recurring_pattern,
+        req.params.id, 
+        req.user.id
+      ]
     );
 
     if (result.affectedRows === 0) {
@@ -70,7 +143,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     }
 
     const [updatedTask] = await db.execute(
-      'SELECT * FROM tasks WHERE id = ?',
+      'SELECT * FROM garden_tasks WHERE id = ?',
       [req.params.id]
     );
 
@@ -85,7 +158,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const [result] = await db.execute(
-      'DELETE FROM tasks WHERE id = ? AND user_id = ?',
+      'DELETE FROM garden_tasks WHERE id = ? AND user_id = ?',
       [req.params.id, req.user.id]
     );
 
