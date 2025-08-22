@@ -89,7 +89,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     
     const [result] = await db.execute(
       `UPDATE garden_activities 
-       SET activity_type = ?, plant_name = ?, notes = ?, activity_date = ?
+       SET activity_type = ?, plant_name = ?, notes = ?, activity_date = ?, updated_at = NOW()
        WHERE id = ? AND user_id = ?`,
       [activity_type, plant_name, notes, activity_date, activityId, req.user.id]
     );

@@ -1,5 +1,6 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '@/lib/api';
 
 export default function ActivityModal({ 
   isOpen, 
@@ -9,6 +10,34 @@ export default function ActivityModal({
   onClose,
   selectedGarden
 }) {
+  const [plantLibrary, setPlantLibrary] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Fetch plant library when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadPlantLibrary();
+    }
+  }, [isOpen]);
+
+  const loadPlantLibrary = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const plants = await apiClient.getPlantLibrary();
+      setPlantLibrary(plants || []);
+    } catch (error) {
+      console.error('Failed to load plant library:', error);
+      setError('Failed to load plant options');
+      // Fallback to empty array or default plants
+      setPlantLibrary([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
@@ -22,63 +51,18 @@ export default function ActivityModal({
     });
   };
 
-  // Get plants from the selected garden's available plants (computed by data service)
-  const getPlantOptions = () => {
-    // Use the availablePlants array computed by the garden data service
-    if (selectedGarden.availablePlants && selectedGarden.availablePlants.length > 0) {
-      return selectedGarden.availablePlants;
+  // Group plants by category for better organization
+  const plantsByCategory = plantLibrary.reduce((acc, plant) => {
+    const category = plant.category || 'other';
+    if (!acc[category]) {
+      acc[category] = [];
     }
-    
-    // Fallback to extracting from plantedItems if availablePlants is not available
-    const gardenPlants = [];
-    
-    if (selectedGarden.plantedItems && selectedGarden.plantedItems.length > 0) {
-      selectedGarden.plantedItems.forEach(item => {
-        if (item.name && !gardenPlants.includes(item.name)) {
-          gardenPlants.push(item.name);
-        }
-      });
-    }
-    
-    // Add fallback plants if no plants are found
-    if (gardenPlants.length === 0) {
-      const fallbackPlants = getFallbackPlants(selectedGarden.name, selectedGarden.location);
-      gardenPlants.push(...fallbackPlants);
-    }
-    
-    return gardenPlants.sort();
-  };
+    acc[category].push(plant);
+    return acc;
+  }, {});
 
-  // Get fallback plants based on garden name/type
-  const getFallbackPlants = (gardenName = '', location = '') => {
-    const nameUpper = gardenName.toUpperCase();
-    const locationUpper = location.toUpperCase();
-    
-    if (nameUpper.includes('HERB') || nameUpper.includes('SPICE')) {
-      return ['Basil', 'Cilantro', 'Parsley', 'Mint', 'Oregano', 'Thyme', 'Rosemary', 'Sage', 'Chives'];
-    }
-    
-    if (nameUpper.includes('FRUIT') || nameUpper.includes('BERRY') || nameUpper.includes('ORCHARD')) {
-      return ['Strawberry', 'Blueberry', 'Raspberry', 'Apple Tree', 'Pear Tree', 'Cherry Tree', 'Peach Tree', 'Tomato'];
-    }
-    
-    if (nameUpper.includes('VEGETABLE') || nameUpper.includes('VEG')) {
-      return ['Tomato', 'Lettuce', 'Carrot', 'Pepper', 'Cucumber', 'Spinach', 'Radish', 'Broccoli', 'Kale', 'Onion', 'Bean', 'Pea'];
-    }
-    
-    if (nameUpper.includes('FLOWER') || nameUpper.includes('ROSE')) {
-      return ['Rose', 'Marigold', 'Nasturtium', 'Lavender', 'Sunflower', 'Petunia', 'Tulip', 'Daffodil'];
-    }
-    
-    if (locationUpper.includes('BALCONY') || locationUpper.includes('CONTAINER')) {
-      return ['Lettuce', 'Spinach', 'Radish', 'Cherry Tomato', 'Pepper', 'Basil', 'Parsley', 'Cilantro', 'Strawberry'];
-    }
-    
-    // Default mixed garden plants
-    return ['Tomato', 'Lettuce', 'Basil', 'Pepper', 'Carrot', 'Spinach', 'Cucumber', 'Herbs', 'Flowers'];
-  };
-
-  const plantOptions = getPlantOptions();
+  // Sort categories for consistent display
+  const sortedCategories = Object.keys(plantsByCategory).sort();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -95,20 +79,68 @@ export default function ActivityModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Plant
             </label>
-            <select
-              value={formData.plant}
-              onChange={(e) => onFormDataChange({...formData, plant: e.target.value})}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              required
-            >
-              <option value="">Select a plant</option>
-              {plantOptions.map(plant => (
-                <option key={plant} value={plant}>{plant}</option>
-              ))}
-            </select>
-            {plantOptions.length === 0 && (
+            
+            {loading ? (
+              <div className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Loading plants...</span>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="space-y-2">
+                <div className="w-full p-2 border border-red-300 bg-red-50 text-red-700 rounded">
+                  {error}
+                </div>
+                <button 
+                  onClick={loadPlantLibrary}
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : (
+              <select
+                value={formData.plant}
+                onChange={(e) => onFormDataChange({...formData, plant: e.target.value})}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select a plant</option>
+                
+                {/* Show garden plants first if any */}
+                {selectedGarden.plantedItems && selectedGarden.plantedItems.length > 0 && (
+                  <optgroup label="🏡 Plants in Your Garden">
+                    {selectedGarden.plantedItems.map(plant => (
+                      <option key={`garden-${plant.id}`} value={plant.name}>
+                        {plant.emoji || '🌱'} {plant.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                
+                {/* Show all plant library plants grouped by category */}
+                {sortedCategories.map(category => (
+                  <optgroup 
+                    key={category} 
+                    label={`${getCategoryIcon(category)} ${category.charAt(0).toUpperCase() + category.slice(1)}`}
+                  >
+                    {plantsByCategory[category]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(plant => (
+                        <option key={`library-${plant.id}`} value={plant.name}>
+                          {plant.emoji || '🌱'} {plant.name}
+                        </option>
+                      ))
+                    }
+                  </optgroup>
+                ))}
+              </select>
+            )}
+            
+            {plantLibrary.length === 0 && !loading && !error && (
               <p className="text-xs text-gray-500 mt-1">
-                No plants found in this garden. You can add plants through the Garden Planner.
+                No plants found in library. You can still type a custom plant name below.
               </p>
             )}
           </div>
@@ -159,4 +191,16 @@ export default function ActivityModal({
       </div>
     </div>
   );
+}
+
+// Helper function to get category icons
+function getCategoryIcon(category) {
+  const icons = {
+    vegetables: '🥕',
+    fruits: '🍎',
+    herbs: '🌿',
+    flowers: '🌸',
+    other: '🌱'
+  };
+  return icons[category] || '🌱';
 }

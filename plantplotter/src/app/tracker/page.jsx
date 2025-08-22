@@ -4,7 +4,7 @@ import { Sprout } from 'lucide-react';
 import GardenSelector from '@/components/Tracker/GardenSelector';
 import QuickActions from '@/components/Tracker/QuickActions';
 import TrackingCalendar from '@/components/Tracker/TrackingCalendar';
-import WeatherWidget from '@/components/Tracker/WeatherWidget'; // Your updated weather widget
+import WeatherWidget from '@/components/Tracker/WeatherWidget';
 import DetailedWeatherModal from '@/components/Tracker/DetailedWeatherModal';
 import TasksList from '@/components/Tracker/TasksList';
 import ActivityModal from '@/components/Tracker/ActivityModal';
@@ -61,13 +61,21 @@ export default function TrackingPage() {
     loadGardens();
   }, []);
 
-  // Load tasks when garden changes
+  // Load tasks and activities when garden changes
   useEffect(() => {
     if (selectedGarden) {
       resetTaskDatabase();
       loadTasks();
+      loadActivities();
     }
   }, [selectedGarden]);
+
+  // Also load activities on initial page load
+  useEffect(() => {
+    if (selectedGarden) {
+      loadActivities();
+    }
+  }, []);
 
   const loadGardens = async () => {
     try {
@@ -81,7 +89,8 @@ export default function TrackingPage() {
         icon: getGardenIcon(garden),
         plantCount: garden.plantCount || garden.plantedItems?.length || 0,
         status: garden.status || 'Active',
-        location: garden.location || 'Unknown'
+        location: garden.location || 'Unknown',
+        plantedItems: garden.plantedItems || []
       }));
       
       setGardens(trackerGardens);
@@ -101,7 +110,8 @@ export default function TrackingPage() {
           icon: getGardenIcon(garden),
           plantCount: garden.plantCount || garden.plantedItems?.length || 0,
           status: garden.status || 'Active',
-          location: garden.location || 'Unknown'
+          location: garden.location || 'Unknown',
+          plantedItems: garden.plantedItems || []
         }));
         
         setGardens(trackerGardens);
@@ -112,6 +122,70 @@ export default function TrackingPage() {
         console.error('Failed to load from localStorage:', localError);
         setGardens([]);
       }
+    }
+  };
+
+  // Load activities from API
+  const loadActivities = async () => {
+    if (!selectedGarden) return;
+    
+    try {
+      const activities = await apiClient.getActivities(selectedGarden.id);
+      
+      // Transform activities to calendar format
+      const calendarActivities = {};
+      activities.forEach(activity => {
+        // Ensure proper date formatting - handle different date formats
+        let dateKey;
+        if (activity.activity_date) {
+          // If it's already a date string, use it
+          if (typeof activity.activity_date === 'string') {
+            dateKey = activity.activity_date.split('T')[0]; // Remove time part if present
+          } else {
+            // If it's a Date object, format it
+            dateKey = new Date(activity.activity_date).toISOString().split('T')[0];
+          }
+        } else {
+          // Fallback to created_at date
+          dateKey = new Date(activity.created_at).toISOString().split('T')[0];
+        }
+        
+        if (!calendarActivities[dateKey]) {
+          calendarActivities[dateKey] = [];
+        }
+        
+        // Create time string from activity_time or created_at
+        let timeString;
+        if (activity.activity_time) {
+          // If activity_time is in HH:MM:SS format, convert to display format
+          timeString = activity.activity_time.substring(0, 5); // Get HH:MM
+        } else {
+          // Fallback to created_at time
+          timeString = new Date(activity.created_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        }
+        
+        calendarActivities[dateKey].push({
+          id: activity.id,
+          activity: activity.activity_type,
+          plant: activity.plant_name || 'Unknown Plant',
+          notes: activity.notes || '',
+          time: timeString,
+          activity_date: dateKey,
+          activity_type: activity.activity_type,
+          plant_name: activity.plant_name,
+          garden_id: activity.garden_id
+        });
+      });
+      
+      setCalendarData(calendarActivities);
+      
+    } catch (error) {
+      console.error('Failed to load activities:', error);
+      // Keep existing calendar data or use empty
+      setCalendarData({});
     }
   };
 
@@ -199,10 +273,29 @@ export default function TrackingPage() {
         date: selectedDate
       };
       
-      await apiClient.addActivity(newActivityData);
+      const savedActivity = await apiClient.addActivity(newActivityData);
       
-      // Also add to local calendar data for immediate UI update
-      const updatedCalendarData = addActivity(calendarData, selectedDate, newActivityData);
+      // Add to local calendar data for immediate UI update
+      const activityForCalendar = {
+        id: savedActivity.id,
+        activity: activityData.activity,
+        plant: activityData.plant,
+        notes: activityData.notes,
+        time: new Date().toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        activity_date: selectedDate,
+        activity_type: activityData.activity,
+        plant_name: activityData.plant,
+        garden_id: selectedGarden.id
+      };
+      
+      const updatedCalendarData = { ...calendarData };
+      if (!updatedCalendarData[selectedDate]) {
+        updatedCalendarData[selectedDate] = [];
+      }
+      updatedCalendarData[selectedDate].push(activityForCalendar);
       setCalendarData(updatedCalendarData);
       
     } catch (error) {
@@ -210,7 +303,13 @@ export default function TrackingPage() {
       
       // Fallback to local calendar data only
       const newActivityData = {
-        ...activityData,
+        activity: activityData.activity,
+        plant: activityData.plant,
+        notes: activityData.notes,
+        time: new Date().toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
         gardenId: selectedGarden.id
       };
       
@@ -220,6 +319,78 @@ export default function TrackingPage() {
     
     setShowForm(false);
     setFormData({ activity: '', plant: '', notes: '', gardenId: null });
+  };
+
+  // Activity management functions
+  const handleActivityEdit = (activity) => {
+    setEditingActivity(activity);
+    setShowActivityEditModal(true);
+  };
+
+  const handleActivityAdd = () => {
+    setEditingActivity(null);
+    setShowActivityEditModal(true);
+  };
+
+  const handleActivitySave = async (activityData) => {
+    try {
+      if (activityData.id) {
+        // Update existing activity
+        await apiClient.updateActivity(activityData.id, {
+          activity_type: activityData.activity_type,
+          plant_name: activityData.plant_name,
+          notes: activityData.notes,
+          activity_date: activityData.activity_date
+        });
+      } else {
+        // Create new activity
+        await apiClient.addActivity({
+          gardenId: activityData.garden_id,
+          activity: activityData.activity_type,
+          plant: activityData.plant_name,
+          notes: activityData.notes,
+          date: activityData.activity_date
+        });
+      }
+      
+      // Reload activities to refresh calendar
+      await loadActivities();
+      
+    } catch (error) {
+      console.error('Failed to save activity:', error);
+      throw error;
+    }
+  };
+
+  const handleActivityDelete = async (activity) => {
+    if (!confirm('Are you sure you want to delete this activity?')) {
+      return;
+    }
+
+    try {
+      await apiClient.deleteActivity(activity.id);
+      
+      // Remove from local calendar data for immediate UI update
+      const updatedCalendarData = { ...calendarData };
+      const activityDate = activity.activity_date || activity.date || selectedDate;
+      
+      if (updatedCalendarData[activityDate]) {
+        updatedCalendarData[activityDate] = updatedCalendarData[activityDate].filter(
+          a => a.id !== activity.id
+        );
+        
+        // Remove the date entry if no activities left
+        if (updatedCalendarData[activityDate].length === 0) {
+          delete updatedCalendarData[activityDate];
+        }
+      }
+      
+      setCalendarData(updatedCalendarData);
+      
+    } catch (error) {
+      console.error('Failed to delete activity:', error);
+      alert('Failed to delete activity. Please try again.');
+    }
   };
 
   // Task management functions
@@ -265,55 +436,8 @@ export default function TrackingPage() {
     }
   };
 
-  // Activity management functions
-  const handleActivityEdit = (activity) => {
-    setEditingActivity(activity);
-    setShowActivityEditModal(true);
-  };
-
-  const handleActivityAdd = () => {
-    setEditingActivity(null);
-    setShowActivityEditModal(true);
-  };
-
-  const handleActivitySave = async (activityData) => {
-    try {
-      if (activityData.id) {
-        // Update existing activity
-        await apiClient.updateActivity(activityData.id, activityData);
-      } else {
-        // Create new activity
-        await apiClient.addActivity({
-          gardenId: activityData.garden_id,
-          activity: activityData.activity_type,
-          plant: activityData.plant_name,
-          notes: activityData.notes,
-          date: activityData.activity_date
-        });
-      }
-      
-      // Also add to local calendar data for immediate UI update
-      const updatedCalendarData = addActivity(calendarData, activityData.activity_date, activityData);
-      setCalendarData(updatedCalendarData);
-      
-    } catch (error) {
-      console.error('Failed to save activity:', error);
-      throw error;
-    }
-  };
-
-  const handleActivityDelete = async (activityId) => {
-    try {
-      await apiClient.deleteActivity(activityId);      
-    } catch (error) {
-      console.error('Failed to delete activity:', error);
-      throw error;
-    }
-  };
-
   // Filter calendar data by selected garden
-  const filteredCalendarData = selectedGarden ? 
-    getActivitiesByGarden(calendarData, selectedGarden.id) : {};
+  const filteredCalendarData = selectedGarden ? calendarData : {};
 
   // Show empty state if no gardens
   if (gardens.length === 0) {
@@ -374,6 +498,8 @@ export default function TrackingPage() {
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
               calendarData={filteredCalendarData}
+              onActivityEdit={handleActivityEdit}
+              onActivityDelete={handleActivityDelete}
             />
           </div>
 

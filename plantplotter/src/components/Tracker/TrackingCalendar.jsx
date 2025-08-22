@@ -1,9 +1,14 @@
 'use client';
 import React, { useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getActivityColor } from './Constants/ActivitiesData';
+import { ChevronDown, ChevronLeft, ChevronRight, Edit3, Trash2 } from 'lucide-react';
 
-export default function TrackingCalendar({ selectedDate, onDateSelect, calendarData }) {
+export default function TrackingCalendar({ 
+  selectedDate, 
+  onDateSelect, 
+  calendarData = {}, 
+  onActivityEdit, 
+  onActivityDelete 
+}) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
   const [tempYear, setTempYear] = useState(currentDate.getFullYear());
@@ -48,16 +53,21 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
   };
 
   const getActivityColorClass = (activity) => {
-    return getActivityColor(activity);
+    const colorMap = {
+      'planted': 'bg-green-100 text-green-800',
+      'watered': 'bg-blue-100 text-blue-800', 
+      'fertilized': 'bg-yellow-100 text-yellow-800',
+      'harvested': 'bg-orange-100 text-orange-800'
+    };
+    return colorMap[activity] || 'bg-gray-100 text-gray-800';
   };
 
-  // Function to truncate long plant names
   const truncatePlantName = (name, maxLength = 8) => {
+    if (!name) return 'Unknown';
     if (name.length <= maxLength) return name;
     return name.substring(0, maxLength - 1) + '…';
   };
 
-  // Function to get activity icon
   const getActivityIcon = (activity) => {
     switch (activity) {
       case 'planted': return '🌱';
@@ -65,6 +75,20 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
       case 'fertilized': return '🌿';
       case 'harvested': return '🌾';
       default: return '📝';
+    }
+  };
+
+  const handleActivityEdit = (activity, e) => {
+    e.stopPropagation();
+    if (onActivityEdit) {
+      onActivityEdit(activity);
+    }
+  };
+
+  const handleActivityDelete = (activity, e) => {
+    e.stopPropagation();
+    if (onActivityDelete) {
+      onActivityDelete(activity);
     }
   };
 
@@ -106,28 +130,49 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
           } ${isToday ? 'ring-2 ring-green-500 ring-inset' : ''}`}
           onClick={() => onDateSelect(dateStr)}
         >
-          {/* Day number */}
           <div className={`text-sm font-medium mb-1 ${isToday ? 'text-green-600 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>
             {day}
           </div>
           
-          {/* Activities */}
           {activities.length > 0 && (
             <div className="space-y-1">
-              {activities.slice(0, 2).map((activity, idx) => (
-                <div
-                  key={idx}
-                  className={`text-xs px-1.5 py-0.5 rounded-md flex items-center gap-1 ${getActivityColorClass(activity.activity)} truncate`}
-                  title={`${activity.activity} ${activity.plant} at ${activity.time}`}
-                >
-                  <span className="text-xs">{getActivityIcon(activity.activity)}</span>
-                  <span className="truncate font-medium">
-                    {truncatePlantName(activity.plant, 6)}
-                  </span>
-                </div>
-              ))}
+              {activities.slice(0, 2).map((activity, idx) => {
+                const plantName = activity.plant || activity.plant_name || 'Unknown';
+                const activityType = activity.activity || activity.activity_type || 'activity';
+                
+                return (
+                  <div
+                    key={activity.id || `${dateStr}-${idx}`}
+                    className={`text-xs px-1.5 py-0.5 rounded-md flex items-center gap-1 ${getActivityColorClass(activityType)} truncate group relative`}
+                    title={`${activityType} ${plantName} at ${activity.time || 'unknown time'}`}
+                  >
+                    <span className="text-xs flex-shrink-0">{getActivityIcon(activityType)}</span>
+                    <span className="truncate font-medium min-w-0">
+                      {truncatePlantName(plantName, 10)}
+                    </span>
+                    
+                    {activity.id && onActivityEdit && onActivityDelete && (
+                      <div className="opacity-0 group-hover:opacity-100 flex gap-1 ml-auto">
+                        <button
+                          onClick={(e) => handleActivityEdit(activity, e)}
+                          className="w-3 h-3 text-gray-600 hover:text-blue-600 transition-colors"
+                          title="Edit activity"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => handleActivityDelete(activity, e)}
+                          className="w-3 h-3 text-gray-600 hover:text-red-600 transition-colors"
+                          title="Delete activity"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               
-              {/* More activities indicator */}
               {activities.length > 2 && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-md text-center">
                   +{activities.length - 2} more
@@ -136,7 +181,6 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
             </div>
           )}
           
-          {/* Activity count dot for days with many activities */}
           {activities.length > 3 && (
             <div className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></div>
           )}
@@ -179,7 +223,6 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
                 <ChevronDown className="w-4 h-4" />
               </button>
 
-              {/* Month/Year Picker - Now positioned below the button */}
               {showMonthYearPicker && (
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 min-w-[280px]">
                   <div className="flex space-x-4 mb-4">
@@ -248,7 +291,6 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
       </div>
       
       <div className="p-4">
-        {/* Activity Legend */}
         <div className="mb-4 flex flex-wrap gap-2 text-xs">
           <div className="flex items-center gap-1">
             <span>🌱</span>
@@ -268,12 +310,10 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
           </div>
         </div>
 
-        {/* Calendar Grid */}
         <div className="grid grid-cols-7 gap-1 mb-4">
           {renderCalendar()}
         </div>
         
-        {/* Selected Date Details */}
         {selectedDateActivities.length > 0 && (
           <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
@@ -286,11 +326,11 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
             </h4>
             <div className="space-y-2">
               {selectedDateActivities.map((activity, idx) => (
-                <div key={idx} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-600 rounded">
-                  <span className="text-lg">{getActivityIcon(activity.activity)}</span>
+                <div key={idx} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-600 rounded group">
+                  <span className="text-lg">{getActivityIcon(activity.activity || activity.activity_type)}</span>
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 dark:text-white">
-                      <span className="capitalize">{activity.activity}</span> {activity.plant}
+                      <span className="capitalize">{activity.activity || activity.activity_type}</span> {activity.plant || activity.plant_name}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-300">
                       {activity.time}
@@ -301,6 +341,25 @@ export default function TrackingCalendar({ selectedDate, onDateSelect, calendarD
                       </div>
                     )}
                   </div>
+                  
+                  {activity.id && onActivityEdit && onActivityDelete && (
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => handleActivityEdit(activity, e)}
+                        className="p-1 text-gray-500 hover:text-blue-600 transition-colors rounded"
+                        title="Edit activity"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => handleActivityDelete(activity, e)}
+                        className="p-1 text-gray-500 hover:text-red-600 transition-colors rounded"
+                        title="Delete activity"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
