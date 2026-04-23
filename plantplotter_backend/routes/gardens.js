@@ -796,16 +796,25 @@ router.delete("/:id", verifyToken, async (req, res) => {
   const gardenId = req.params.id;
   const userId = req.user.id;
 
-  try {    
-    // First delete all planted items
+  try {
+    // Verify garden ownership before touching any data
+    const [owned] = await db.execute(
+      "SELECT id FROM gardens WHERE id = ? AND user_id = ?",
+      [gardenId, userId]
+    );
+
+    if (owned.length === 0) {
+      return res.status(404).json({ message: "Garden not found or unauthorized" });
+    }
+
+    // Ownership confirmed — safe to delete planted items
     const [plantDeleteResult] = await db.execute(
-      "DELETE FROM planted_items WHERE garden_id = ?", 
+      "DELETE FROM planted_items WHERE garden_id = ?",
       [gardenId]
     );
-    
-    // Then delete the garden (only if owned by user)
+
     const [gardenDeleteResult] = await db.execute(
-      "DELETE FROM gardens WHERE id = ? AND user_id = ?", 
+      "DELETE FROM gardens WHERE id = ? AND user_id = ?",
       [gardenId, userId]
     );
 
@@ -813,9 +822,9 @@ router.delete("/:id", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "Garden not found or unauthorized" });
     }
 
-    res.json({ 
+    res.json({
       message: "Garden deleted successfully",
-      deletedPlants: plantDeleteResult.affectedRows 
+      deletedPlants: plantDeleteResult.affectedRows
     });
 
   } catch (err) {
