@@ -3,6 +3,13 @@ const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 
+const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin privileges required' });
+  }
+  next();
+};
+
 // Helper function to safely parse JSON or comma-separated string
 const safeParseField = (field) => {
   if (!field) return [];
@@ -139,7 +146,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 });
 
 // POST /api/plants - Add new plant to library
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyToken, requireAdmin, async (req, res) => {
   try {  
     const {
       id,
@@ -260,7 +267,7 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 // PUT /api/plants/:id - Update plant in library
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
   try {    
     const plantId = req.params.id;
     const {
@@ -371,7 +378,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 });
 
 // DELETE /api/plants/:id - Delete plant from library
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
   try {    
     const plantId = req.params.id;
 

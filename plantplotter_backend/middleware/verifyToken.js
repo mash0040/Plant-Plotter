@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const JWT_SECRET = require('../config/jwtSecret');
 
 const verifyToken = (req, res, next) => {
   try {
@@ -25,7 +26,7 @@ const verifyToken = (req, res, next) => {
     }
 
     // Verify the token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'plantplotter_secret_key');
+    const decoded = jwt.verify(token, JWT_SECRET);
     
     if (!decoded.id) {
       return res.status(401).json({ 

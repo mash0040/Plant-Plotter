@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const JWT_SECRET = require('../config/jwtSecret');
 
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
@@ -49,7 +50,7 @@ const registerUser = async (req, res) => {
 
     const token = jwt.sign(
       tokenPayload,
-      process.env.JWT_SECRET || 'plantplotter_secret_key',
+      JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
@@ -87,7 +88,6 @@ const loginUser = async (req, res) => {
 
     const user = rows[0];
 
-    // Test password verification
     let isMatch = false;
     try {
       isMatch = await bcrypt.compare(password, user.password_hash);
@@ -96,39 +96,8 @@ const loginUser = async (req, res) => {
       return res.status(500).json({ message: 'Authentication error' });
     }
 
-    // Handle demo/test user password reset if needed
     if (!isMatch) {
-      // Special handling for demo users - generate fresh hash if needed
-      if ((email === 'demo@plantplotter.com' && password === 'demo123') ||
-          (email === 'admin@plantplotter.com' && password === 'admin123') ||
-          (email === 'user@plantplotter.com' && password === 'user123')) {
-        
-        try {
-          // Generate a completely new hash
-          const newHash = await bcrypt.hash(password, 10);
-          
-          // Update the user's password hash in database
-          await db.execute(
-            'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE email = ?',
-            [newHash, email]
-          );
-                   
-          // Test the new hash immediately
-          const testNewHash = await bcrypt.compare(password, newHash);
-          
-          if (testNewHash) {
-            isMatch = true;
-          } else {
-            return res.status(401).json({ message: 'Invalid credentials' });
-          }
-          
-        } catch (fixError) {
-          console.error('Failed to fix user password:', fixError);
-          return res.status(401).json({ message: 'Invalid credentials' });
-        }
-      } else {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Create a token
@@ -141,7 +110,7 @@ const loginUser = async (req, res) => {
 
     const token = jwt.sign(
       tokenPayload,
-      process.env.JWT_SECRET || 'plantplotter_secret_key',
+      JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
