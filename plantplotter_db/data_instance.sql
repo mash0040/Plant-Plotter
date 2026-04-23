@@ -11,7 +11,7 @@ INSERT INTO users (
 -- Demo User (password: demo123)
 ('Demo User', 
  'demo@plantplotter.com', 
- '$2b$10$K8jJZZm9yWz1mLhzG3tg9.eJ1KMQn5FZsO7fUHpvh5Z4gkGzF2YfC', 
+ '$2b$10$BP0cbU.ETkdycbkSAt/e2ewCknQT9fWG3.hsxGpPsZ1N0HlKfNNQe', 
  'user', 
  TRUE, 
  TRUE,
