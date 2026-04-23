@@ -6,11 +6,11 @@ drop database garden_plotter;
 CREATE DATABASE IF NOT EXISTS garden_plotter;
 USE garden_plotter;
 
-SELECT * FROM gardens;
-SELECT * FROM planted_items;
-SELECT g.id, g.name, g.user_id, u.email 
-FROM gardens g 
-LEFT JOIN users u ON g.user_id = u.id;
+-- SELECT * FROM gardens;
+-- SELECT * FROM planted_items;
+-- SELECT g.id, g.name, g.user_id, u.email 
+-- FROM gardens g 
+-- LEFT JOIN users u ON g.user_id = u.id;
 
 -- Users table
 CREATE TABLE users (
