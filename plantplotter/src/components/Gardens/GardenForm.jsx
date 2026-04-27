@@ -24,6 +24,11 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
   // Get unit label
   const getUnitLabel = () => unit === 'metric' ? 'm' : 'ft';
+  const getDimensionRange = () => (
+    unit === 'metric'
+      ? { min: 1, max: 100, unitLabel: 'm' }
+      : { min: 3.3, max: 328, unitLabel: 'ft' }
+  );
 
   const validateForm = () => {
     const errors = {};
@@ -56,21 +61,15 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         return;
       }
 
-      const valueInMeters = unit === 'imperial' ? feetToMeters(value) : value;
-      const savedValue = Math.round(valueInMeters);
+      const { min, max, unitLabel } = getDimensionRange();
 
-      if (unit === 'metric' && !Number.isInteger(valueInMeters)) {
+      if (unit === 'metric' && !Number.isInteger(value)) {
         errors[field] = `${label} must be a whole number.`;
         return;
       }
 
-      if (valueInMeters < 1 || valueInMeters > 100) {
-        errors[field] = `${label} must be between 1m and 100m.`;
-        return;
-      }
-
-      if (savedValue < 1 || savedValue > 100) {
-        errors[field] = `${label} must save between 1 and 100.`;
+      if (value < min || value > max) {
+        errors[field] = `${label} must be between ${min} and ${max} ${unitLabel}.`;
       }
     };
 
@@ -86,25 +85,43 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   };
 
   const validateField = (field, value) => {
-    if (field !== 'name') return;
+    if (!['name', 'width', 'height'].includes(field)) return;
 
-    const name = value.trim();
     let error = '';
 
-    if (!name) {
-      error = 'Garden name is required.';
-    } else if (name === '[object Object]' || name === 'undefined' || name === 'null') {
-      error = 'Garden name is invalid.';
-    } else if (name.length > 50) {
-      error = 'Garden name must be 50 characters or fewer.';
+    if (field === 'name') {
+      const name = value.trim();
+
+      if (!name) {
+        error = 'Garden name is required.';
+      } else if (name === '[object Object]' || name === 'undefined' || name === 'null') {
+        error = 'Garden name is invalid.';
+      } else if (name.length > 50) {
+        error = 'Garden name must be 50 characters or fewer.';
+      }
+    } else {
+      const label = field === 'width' ? 'Width' : 'Height';
+      const valueText = String(value ?? '');
+      const numberValue = Number(valueText);
+      const { min, max, unitLabel } = getDimensionRange();
+
+      if (!valueText.trim()) {
+        error = `${label} is required.`;
+      } else if (!Number.isFinite(numberValue)) {
+        error = `${label} must be a valid number.`;
+      } else if (unit === 'metric' && !Number.isInteger(numberValue)) {
+        error = `${label} must be a whole number.`;
+      } else if (numberValue < min || numberValue > max) {
+        error = `${label} must be between ${min} and ${max} ${unitLabel}.`;
+      }
     }
 
     setValidationErrors(prev => {
       const next = { ...prev };
       if (error) {
-        next.name = error;
+        next[field] = error;
       } else {
-        delete next.name;
+        delete next[field];
       }
       return next;
     });
@@ -276,7 +293,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4" noValidate>
           {/* Garden Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -361,6 +378,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
                 type="number"
                 value={formData.width}
                 onChange={(e) => handleChange('width', e.target.value)}
+                onBlur={() => handleBlur('width')}
                 placeholder="0"
                 min="1"
                 max="100"
@@ -380,6 +398,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
                 type="number"
                 value={formData.height}
                 onChange={(e) => handleChange('height', e.target.value)}
+                onBlur={() => handleBlur('height')}
                 placeholder="0"
                 min="1"
                 max="100"
@@ -392,18 +411,6 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               )}
             </div>
           </div>
-
-          {/* Show actual database values */}
-          {(formData.width && formData.height) && (
-            <div className="bg-gray-50 rounded-lg p-3 text-sm">
-              <span className="text-gray-600">
-                Database values: {unit === 'imperial' ? 
-                  `${Math.round(feetToMeters(parseFloat(formData.width)))}m × ${Math.round(feetToMeters(parseFloat(formData.height)))}m` :
-                  `${Math.round(parseFloat(formData.width))}m × ${Math.round(parseFloat(formData.height))}m`
-                }
-              </span>
-            </div>
-          )}
 
           {/* Location */}
           <div>
@@ -468,7 +475,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
             </button>
             <button
               type="submit"
-              disabled={isLoading || !formData.width || !formData.height}
+              disabled={isLoading}
               className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
             >
               {isLoading ? (
