@@ -311,7 +311,7 @@ class ApiClient {
         body: JSON.stringify(gardenData),
       });
 
-      return response;
+      return response.garden || response;
     } catch (error) {
       console.error('Failed to update garden:', error);
       throw error;

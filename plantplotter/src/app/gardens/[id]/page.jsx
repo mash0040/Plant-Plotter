@@ -14,6 +14,7 @@ export default function GardenDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false); 
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Single useEffect to load both garden and plant library data
   useEffect(() => {
@@ -68,12 +69,23 @@ export default function GardenDetailPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    if (!successMessage) return;
+
+    const timeoutId = setTimeout(() => {
+      setSuccessMessage('');
+    }, 4000);
+
+    return () => clearTimeout(timeoutId);
+  }, [successMessage]);
+
   const handleOpenGardenPlanner = () => {
     router.push(`/garden?id=${garden.id}`);
   };
 
   const handleEditBasicInfo = (e) => {
     e?.stopPropagation();
+    setSuccessMessage('');
     setShowEditForm(true);
   };
 
@@ -95,8 +107,13 @@ export default function GardenDetailPage() {
         localGardens[gardenIndex] = updatedGarden;
         localStorage.setItem('gardens', JSON.stringify(localGardens));
       }
+      setSuccessMessage('Garden updated successfully.');
     } catch (error) {
       console.error('Failed to update garden:', error);
+      if (error.status === 400 || error.errors) {
+        throw error;
+      }
+
       // Fallback to localStorage only
       const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
       const gardenIndex = localGardens.findIndex(g => g.id == garden.id);
@@ -114,6 +131,7 @@ export default function GardenDetailPage() {
         localGardens[gardenIndex] = updatedGarden;
         localStorage.setItem('gardens', JSON.stringify(localGardens));
         setGarden(updatedGarden);
+        setSuccessMessage('Garden updated successfully.');
       }
     }
     
@@ -471,6 +489,14 @@ export default function GardenDetailPage() {
           )}
         </div>
       </div>
+
+      {successMessage && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+          <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium">
+            {successMessage}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
