@@ -67,7 +67,13 @@ class ApiClient {
           case 500:
             throw new Error('Server error. Please try again later.');
           default:
-            throw new Error(errorMessage);
+            const error = new Error(errorMessage);
+            error.status = response.status;
+            if (errorData?.errors) {
+              error.errors = errorData.errors;
+              error.fieldErrors = errorData.errors;
+            }
+            throw error;
         }
       }
 
