@@ -110,56 +110,27 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
   const handleSave = async () => {
     try {
       let cleanName;
-      
-      console.log('🔍 Debug gardenName before cleaning:', { 
-        gardenName, 
-        type: typeof gardenName,
-        isString: typeof gardenName === 'string',
-        value: gardenName 
-      });
-      
+
       if (typeof gardenName === 'string') {
         cleanName = gardenName.trim();
-        
-        if (cleanName === '[object Object]' || cleanName === 'undefined' || cleanName === 'null') {
-          cleanName = 'My Garden';
-        }
-        
-      } else if (typeof gardenName === 'object' && gardenName !== null) {
-        // Try to extract a meaningful string from the object
-        if (gardenName.name && typeof gardenName.name === 'string') {
-          cleanName = gardenName.name.trim();
-        } else if (gardenName.value && typeof gardenName.value === 'string') {
-          cleanName = gardenName.value.trim();
-        } else if (gardenName.title && typeof gardenName.title === 'string') {
-          cleanName = gardenName.title.trim();
-        } else {
-          cleanName = 'My Garden';
-        }
-        
       } else {
-        // Handle null, undefined, numbers, etc.
-        cleanName = String(gardenName || 'My Garden').trim();
+        setError('Garden name must be text.');
+        return;
       }
-      
-      // Final validation and length check
+
       if (!cleanName || cleanName.length === 0) {
-        cleanName = 'My Garden';
+        setError('Garden name is required.');
+        return;
       }
-      
-      // Truncate if too long (conservative limit)
+
+      if (cleanName === '[object Object]' || cleanName === 'undefined' || cleanName === 'null') {
+        setError('Garden name is invalid.');
+        return;
+      }
+
       if (cleanName.length > 50) {
-        const userConfirmed = window.confirm(
-          `Your garden name is too long (${cleanName.length} characters, max 50).\n\n` +
-          `It will be saved as: "${cleanName.substring(0, 47)}..."\n\n` +
-          `Do you want to continue, or would you prefer to edit it first?`
-        );
-        
-        if (!userConfirmed) {
-          return; // Let user edit the name
-        }
-        
-        cleanName = cleanName.substring(0, 47) + '...';
+        setError('Garden name must be 50 characters or fewer.');
+        return;
       }
       
       setSaving(true);
@@ -363,7 +334,7 @@ export default function SaveGardenModel({ isOpen, onClose, onSave, currentGarden
           </button>
           <button
             onClick={handleSave}
-            disabled={!gardenName.trim() || saving}
+            disabled={!gardenName.trim() || saving || warnings.length > 0}
             className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
               hasLengthWarning ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'
             }`}

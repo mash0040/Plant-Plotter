@@ -197,6 +197,10 @@ export default function AllGardensPage() {
           };
         } catch (error) {
           console.error('Failed to update garden via API:', error);
+          if (error.status === 400 || error.errors) {
+            throw error;
+          }
+
           // Fallback to localStorage update
           const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
           const gardenIndex = localGardens.findIndex(g => g.id === selectedGarden.id);
@@ -250,6 +254,10 @@ export default function AllGardensPage() {
           };
         } catch (error) {
           console.error('Failed to create garden via API:', error);
+          if (error.status === 400 || error.errors) {
+            throw error;
+          }
+
           // Fallback to localStorage creation
           savedGarden = {
             ...gardenData,
@@ -279,6 +287,10 @@ export default function AllGardensPage() {
       
     } catch (error) {
       console.error('Failed to save garden:', error);
+      if (error.status === 400 || error.errors) {
+        throw error;
+      }
+
       alert('Failed to save garden. Please try again.');
     }
   };

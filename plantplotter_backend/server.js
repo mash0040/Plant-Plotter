@@ -3,14 +3,11 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Enhanced CORS configuration
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002'
-  ],
+  origin: FRONTEND_URL,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

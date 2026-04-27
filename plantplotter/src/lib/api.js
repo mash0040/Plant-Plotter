@@ -1,7 +1,11 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 class ApiClient {
   constructor() {
+    if (!API_BASE_URL) {
+      throw new Error('NEXT_PUBLIC_API_URL is required. See plantplotter/.env.local.example for local setup.');
+    }
+
     this.baseURL = API_BASE_URL;
   }
 
@@ -63,7 +67,13 @@ class ApiClient {
           case 500:
             throw new Error('Server error. Please try again later.');
           default:
-            throw new Error(errorMessage);
+            const error = new Error(errorMessage);
+            error.status = response.status;
+            if (errorData?.errors) {
+              error.errors = errorData.errors;
+              error.fieldErrors = errorData.errors;
+            }
+            throw error;
         }
       }
 
