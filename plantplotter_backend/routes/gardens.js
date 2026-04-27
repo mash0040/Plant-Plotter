@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const verifyToken = require("../middleware/verifyToken");
 const db = require("../config/db.js");
+const { validateGardenPayload } = require("../utils/gardenValidation");
 
 // Helper function to generate garden summary
 const generateGardenSummary = (garden, plantedItems) => {
@@ -96,69 +97,6 @@ const transformGardenWithSummary = (garden, plantedItems) => {
     // Garden summary
     summary: summary
   };
-};
-
-// Data sanitization helpers
-const sanitizeForDatabase = {
-  string: (value, maxLength = 255, fieldName = 'field') => {
-    if (value === null || value === undefined) {
-      return '';
-    }
-    
-    let cleanValue;
-    
-    if (typeof value === 'string') {
-      if (value === '[object Object]') {
-        cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
-      } else {
-        cleanValue = value.trim();
-      }
-    } else if (typeof value === 'object' && value !== null) {
-      if (value.name) cleanValue = String(value.name);
-      else if (value.value) cleanValue = String(value.value);
-      else if (value.title) cleanValue = String(value.title);
-      else if (value.label) cleanValue = String(value.label);
-      else {
-        cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
-      }
-    } else {
-      cleanValue = String(value).trim();
-    }
-    
-    if (cleanValue === '[object Object]' || cleanValue === 'undefined' || cleanValue === 'null') {
-      cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
-    }
-    
-    if (cleanValue.length > maxLength) {
-      cleanValue = cleanValue.substring(0, maxLength).trim();
-    }
-    
-    if (!cleanValue) {
-      cleanValue = fieldName === 'Garden name' ? 'My Garden' : 'Default';
-    }
-    
-    return cleanValue;
-  },
-  
-  number: (value, fieldName = 'number', min = 1) => {
-    const num = parseInt(value);
-    if (isNaN(num) || num < min) {
-      throw new Error(`${fieldName} must be a number >= ${min}, received: ${value}`);
-    }
-    return num;
-  },
-  
-  shortString: (value, fieldName = 'field') => {
-    return sanitizeForDatabase.string(value, 50, fieldName);
-  },
-  
-  mediumString: (value, fieldName = 'field') => {
-    return sanitizeForDatabase.string(value, 100, fieldName);
-  },
-  
-  longString: (value, fieldName = 'field') => {
-    return sanitizeForDatabase.string(value, 255, fieldName);
-  }
 };
 
 // GET /api/gardens - Fetch all gardens for authenticated user with summaries
@@ -485,23 +423,16 @@ router.post('/', verifyToken, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // Sanitize data for database
-    const sanitizedData = {
-      name: sanitizeForDatabase.shortString(rawData.name, 'Garden name'),
-      description: sanitizeForDatabase.string(rawData.description, 65535, 'Description'),
-      width: sanitizeForDatabase.number(rawData.width, 'Width'),
-      height: sanitizeForDatabase.number(rawData.height, 'Height'),
-      soil_type: sanitizeForDatabase.mediumString(rawData.soil_type || 'Loamy', 'Soil type'),
-      location: sanitizeForDatabase.longString(rawData.location || 'Garden', 'Location'),
-      status: sanitizeForDatabase.shortString(rawData.status || 'Planning', 'Status')
-    };
+    const validation = validateGardenPayload(rawData);
 
-    if (!sanitizedData.name) {
+    if (!validation.isValid) {
       return res.status(400).json({ 
-        message: 'Garden name is required',
-        received: rawData.name
+        message: 'Invalid garden data',
+        errors: validation.errors
       });
     }
+
+    const sanitizedData = validation.data;
 
     // Insert into database
     const [result] = await db.execute(
@@ -577,25 +508,16 @@ router.put('/:id', verifyToken, async (req, res) => {
   const rawData = req.body;
 
   try {
-    // Use the sanitization helper
-    const sanitizedData = {
-      name: sanitizeForDatabase.shortString(rawData.name, 'Garden name'),
-      description: sanitizeForDatabase.string(rawData.description, 65535, 'Description'),
-      width: sanitizeForDatabase.number(rawData.width, 'Width'),
-      height: sanitizeForDatabase.number(rawData.height, 'Height'),
-      soil_type: sanitizeForDatabase.mediumString(rawData.soil_type || 'Loamy', 'Soil type'),
-      location: sanitizeForDatabase.longString(rawData.location || 'Garden', 'Location'),
-      status: sanitizeForDatabase.shortString(rawData.status || 'Active', 'Status')
-    };
+    const validation = validateGardenPayload(rawData);
 
-    // Validate required fields after sanitization
-    if (!sanitizedData.name) {
+    if (!validation.isValid) {
       return res.status(400).json({ 
-        message: 'Garden name is required',
-        received: rawData.name,
-        sanitized: sanitizedData.name
+        message: 'Invalid garden data',
+        errors: validation.errors
       });
     }
+
+    const sanitizedData = validation.data;
 
     // Verify garden ownership
     const [existing] = await db.execute(
