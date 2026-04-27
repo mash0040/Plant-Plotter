@@ -1,7 +1,11 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 class ApiClient {
   constructor() {
+    if (!API_BASE_URL) {
+      throw new Error('NEXT_PUBLIC_API_URL is required. See plantplotter/.env.local.example for local setup.');
+    }
+
     this.baseURL = API_BASE_URL;
   }
 
