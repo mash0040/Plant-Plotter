@@ -254,14 +254,12 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ 
-        error: 'Plant with this ID already exists',
-        message: error.message
+        error: 'Plant with this ID already exists'
       });
     }
     
     res.status(500).json({ 
-      error: 'Failed to create plant',
-      message: error.message
+      error: 'Failed to create plant'
     });
   }
 });
@@ -371,8 +369,7 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error updating plant:', error);
     res.status(500).json({ 
-      error: 'Failed to update plant',
-      message: error.message
+      error: 'Failed to update plant'
     });
   }
 });
@@ -430,8 +427,7 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
     }
     
     res.status(500).json({ 
-      error: 'Failed to delete plant',
-      message: error.message
+      error: 'Failed to delete plant'
     });
   }
 });

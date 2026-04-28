@@ -98,7 +98,6 @@ router.get('/advice/garden/:gardenId', verifyToken, async (req, res) => {
     }
 
     res.json({
-      gardenId: parseInt(gardenId),
       plantCount: gardenPlants.length,
       tips,
       warnings,
@@ -108,8 +107,7 @@ router.get('/advice/garden/:gardenId', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('Error generating advisory:', err);
     res.status(500).json({
-      error: 'Failed to generate planting advice',
-      message: err.message
+      error: 'Failed to generate planting advice'
     });
   }
 });

@@ -219,7 +219,7 @@ export default function AllGardensPage() {
           }
         }
         
-        setSuccessMessage(`"${savedGarden.name}" updated successfully!`);
+        setSuccessMessage('Garden updated successfully.');
       } else {
         // Create new garden
         try {
@@ -273,7 +273,7 @@ export default function AllGardensPage() {
           localStorage.setItem('gardens', JSON.stringify(localGardens));
         }
         
-        setSuccessMessage(`"${savedGarden.name}" created successfully!`);
+        setSuccessMessage('Garden created successfully.');
       }
       
       // Reload gardens to reflect the changes

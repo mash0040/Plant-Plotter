@@ -39,41 +39,10 @@ try {
   authRoutes = null;
 }
 
-// Add debug routes (remove in production)
-try {
-  const debugRoutes = require('./routes/debug');
-  app.use('/api/debug', debugRoutes);
-} catch (error) {
-  // Inline debug endpoints
-  app.get('/api/debug/health', async (req, res) => {
-    try {
-      const db = require('./config/db');
-      const [result] = await db.execute('SELECT 1 as test, NOW() as timestamp');
-      res.json({ 
-        status: 'ok',
-        database: 'connected',
-        timestamp: new Date().toISOString(),
-        test: result[0]
-      });
-    } catch (error) {
-      res.status(500).json({ 
-        status: 'error',
-        database: 'failed',
-        error: error.message
-      });
-    }
-  });
-  
-  app.get('/api/debug/users', async (req, res) => {
-    try {
-      const db = require('./config/db');
-      const [users] = await db.execute('SELECT id, email, username, role, is_active FROM users LIMIT 5');
-      res.json({ users });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-}
+// Public debug endpoints are intentionally disabled for demo safety.
+app.use('/api/debug', (req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
 
 // Register main routes with error handling
 try {
@@ -124,39 +93,18 @@ if (authRoutes) {
 }
 
 // Health check endpoint
-app.get('/api/health', async (req, res) => {
-  try {
-    const db = require('./config/db');
-    const [result] = await db.execute('SELECT COUNT(*) as count FROM users');
-    
-    res.json({ 
-      status: 'ok', 
-      message: 'Plant Potter API is running',
-      timestamp: new Date().toISOString(),
-      database: 'connected',
-      totalUsers: result[0].count
-    });
-  } catch (error) {
-    console.error('Health check failed:', error);
-    res.status(500).json({ 
-      status: 'error', 
-      message: 'Database connection failed',
-      error: error.message
-    });
-  }
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Plant Plotter API is running',
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.get('/', (req, res) => {
   res.json({
-    message: 'Plant Potter backend is running!',
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      health: '/api/health',
-      debug: '/api/debug/health',
-      auth: authRoutes ? '/api/auth/login' : 'Not available',
-      gardens: '/api/gardens',
-      plants: '/api/plants'
-    }
+    message: 'Plant Plotter backend is running',
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -166,29 +114,16 @@ app.use((err, req, res, next) => {
   console.error('Request:', req.method, req.originalUrl);
   console.error('Error:', err);
   console.error('Stack:', err.stack);
-  
-  // Don't leak error details in production
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  
+
   res.status(500).json({ 
-    error: 'Internal server error',
-    message: isDevelopment ? err.message : 'Something went wrong',
-    ...(isDevelopment && { stack: err.stack })
+    message: 'Internal server error'
   });
 });
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ 
-    error: 'Route not found',
-    path: req.originalUrl,
-    method: req.method,
-    availableRoutes: {
-      health: 'GET /api/health',
-      gardens: 'GET /api/gardens',
-      auth: 'POST /api/auth/login',
-      debug: 'GET /api/debug/health'
-    }
+    message: 'Route not found'
   });
 });
 
@@ -206,9 +141,8 @@ process.on('SIGINT', () => {
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log('================================');
-  console.log(`Plant Potter server running on port ${PORT}`);
+  console.log(`Plant Plotter server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
-  console.log(`Debug: http://localhost:${PORT}/api/debug/health`);
   
   if (authRoutes) {
     console.log(`Auth endpoints: http://localhost:${PORT}/api/auth/login`);

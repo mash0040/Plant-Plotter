@@ -1,22 +1,41 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Save, Leaf } from 'lucide-react';
+
+const getDefaultFormData = () => ({
+  name: '',
+  description: '',
+  soil_type: 'Loamy', // Changed from soilType to match DB
+  width: '',
+  height: '',
+  location: '',
+  status: 'Planning'
+});
+
+const getGardenFormData = (gardenData) => ({
+  name: gardenData.name || '',
+  description: gardenData.description || '',
+  soil_type: gardenData.soil_type || gardenData.soilType || 'Loamy', // Handle both formats
+  width: (gardenData.width || gardenData.dimensions?.width || '').toString(),
+  height: (gardenData.height || gardenData.dimensions?.height || '').toString(),
+  location: gardenData.location || '',
+  status: gardenData.status || 'Planning'
+});
 
 export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   const [unit, setUnit] = useState('metric'); // 'metric' or 'imperial'
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    soil_type: 'Loamy', // Changed from soilType to match DB
-    width: '',
-    height: '',
-    location: '',
-    status: 'Planning'
-  });
+  const [formData, setFormData] = useState(getDefaultFormData);
 
   const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
+  const nameInputRef = useRef(null);
+  const descriptionInputRef = useRef(null);
+  const soilTypeInputRef = useRef(null);
+  const widthInputRef = useRef(null);
+  const heightInputRef = useRef(null);
+  const locationInputRef = useRef(null);
+  const statusInputRef = useRef(null);
 
   // Conversion functions
   const metersToFeet = (meters) => (meters * 3.28084).toFixed(2);
@@ -30,7 +49,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
       : { min: 3.3, max: 328, unitLabel: 'ft' }
   );
 
-  const validateForm = () => {
+  const getValidationErrors = () => {
     const errors = {};
     const name = formData.name.trim();
     const description = formData.description.trim();
@@ -80,8 +99,36 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
       errors.location = 'Location must be 100 characters or fewer.';
     }
 
+    return errors;
+  };
+
+  const validateForm = () => {
+    const errors = getValidationErrors();
     setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
+  };
+
+  const scrollToFirstError = (errors) => {
+    const fieldRefs = {
+      name: nameInputRef,
+      description: descriptionInputRef,
+      soil_type: soilTypeInputRef,
+      width: widthInputRef,
+      height: heightInputRef,
+      location: locationInputRef,
+      status: statusInputRef
+    };
+    const errorFieldOrder = ['name', 'description', 'soil_type', 'width', 'height', 'location', 'status'];
+    const firstErrorField = errorFieldOrder.find(field => errors[field]);
+    const fieldElement = firstErrorField ? fieldRefs[firstErrorField]?.current : null;
+
+    if (!fieldElement) return;
+
+    fieldElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+    fieldElement.focus({ preventScroll: true });
   };
 
   const validateField = (field, value) => {
@@ -131,63 +178,57 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   const toggleUnit = () => {
     const newUnit = unit === 'metric' ? 'imperial' : 'metric';
     setUnit(newUnit);
-    
-    // Convert existing values
-    if (formData.width && formData.height) {
-      if (newUnit === 'imperial') {
-        setFormData(prev => ({
-          ...prev,
-          width: metersToFeet(parseFloat(prev.width)),
-          height: metersToFeet(parseFloat(prev.height))
-        }));
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          width: feetToMeters(parseFloat(prev.width)).toFixed(1),
-          height: feetToMeters(parseFloat(prev.height)).toFixed(1)
-        }));
+
+    setValidationErrors(prev => {
+      const next = { ...prev };
+      delete next.width;
+      delete next.height;
+      return next;
+    });
+
+    setFormData(prev => {
+      if (!prev.width && !prev.height) {
+        return prev;
       }
-    }
+
+      const convertDimension = (value, converter) => {
+        if (!value) return '';
+        const parsedValue = parseFloat(value);
+        if (!Number.isFinite(parsedValue)) return value;
+        return converter(parsedValue);
+      };
+
+      if (newUnit === 'imperial') {
+        return {
+          ...prev,
+          width: convertDimension(prev.width, metersToFeet),
+          height: convertDimension(prev.height, metersToFeet)
+        };
+      }
+
+      return {
+        ...prev,
+        width: convertDimension(prev.width, value => Math.round(feetToMeters(value)).toString()),
+        height: convertDimension(prev.height, value => Math.round(feetToMeters(value)).toString())
+      };
+    });
   };
 
   // Update form data when garden prop changes
   useEffect(() => {
-    if (isOpen) {
-      if (garden) {
-        // Editing existing garden - populate with current data
-        const newFormData = {
-          name: garden.name || '',
-          description: garden.description || '',
-          soil_type: garden.soil_type || garden.soilType || 'Loamy', // Handle both formats
-          width: (garden.width || garden.dimensions?.width || '').toString(),
-          height: (garden.height || garden.dimensions?.height || '').toString(),
-          location: garden.location || '',
-          status: garden.status || 'Planning'
-        };
-        setFormData(newFormData);
-        
-        // Convert to current unit if needed
-        if (unit === 'imperial' && newFormData.width && newFormData.height) {
-          setFormData(prev => ({
-            ...prev,
-            width: metersToFeet(parseFloat(newFormData.width)),
-            height: metersToFeet(parseFloat(newFormData.height))
-          }));
-        }
-      } else {
-        // Creating new garden - use default values
-        setFormData({
-          name: '',
-          description: '',
-          soil_type: 'Loamy',
-          width: '',
-          height: '',
-          location: '',
-          status: 'Planning'
-        });
-      }
+    if (!isOpen) return;
+
+    setUnit('metric');
+    setValidationErrors({});
+    setTouchedFields({});
+    setIsLoading(false);
+
+    if (garden) {
+      setFormData(getGardenFormData(garden));
+    } else {
+      setFormData(getDefaultFormData());
     }
-  }, [garden, isOpen, unit]);
+  }, [garden, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -201,7 +242,10 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
       status: true
     });
 
-    if (!validateForm()) {
+    const errors = validateForm();
+
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() => scrollToFirstError(errors));
       return;
     }
 
@@ -248,6 +292,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
             return fields;
           }, {})
         }));
+        requestAnimationFrame(() => scrollToFirstError(apiErrors));
       } else {
         alert(error.message || 'Failed to save garden. Please try again.');
       }
@@ -270,6 +315,8 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   };
 
   if (!isOpen) return null;
+
+  const dimensionRange = getDimensionRange();
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
@@ -300,6 +347,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               Garden Name *
             </label>
             <input
+              ref={nameInputRef}
               type="text"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
@@ -319,6 +367,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               Description
             </label>
             <textarea
+              ref={descriptionInputRef}
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               placeholder="Brief description of your garden"
@@ -337,6 +386,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               Soil Type
             </label>
             <select
+              ref={soilTypeInputRef}
               value={formData.soil_type}
               onChange={(e) => handleChange('soil_type', e.target.value)}
               className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 transition-all"
@@ -375,13 +425,14 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
                 Width ({getUnitLabel()}) *
               </label>
               <input
+                ref={widthInputRef}
                 type="number"
                 value={formData.width}
                 onChange={(e) => handleChange('width', e.target.value)}
                 onBlur={() => handleBlur('width')}
                 placeholder="0"
-                min="1"
-                max="100"
+                min={dimensionRange.min}
+                max={dimensionRange.max}
                 step={unit === 'imperial' ? '0.1' : '1'}
                 className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 required
@@ -395,13 +446,14 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
                 Height ({getUnitLabel()}) *
               </label>
               <input
+                ref={heightInputRef}
                 type="number"
                 value={formData.height}
                 onChange={(e) => handleChange('height', e.target.value)}
                 onBlur={() => handleBlur('height')}
                 placeholder="0"
-                min="1"
-                max="100"
+                min={dimensionRange.min}
+                max={dimensionRange.max}
                 step={unit === 'imperial' ? '0.1' : '1'}
                 className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 required
@@ -418,6 +470,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               Location
             </label>
             <input
+              ref={locationInputRef}
               type="text"
               value={formData.location}
               onChange={(e) => handleChange('location', e.target.value)}
@@ -436,6 +489,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               Status
             </label>
             <select
+              ref={statusInputRef}
               value={formData.status}
               onChange={(e) => handleChange('status', e.target.value)}
               className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 transition-all"
