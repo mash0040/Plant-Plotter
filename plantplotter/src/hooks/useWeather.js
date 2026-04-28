@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 // Ottawa coordinates
 const OTTAWA_COORDS = {
@@ -13,7 +13,7 @@ export const useWeather = (latitude = OTTAWA_COORDS.latitude, longitude = OTTAWA
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  const fetchWeatherData = async () => {
+  const fetchWeatherData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -100,7 +100,7 @@ export const useWeather = (latitude = OTTAWA_COORDS.latitude, longitude = OTTAWA
     } finally {
       setLoading(false);
     }
-  };
+  }, [latitude, longitude]);
 
   // Fetch weather data on component mount and set up refresh interval
   useEffect(() => {
@@ -110,7 +110,7 @@ export const useWeather = (latitude = OTTAWA_COORDS.latitude, longitude = OTTAWA
     const interval = setInterval(fetchWeatherData, 10 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [latitude, longitude]);
+  }, [fetchWeatherData]);
 
   // Manual refresh function
   const refreshWeather = () => {

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import apiClient from '@/lib/api';
 import { useAuth } from './useAuth';
 
@@ -36,7 +36,7 @@ export const useGardens = () => {
     status: gardenData.status
   });
 
-  const fetchGardens = async () => {
+  const fetchGardens = useCallback(async () => {
     if (!isAuthenticated) {
       setGardens([]);
       setLoading(false);
@@ -73,11 +73,11 @@ export const useGardens = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchGardens();
-  }, [user, isAuthenticated]);
+  }, [fetchGardens, user?.id]);
 
   const createGarden = async (gardenData) => {
     try {
