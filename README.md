@@ -1,6 +1,6 @@
 # Plant Plotter
 
-Plant Plotter is a full-stack garden planning application for creating garden spaces, managing layouts, browsing plant data, and tracking garden activity. It helps users manage garden spaces, plan layouts, track garden details, and work with a searchable plant library.
+Plant Plotter is a full-stack garden planning application for creating garden spaces, managing layouts, browsing plant data, and tracking garden activity. 
 
 ## Features
 
