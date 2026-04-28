@@ -209,9 +209,7 @@ router.get("/", verifyToken, async (req, res) => {
   } catch (err) {
     console.error(`Error fetching gardens for user ${userId}:`, err);
     res.status(500).json({ 
-      message: "Server error", 
-      error: err.message,
-      userId: userId 
+      message: "Failed to fetch gardens"
     });
   }
 });
@@ -296,10 +294,7 @@ router.get('/:id', verifyToken, async (req, res) => {
   } catch (error) {
     console.error(`Error fetching garden ${gardenId} for user ${userId}:`, error);
     res.status(500).json({ 
-      error: 'Failed to fetch garden', 
-      message: error.message,
-      gardenId: gardenId,
-      userId: userId
+      message: 'Failed to fetch garden'
     });
   }
 });
@@ -455,8 +450,8 @@ router.post('/', verifyToken, async (req, res) => {
 
     // Fetch and return created garden
     const [newGarden] = await db.execute(
-      'SELECT * FROM gardens WHERE id = ?',
-      [result.insertId]
+      'SELECT * FROM gardens WHERE id = ? AND user_id = ?',
+      [result.insertId, userId]
     );
 
     const garden = newGarden[0];
@@ -487,16 +482,12 @@ router.post('/', verifyToken, async (req, res) => {
     
     if (error.code === 'ER_DATA_TOO_LONG') {
       return res.status(400).json({ 
-        message: 'Data sanitization failed - some field is still too long',
-        error: error.message,
-        hint: 'Check database column sizes'
+        message: 'One or more garden fields are too long'
       });
     }
     
     res.status(500).json({ 
-      message: 'Failed to create garden', 
-      error: error.message,
-      code: error.code || 'UNKNOWN_ERROR'
+      message: 'Failed to create garden'
     });
   }
 });
@@ -550,8 +541,8 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     // Fetch updated garden to verify
     const [updatedGarden] = await db.execute(
-      'SELECT * FROM gardens WHERE id = ?',
-      [gardenId]
+      'SELECT * FROM gardens WHERE id = ? AND user_id = ?',
+      [gardenId, userId]
     );
 
     const garden = updatedGarden[0];
@@ -586,15 +577,12 @@ router.put('/:id', verifyToken, async (req, res) => {
     // Handle specific database errors
     if (error.code === 'ER_DATA_TOO_LONG') {
       return res.status(400).json({ 
-        message: 'Data too long for database field',
-        error: error.message,
-        hint: 'Garden name or description is too long'
+        message: 'One or more garden fields are too long'
       });
     }
     
     res.status(500).json({ 
-      message: 'Failed to update garden', 
-      error: error.message 
+      message: 'Failed to update garden'
     });
   }
 });
@@ -674,8 +662,7 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Plant saving failed:', error);
     res.status(500).json({ 
-      message: 'Failed to save plants', 
-      error: error.message 
+      message: 'Failed to save plants'
     });
   }
 });
@@ -751,7 +738,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
 
   } catch (err) {
     console.error(`Error deleting garden ${gardenId} for user ${userId}:`, err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Failed to delete garden" });
   }
 });
 
@@ -779,9 +766,7 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
 
     if (garden.length === 0) {
       return res.status(404).json({ 
-        error: 'Garden not found or access denied',
-        gardenId: gardenId,
-        userId: userId
+        error: 'Garden not found or access denied'
       });
     }
 
@@ -824,14 +809,13 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
 
     // Step 5: Fetch the newly created plant
     const [newPlant] = await db.execute(
-      'SELECT * FROM planted_items WHERE id = ?',
-      [result.insertId]
+      'SELECT * FROM planted_items WHERE id = ? AND garden_id = ?',
+      [result.insertId, gardenId]
     );
 
     if (newPlant.length === 0) {
       return res.status(500).json({ 
-        error: 'Plant created but could not be retrieved',
-        insertId: result.insertId
+        error: 'Plant created but could not be retrieved'
       });
     }
 
@@ -871,59 +855,41 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
       console.log('Foreign key constraint failed');
       return res.status(400).json({ 
-        error: 'Invalid garden ID or user ID',
-        message: error.message,
-        gardenId,
-        userId,
-        code: error.code
+        error: 'Invalid garden or plant reference'
       });
     }
     
     if (error.code === 'ER_BAD_FIELD_ERROR') {
       console.log('Bad field error - column does not exist');
       return res.status(500).json({ 
-        error: 'Database schema error - missing column',
-        message: error.message,
-        code: error.code,
-        sqlMessage: error.sqlMessage
+        error: 'Failed to add plant'
       });
     }
     
     if (error.code === 'ER_DATA_TOO_LONG') {
       console.log('Data too long for field');
       return res.status(400).json({ 
-        error: 'One or more fields exceed maximum length',
-        message: error.message,
-        code: error.code
+        error: 'One or more plant fields are too long'
       });
     }
 
     if (error.code === 'ER_BAD_NULL_ERROR') {
       console.log('Required field is null');
       return res.status(400).json({ 
-        error: 'Required field is missing',
-        message: error.message,
-        code: error.code
+        error: 'Required field is missing'
       });
     }
 
     if (error.code === 'ECONNREFUSED') {
       console.log('Database connection refused');
       return res.status(503).json({ 
-        error: 'Database connection failed',
-        message: 'Cannot connect to database server',
-        code: error.code
+        error: 'Service temporarily unavailable'
       });
     }
     
     // Generic error response
     res.status(500).json({ 
-      error: 'Failed to add plant', 
-      message: error.message,
-      code: error.code || 'UNKNOWN_ERROR',
-      timestamp: new Date().toISOString(),
-      gardenId,
-      userId
+      error: 'Failed to add plant'
     });
   }
 });
@@ -958,8 +924,8 @@ router.put('/:id/plants/:plantId', verifyToken, async (req, res) => {
     }
 
     const [updatedPlant] = await db.execute(
-      'SELECT * FROM planted_items WHERE id = ?',
-      [plantId]
+      'SELECT * FROM planted_items WHERE id = ? AND garden_id = ?',
+      [plantId, gardenId]
     );
 
     const transformedPlant = {
@@ -981,7 +947,7 @@ router.put('/:id/plants/:plantId', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error(`Error updating plant ${plantId} for user ${userId}:`, error);
-    res.status(500).json({ error: 'Failed to update plant', message: error.message });
+    res.status(500).json({ error: 'Failed to update plant' });
   }
 });
 
@@ -1015,7 +981,7 @@ router.delete('/:id/plants/:plantId', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error(`Error removing plant ${plantId} for user ${userId}:`, error);
-    res.status(500).json({ error: 'Failed to remove plant', message: error.message });
+    res.status(500).json({ error: 'Failed to remove plant' });
   }
 });
 

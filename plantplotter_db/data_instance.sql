@@ -1,4 +1,6 @@
 -- Insert demo users with properly generated bcrypt hashes
+USE garden_plotter;
+
 INSERT INTO users (
     username, 
     email, 

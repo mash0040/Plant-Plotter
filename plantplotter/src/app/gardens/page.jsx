@@ -1,6 +1,6 @@
 // app/gardens/page.jsx
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import apiClient from '@/lib/api';
 import GardenList from '@/components/Gardens/GardenList';
@@ -8,7 +8,20 @@ import GardenForm from '@/components/Gardens/GardenForm';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 
-export default function AllGardensPage() {
+function GardensLoading() {
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading gardens...</p>
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
+}
+
+function AllGardensContent() {
   const searchParams = useSearchParams();
   const [gardens, setGardens] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -66,6 +79,11 @@ export default function AllGardensPage() {
       
     } catch (error) {
       console.error('Failed to load gardens from API:', error);
+      if (error.status === 401) {
+        setGardens([]);
+        return;
+      }
+
       setError(`API Error: ${error.message}`);
       
       // Fallback to localStorage
@@ -138,6 +156,9 @@ export default function AllGardensPage() {
       setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
       console.error('Failed to delete garden via API:', error);
+      if (error.status === 401) {
+        return;
+      }
       
       // Fallback to localStorage deletion
       try {
@@ -197,7 +218,7 @@ export default function AllGardensPage() {
           };
         } catch (error) {
           console.error('Failed to update garden via API:', error);
-          if (error.status === 400 || error.errors) {
+          if (error.status === 401 || error.status === 400 || error.errors) {
             throw error;
           }
 
@@ -219,7 +240,7 @@ export default function AllGardensPage() {
           }
         }
         
-        setSuccessMessage(`"${savedGarden.name}" updated successfully!`);
+        setSuccessMessage('Garden updated successfully.');
       } else {
         // Create new garden
         try {
@@ -254,7 +275,7 @@ export default function AllGardensPage() {
           };
         } catch (error) {
           console.error('Failed to create garden via API:', error);
-          if (error.status === 400 || error.errors) {
+          if (error.status === 401 || error.status === 400 || error.errors) {
             throw error;
           }
 
@@ -273,7 +294,7 @@ export default function AllGardensPage() {
           localStorage.setItem('gardens', JSON.stringify(localGardens));
         }
         
-        setSuccessMessage(`"${savedGarden.name}" created successfully!`);
+        setSuccessMessage('Garden created successfully.');
       }
       
       // Reload gardens to reflect the changes
@@ -287,7 +308,7 @@ export default function AllGardensPage() {
       
     } catch (error) {
       console.error('Failed to save garden:', error);
-      if (error.status === 400 || error.errors) {
+      if (error.status === 401 || error.status === 400 || error.errors) {
         throw error;
       }
 
@@ -301,16 +322,7 @@ export default function AllGardensPage() {
   };
 
   if (loading) {
-    return (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading gardens...</p>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
+    return <GardensLoading />;
   }
 
   return (
@@ -391,5 +403,13 @@ export default function AllGardensPage() {
         }
       `}</style>
     </ProtectedRoute>
+  );
+}
+
+export default function AllGardensPage() {
+  return (
+    <Suspense fallback={<GardensLoading />}>
+      <AllGardensContent />
+    </Suspense>
   );
 }

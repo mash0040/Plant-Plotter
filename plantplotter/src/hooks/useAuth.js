@@ -1,11 +1,13 @@
 // hooks/useAuth.js
 'use client';
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,7 +19,7 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
       }
       
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       if (!token) {
         setLoading(false);
         return null;
@@ -52,11 +54,8 @@ export const AuthProvider = ({ children }) => {
       
     } catch (error) {
       // Handle authentication errors
-      if (error.message.includes('Authentication failed') || error.message.includes('Unauthorized')) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('user');
-          localStorage.removeItem('token');
-        }
+      if (error.status === 401 || error.message.includes('Authentication failed') || error.message.includes('Unauthorized')) {
+        apiClient.logout();
         setUser(null);
       }
       
@@ -73,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       try {
         if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('token');
+          const token = localStorage.getItem('token') || localStorage.getItem('authToken');
           
           if (token) {
             await fetchUserProfile();
@@ -83,8 +82,7 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (err) {
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('user');
-          localStorage.removeItem('token');
+          apiClient.logout();
         }
         setUser(null);
         setLoading(false);
@@ -93,6 +91,18 @@ export const AuthProvider = ({ children }) => {
 
     initializeAuth();
   }, []);
+
+  useEffect(() => {
+    const handleAuthExpired = (event) => {
+      setUser(null);
+      setError(event.detail?.message || 'Your session expired. Please sign in again.');
+      setLoading(false);
+      router.push('/login');
+    };
+
+    window.addEventListener('plantplotter:auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('plantplotter:auth-expired', handleAuthExpired);
+  }, [router]);
 
   const login = async (email, password) => {
     try {

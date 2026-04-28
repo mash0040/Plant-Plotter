@@ -73,8 +73,7 @@ const verifyToken = (req, res, next) => {
     }
 
     return res.status(500).json({ 
-      message: 'Token verification failed.',
-      error: error.message
+      message: 'Token verification failed.'
     });
   }
 };

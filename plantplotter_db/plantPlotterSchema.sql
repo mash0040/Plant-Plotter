@@ -1,8 +1,8 @@
 -- Garden Management App Database Schema
 -- MySQL Database Setup
 
--- Create database
-drop database garden_plotter;
+-- Create database if it does not already exist.
+-- This schema intentionally does not drop the database or wipe existing data.
 CREATE DATABASE IF NOT EXISTS garden_plotter;
 USE garden_plotter;
 
@@ -91,6 +91,7 @@ CREATE TABLE garden_activities (
     activity_time TIME,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (garden_id) REFERENCES gardens(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_garden_activity (garden_id, activity_date),
