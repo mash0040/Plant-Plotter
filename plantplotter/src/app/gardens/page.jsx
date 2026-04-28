@@ -66,6 +66,11 @@ export default function AllGardensPage() {
       
     } catch (error) {
       console.error('Failed to load gardens from API:', error);
+      if (error.status === 401) {
+        setGardens([]);
+        return;
+      }
+
       setError(`API Error: ${error.message}`);
       
       // Fallback to localStorage
@@ -138,6 +143,9 @@ export default function AllGardensPage() {
       setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
       console.error('Failed to delete garden via API:', error);
+      if (error.status === 401) {
+        return;
+      }
       
       // Fallback to localStorage deletion
       try {
@@ -197,7 +205,7 @@ export default function AllGardensPage() {
           };
         } catch (error) {
           console.error('Failed to update garden via API:', error);
-          if (error.status === 400 || error.errors) {
+          if (error.status === 401 || error.status === 400 || error.errors) {
             throw error;
           }
 
@@ -254,7 +262,7 @@ export default function AllGardensPage() {
           };
         } catch (error) {
           console.error('Failed to create garden via API:', error);
-          if (error.status === 400 || error.errors) {
+          if (error.status === 401 || error.status === 400 || error.errors) {
             throw error;
           }
 
@@ -287,7 +295,7 @@ export default function AllGardensPage() {
       
     } catch (error) {
       console.error('Failed to save garden:', error);
-      if (error.status === 400 || error.errors) {
+      if (error.status === 401 || error.status === 400 || error.errors) {
         throw error;
       }
 

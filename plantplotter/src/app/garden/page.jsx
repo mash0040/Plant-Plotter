@@ -10,11 +10,12 @@ import SaveGardenModel from '@/components/Garden/SaveGardenModel';
 import LoadGardenModel from '@/components/Garden/LoadGardenModel';
 import PlantEditModal from '@/components/Garden/PlantEditModal';
 import RowPlantingModal from '@/components/Garden/RowPlantingModal';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
 import { snapToGrid, checkPlantOverlap, isWithinBounds } from '@/components/Garden/Utils/GardenUtils';
 import apiClient from '@/lib/api';
 
-export default function GardenPlannerPage() {
+function GardenPlannerPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const gardenId = searchParams.get('id');
@@ -889,5 +890,13 @@ export default function GardenPlannerPage() {
         onLoad={handleLoadGarden}
       />
     </div>
+  );
+}
+
+export default function GardenPlannerPage() {
+  return (
+    <ProtectedRoute>
+      <GardenPlannerPageContent />
+    </ProtectedRoute>
   );
 }

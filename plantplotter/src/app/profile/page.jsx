@@ -4,8 +4,9 @@ import { useSearchParams } from 'next/navigation';
 import { User, Settings, Shield, Bell } from 'lucide-react';
 import ProfileForm from '@/components/Profile/ProfileForm';
 import PreferencesForm from '@/components/Profile/PreferencesForm';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('profile');
 
@@ -61,5 +62,13 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <ProtectedRoute>
+      <ProfilePageContent />
+    </ProtectedRoute>
   );
 }

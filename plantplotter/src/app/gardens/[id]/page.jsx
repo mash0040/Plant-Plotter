@@ -4,8 +4,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Settings, Menu, X, Heart, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import GardenForm from '@/components/Gardens/GardenForm'; 
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-export default function GardenDetailPage() {
+function GardenDetailPageContent() {
   const params = useParams();
   const router = useRouter();
   const [garden, setGarden] = useState(null);
@@ -31,6 +32,9 @@ export default function GardenDetailPage() {
         
       } catch (error) {
         console.error('Failed to load data:', error);
+        if (error.status === 401) {
+          return;
+        }
         
         // Try localStorage fallback for garden
         try {
@@ -110,7 +114,7 @@ export default function GardenDetailPage() {
       setSuccessMessage('Garden updated successfully.');
     } catch (error) {
       console.error('Failed to update garden:', error);
-      if (error.status === 400 || error.errors) {
+      if (error.status === 401 || error.status === 400 || error.errors) {
         throw error;
       }
 
@@ -1031,6 +1035,9 @@ export default function GardenDetailPage() {
                           router.push('/gardens');
                         } catch (error) {
                           console.error('Failed to delete garden via API:', error);
+                          if (error.status === 401) {
+                            return;
+                          }
                           // Fallback to localStorage deletion
                           const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
                           const updatedGardens = localGardens.filter(g => g.id != garden.id);
@@ -1050,5 +1057,13 @@ export default function GardenDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function GardenDetailPage() {
+  return (
+    <ProtectedRoute>
+      <GardenDetailPageContent />
+    </ProtectedRoute>
   );
 }

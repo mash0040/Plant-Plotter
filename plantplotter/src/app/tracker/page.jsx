@@ -10,6 +10,7 @@ import TasksList from '@/components/Tracker/TasksList';
 import ActivityModal from '@/components/Tracker/ActivityModal';
 import TaskEditModal from '@/components/Tracker/TaskEditModal';
 import ActivityEditModal from '@/components/Tracker/ActivityEditModal';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { useWeather } from '@/hooks/useWeather'; 
 import { 
   generateCalendarData, 
@@ -24,7 +25,7 @@ import {
 } from '@/components/Tracker/Constants/TaskData';
 import apiClient from '@/lib/api';
 
-export default function TrackingPage() {
+function TrackingPageContent() {
   const [gardens, setGardens] = useState([]);
   const [selectedGarden, setSelectedGarden] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -99,6 +100,10 @@ export default function TrackingPage() {
       }
     } catch (error) {
       console.error('Failed to load gardens from API:', error);
+      if (error.status === 401) {
+        setGardens([]);
+        return;
+      }
       
       // Fallback to localStorage
       try {
@@ -577,5 +582,13 @@ export default function TrackingPage() {
         weatherData={weatherData}
       />
     </div>
+  );
+}
+
+export default function TrackingPage() {
+  return (
+    <ProtectedRoute>
+      <TrackingPageContent />
+    </ProtectedRoute>
   );
 }

@@ -9,6 +9,26 @@ class ApiClient {
     this.baseURL = API_BASE_URL;
   }
 
+  clearUserSessionStorage() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('gardens');
+    }
+  }
+
+  notifyAuthExpired(error) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('plantplotter:auth-expired', {
+        detail: {
+          message: error.message,
+          code: error.code
+        }
+      }));
+    }
+  }
+
   // Get auth token from localStorage
   getAuthToken() {
     if (typeof window !== 'undefined') {
@@ -54,12 +74,14 @@ class ApiClient {
         // Handle specific status codes
         switch (response.status) {
           case 401:
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('token');
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('user');
-            }
-            throw new Error('Authentication failed. Please log in again.');
+            const authError = new Error('Your session expired. Please sign in again.');
+            authError.status = 401;
+            authError.code = errorData?.error || errorData?.code || 'UNAUTHORIZED';
+            authError.errors = errorData?.errors;
+            authError.fieldErrors = errorData?.errors;
+            this.clearUserSessionStorage();
+            this.notifyAuthExpired(authError);
+            throw authError;
           case 403:
             throw new Error('Access forbidden. You do not have permission.');
           case 404:
@@ -106,6 +128,7 @@ class ApiClient {
       });
 
       if (response.token && typeof window !== 'undefined') {
+        this.clearUserSessionStorage();
         localStorage.setItem('token', response.token);
         localStorage.setItem('authToken', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
@@ -119,11 +142,7 @@ class ApiClient {
   }
 
   logout() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-    }
+    this.clearUserSessionStorage();
   }
 
   // Register new user
@@ -139,6 +158,7 @@ class ApiClient {
       });
 
       if (response.token && typeof window !== 'undefined') {
+        this.clearUserSessionStorage();
         localStorage.setItem('token', response.token);
         localStorage.setItem('authToken', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
@@ -213,15 +233,6 @@ class ApiClient {
       
     } catch (error) {
       console.error('Failed to fetch gardens:', error);
-      
-      // Enhanced error handling
-      if (error.message.includes('Authentication failed')) {
-        this.logout();
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
-        throw new Error('Please log in again');
-      }
       
       if (error.message.includes('Network error')) {
         throw new Error('Cannot connect to server. Please check if the backend is running.');
