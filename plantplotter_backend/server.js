@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const { generalApiLimiter } = require('./middleware/rateLimiters');
 require('dotenv').config();
 
 const app = express();
@@ -21,6 +22,8 @@ app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
   next();
 });
+
+app.use('/api', generalApiLimiter);
 
 // Import routes
 const userRoutes = require('./routes/users');
