@@ -3,6 +3,7 @@ import { ArrowLeft, X, Search, ChevronDown, ChevronUp, Heart, AlertTriangle, Inf
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import PlantLibraryItem from './PlantLibraryItem';
 import apiClient from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function PlantLibrary({ 
   searchTerm, 
@@ -14,6 +15,8 @@ export default function PlantLibrary({
   onEditPlant,
   onPlantRow  // Add this new prop
 }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -346,6 +349,10 @@ export default function PlantLibrary({
 
   // Plant editing functions
   const handleEditPlant = (plant) => {
+    if (!isAdmin) {
+      return;
+    }
+
     if (onEditPlant) {
       onEditPlant(plant);
     } else {
@@ -363,6 +370,10 @@ export default function PlantLibrary({
   };
 
   const handleAddNewPlant = () => {
+    if (!isAdmin) {
+      return;
+    }
+
     const newPlantTemplate = {
       name: '',
       emoji: '🌱',
@@ -481,13 +492,15 @@ export default function PlantLibrary({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={handleAddNewPlant}
-              className="p-2 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
-              title="Add new plant"
-            >
-              <Plus className="w-4 h-4 text-green-600" />
-            </button>
+            {isAdmin && (
+              <button 
+                onClick={handleAddNewPlant}
+                className="p-2 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
+                title="Add new plant"
+              >
+                <Plus className="w-4 h-4 text-green-600" />
+              </button>
+            )}
             <button 
               onClick={onToggle}
               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -650,7 +663,7 @@ export default function PlantLibrary({
                     plant={plant}
                     onEdit={handleEditPlant}
                     onPlantRow={handlePlantRow}
-                    showEditButton={true}
+                    showEditButton={isAdmin}
                     isInScrollContainer={true}
                   />
                 ))}

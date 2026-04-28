@@ -450,8 +450,8 @@ router.post('/', verifyToken, async (req, res) => {
 
     // Fetch and return created garden
     const [newGarden] = await db.execute(
-      'SELECT * FROM gardens WHERE id = ?',
-      [result.insertId]
+      'SELECT * FROM gardens WHERE id = ? AND user_id = ?',
+      [result.insertId, userId]
     );
 
     const garden = newGarden[0];
@@ -541,8 +541,8 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     // Fetch updated garden to verify
     const [updatedGarden] = await db.execute(
-      'SELECT * FROM gardens WHERE id = ?',
-      [gardenId]
+      'SELECT * FROM gardens WHERE id = ? AND user_id = ?',
+      [gardenId, userId]
     );
 
     const garden = updatedGarden[0];
@@ -809,8 +809,8 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
 
     // Step 5: Fetch the newly created plant
     const [newPlant] = await db.execute(
-      'SELECT * FROM planted_items WHERE id = ?',
-      [result.insertId]
+      'SELECT * FROM planted_items WHERE id = ? AND garden_id = ?',
+      [result.insertId, gardenId]
     );
 
     if (newPlant.length === 0) {
@@ -924,8 +924,8 @@ router.put('/:id/plants/:plantId', verifyToken, async (req, res) => {
     }
 
     const [updatedPlant] = await db.execute(
-      'SELECT * FROM planted_items WHERE id = ?',
-      [plantId]
+      'SELECT * FROM planted_items WHERE id = ? AND garden_id = ?',
+      [plantId, gardenId]
     );
 
     const transformedPlant = {

@@ -88,8 +88,8 @@ router.post('/', verifyToken, async (req, res) => {
     );
 
     const [newTask] = await db.execute(
-      'SELECT * FROM garden_tasks WHERE id = ?',
-      [result.insertId]
+      'SELECT * FROM garden_tasks WHERE id = ? AND user_id = ?',
+      [result.insertId, req.user.id]
     );
 
     res.status(201).json(newTask[0]);
@@ -143,8 +143,8 @@ router.put('/:id', verifyToken, async (req, res) => {
     }
 
     const [updatedTask] = await db.execute(
-      'SELECT * FROM garden_tasks WHERE id = ?',
-      [req.params.id]
+      'SELECT * FROM garden_tasks WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.id]
     );
 
     res.json(updatedTask[0]);

@@ -155,11 +155,10 @@ router.put('/preferences', verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/users/protected - Test protected route
+// GET /api/users/protected - Minimal protected route check
 router.get('/protected', verifyToken, (req, res) => {
   res.json({
-    message: 'You accessed a protected route!',
-    user: req.user
+    message: 'Authenticated'
   });
 });
 
