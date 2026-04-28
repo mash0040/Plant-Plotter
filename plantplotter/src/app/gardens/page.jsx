@@ -1,6 +1,6 @@
 // app/gardens/page.jsx
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import apiClient from '@/lib/api';
 import GardenList from '@/components/Gardens/GardenList';
@@ -8,7 +8,20 @@ import GardenForm from '@/components/Gardens/GardenForm';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 
-export default function AllGardensPage() {
+function GardensLoading() {
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading gardens...</p>
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
+}
+
+function AllGardensContent() {
   const searchParams = useSearchParams();
   const [gardens, setGardens] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -309,16 +322,7 @@ export default function AllGardensPage() {
   };
 
   if (loading) {
-    return (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading gardens...</p>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
+    return <GardensLoading />;
   }
 
   return (
@@ -399,5 +403,13 @@ export default function AllGardensPage() {
         }
       `}</style>
     </ProtectedRoute>
+  );
+}
+
+export default function AllGardensPage() {
+  return (
+    <Suspense fallback={<GardensLoading />}>
+      <AllGardensContent />
+    </Suspense>
   );
 }
