@@ -9,6 +9,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const [loading, setLoading] = useState(false);
   const [gardenPendingDelete, setGardenPendingDelete] = useState(null);
   const [deleteError, setDeleteError] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -19,12 +20,12 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const loadGardens = async () => {
     setLoading(true);
     try {
+      setLoadError('');
       const userGardens = await apiClient.getGardens();
       setGardens(userGardens);
     } catch (error) {
       console.error('Failed to load gardens:', error);
-      // Show user-friendly error
-      alert('Failed to load gardens. Please check your connection and try again.');
+      setLoadError('Failed to load gardens. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -32,6 +33,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
 
   const handleLoad = async (garden) => {
     try {
+      setLoadError('');
       const fullGarden = await apiClient.getGarden(garden.id);
       
       const transformedGarden = {
@@ -67,7 +69,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
       onClose();
     } catch (error) {
       console.error('Failed to load garden:', error);
-      alert('Failed to load garden. Please try again.');
+      setLoadError('Failed to load garden. Please try again.');
     }
   };
 
@@ -106,6 +108,12 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
         {deleteError && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {deleteError}
+          </div>
+        )}
+
+        {loadError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {loadError}
           </div>
         )}
 

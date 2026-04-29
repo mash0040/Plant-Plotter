@@ -42,6 +42,8 @@ function GardenPlannerPageContent() {
   const [layoutSaveError, setLayoutSaveError] = useState('');
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [duplicatePlantPending, setDuplicatePlantPending] = useState(null);
+  const [plannerLoadError, setPlannerLoadError] = useState('');
+  const [placementPreview, setPlacementPreview] = useState(null);
 
   // State to store plant library data
   const [libraryPlants, setLibraryPlants] = useState([]);
@@ -188,31 +190,44 @@ function GardenPlannerPageContent() {
 
   // Row planting execution handler
   const handleExecuteRowPlanting = (plantsToAdd) => {
-    // Check for overlaps with existing plants
-    const validPlants = [];
-    const invalidPlants = [];
-    
-    plantsToAdd.forEach(plant => {
-      const hasOverlap = checkPlantOverlapFlexible(plant, placedPlants, gridSize, showGrid);
-      if (!hasOverlap) {
-        validPlants.push(plant);
-      } else {
-        invalidPlants.push(plant);
-      }
-    });
-    
-    if (validPlants.length > 0) {
-      setLayoutSaveMessage('');
-      setLayoutSaveError(invalidPlants.length > 0
-        ? `${invalidPlants.length} row plant${invalidPlants.length === 1 ? '' : 's'} overlapped existing plants and were not added.`
-        : ''
-      );
-      setPlacedPlants(prev => [...prev, ...validPlants]);
-      setHasUnsavedChanges(true);
-    } else if (invalidPlants.length > 0) {
-      setLayoutSaveMessage('');
-      setLayoutSaveError('These plants overlap existing plants. Choose a different spot.');
+    const hasOutOfBoundsPlant = plantsToAdd.some(plant => (
+      !isWithinBoundsFlexible(plant, dimensions, gridSize, showGrid)
+    ));
+
+    if (hasOutOfBoundsPlant) {
+      return {
+        success: false,
+        message: 'This row does not fit inside the garden. Adjust the row and try again.'
+      };
     }
+
+    const hasExistingOverlap = plantsToAdd.some(plant => (
+      checkPlantOverlapFlexible(plant, placedPlants, gridSize, showGrid)
+    ));
+
+    if (hasExistingOverlap) {
+      return {
+        success: false,
+        message: 'This row overlaps existing plants. Choose a different spot.'
+      };
+    }
+
+    const hasRowOverlap = plantsToAdd.some((plant, index) => {
+      const otherRowPlants = plantsToAdd.filter((_, otherIndex) => otherIndex !== index);
+      return checkPlantOverlapFlexible(plant, otherRowPlants, gridSize, showGrid);
+    });
+
+    if (hasRowOverlap) {
+      return {
+        success: false,
+        message: 'Plants in this row overlap each other. Increase spacing and try again.'
+      };
+    }
+
+    setPlacedPlants(prev => [...prev, ...plantsToAdd]);
+    setHasUnsavedChanges(true);
+
+    return { success: true };
   };
 
   // Get active plant for drag overlay with proper plant resolution
@@ -252,11 +267,13 @@ function GardenPlannerPageContent() {
       
       setLoading(true);
       try {
+        setPlannerLoadError('');
         const garden = await apiClient.getGarden(gardenId);
         
         if (!garden) {
-          alert('Garden not found');
-          router.push('/gardens');
+          setPlannerLoadError('Garden not found.');
+          setCurrentGarden(null);
+          setPlacedPlants([]);
           return;
         }
         
@@ -280,7 +297,7 @@ function GardenPlannerPageContent() {
             name: item.name,
             emoji: item.emoji,
             size: item.size,
-            category: item.category,
+            category: getBestPlantCategory(item),
             // Convert grid positions to pixel positions
             x: gridToPixels(item.xPosition || 0),
             y: gridToPixels(item.yPosition || 0),
@@ -296,8 +313,9 @@ function GardenPlannerPageContent() {
         setHasUnsavedChanges(false);
       } catch (error) {
         console.error('Failed to load garden:', error);
-        alert('Failed to load garden. Please try again.');
-        router.push('/gardens');
+        setPlannerLoadError('Failed to load garden. Please try again.');
+        setCurrentGarden(null);
+        setPlacedPlants([]);
       } finally {
         setLoading(false);
       }
@@ -354,16 +372,17 @@ function GardenPlannerPageContent() {
   const validateNewPlantPlacement = (newPlant) => {
     const withinBounds = isWithinBoundsFlexible(newPlant, dimensions, gridSize, showGrid);
     const hasOverlap = checkPlantOverlapFlexible(newPlant, placedPlants, gridSize, showGrid);
+    const footprintLabel = `${newPlant.size || 1}x${newPlant.size || 1}`;
 
     if (!withinBounds) {
       setLayoutSaveMessage('');
-      setLayoutSaveError('This plant is outside the garden. Choose a different spot.');
+      setLayoutSaveError(`This ${footprintLabel} plant needs to fit fully inside the garden.`);
       return false;
     }
 
     if (hasOverlap) {
       setLayoutSaveMessage('');
-      setLayoutSaveError('This plant overlaps another plant. Choose a different spot.');
+      setLayoutSaveError(`This ${footprintLabel} plant needs a clear ${footprintLabel} space.`);
       return false;
     }
 
@@ -402,124 +421,121 @@ function GardenPlannerPageContent() {
     }
   };
 
-  const handleDragEnd = (event) => {
-    const { active, over, delta, activatorEvent } = event;
-    
-    setActiveId(null);
+  const getDragClientPoint = (activatorEvent, delta) => {
+    const startX = activatorEvent?.clientX ?? activatorEvent?.touches?.[0]?.clientX ?? activatorEvent?.changedTouches?.[0]?.clientX;
+    const startY = activatorEvent?.clientY ?? activatorEvent?.touches?.[0]?.clientY ?? activatorEvent?.changedTouches?.[0]?.clientY;
 
-    // Must drop over the garden canvas
-    if (!over || over.id !== 'garden-canvas') {
+    if (startX === undefined || startY === undefined || !delta) {
+      return null;
+    }
+
+    return {
+      x: startX + delta.x,
+      y: startY + delta.y
+    };
+  };
+
+  const getLibraryPlantPlacement = (dragEvent, draggedData) => {
+    const canvasElement = document.querySelector('[data-canvas="true"]');
+    const clientPoint = getDragClientPoint(dragEvent.activatorEvent, dragEvent.delta);
+
+    if (!canvasElement || !clientPoint) {
+      return null;
+    }
+
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const canvasX = clientPoint.x - canvasRect.left;
+    const canvasY = clientPoint.y - canvasRect.top;
+
+    if (canvasX < 0 || canvasY < 0 || canvasX > canvasRect.width || canvasY > canvasRect.height) {
+      return {
+        isInsideCanvas: false,
+        message: 'Drop plants inside the garden canvas.'
+      };
+    }
+
+    const plantSize = (draggedData.size || 1) * gridSize;
+    let plantX = canvasX - (plantSize / 2);
+    let plantY = canvasY - (plantSize / 2);
+
+    if (showGrid) {
+      plantX = snapToGrid(Math.max(0, plantX), gridSize);
+      plantY = snapToGrid(Math.max(0, plantY), gridSize);
+    } else {
+      plantX = Math.max(0, plantX);
+      plantY = Math.max(0, plantY);
+    }
+
+    const maxX = (dimensions.width * gridSize) - plantSize;
+    const maxY = (dimensions.height * gridSize) - plantSize;
+    plantX = Math.min(plantX, Math.max(0, maxX));
+    plantY = Math.min(plantY, Math.max(0, maxY));
+
+    const proposedPlant = {
+      ...draggedData,
+      x: plantX,
+      y: plantY,
+      isFromLibrary: false
+    };
+    const withinBounds = isWithinBoundsFlexible(proposedPlant, dimensions, gridSize, showGrid);
+    const hasOverlap = checkPlantOverlapFlexible(proposedPlant, placedPlants, gridSize, showGrid);
+    const footprintLabel = `${draggedData.size || 1}x${draggedData.size || 1}`;
+
+    return {
+      isInsideCanvas: true,
+      plant: proposedPlant,
+      preview: {
+        x: plantX,
+        y: plantY,
+        size: draggedData.size || 1,
+        isValid: withinBounds && !hasOverlap,
+        message: !withinBounds
+          ? `This ${footprintLabel} plant needs to fit fully inside the garden.`
+          : hasOverlap
+            ? `This ${footprintLabel} plant needs a clear ${footprintLabel} space.`
+            : ''
+      }
+    };
+  };
+
+  const handleDragMove = (event) => {
+    const draggedData = event.active.data.current;
+
+    if (!draggedData?.isFromLibrary) {
+      setPlacementPreview(null);
       return;
     }
 
+    const placement = getLibraryPlantPlacement(event, draggedData);
+    setPlacementPreview(placement?.isInsideCanvas ? placement.preview : null);
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setPlacementPreview(null);
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over, delta, activatorEvent } = event;
+
+    setActiveId(null);
+    setPlacementPreview(null);
+
     const draggedData = active.data.current;
-    
+
     if (draggedData?.isFromLibrary) {
-      // Adding new plant from library
-      const canvasElement = document.querySelector('[data-canvas="true"]');
-      if (!canvasElement) {
+      const placement = getLibraryPlantPlacement({ activatorEvent, delta }, draggedData);
+
+      if (!placement?.isInsideCanvas) {
+        setLayoutSaveMessage('');
+        setLayoutSaveError(placement?.message || 'Drop plants inside the garden canvas.');
         return;
       }
 
-      // Enhanced scroll container detection and handling
-      const canvasRect = canvasElement.getBoundingClientRect();
-      
-      // Find all possible scroll containers
-      const mainScrollContainer = canvasElement.closest('.overflow-auto');
-      const sidebarScrollContainer = document.querySelector('[data-sidebar] .overflow-y-auto');
-      
-      // Get scroll offsets from both containers
-      const mainScrollLeft = mainScrollContainer ? mainScrollContainer.scrollLeft : 0;
-      const mainScrollTop = mainScrollContainer ? mainScrollContainer.scrollTop : 0;
-      const sidebarScrollTop = sidebarScrollContainer ? sidebarScrollContainer.scrollTop : 0;
-
-      // Better drop position calculation considering all scroll offsets
-      let dropX, dropY;
-
-      if (activatorEvent) {
-        // Get the original start position
-        const startX = activatorEvent.clientX || activatorEvent.touches?.[0]?.clientX;
-        const startY = activatorEvent.clientY || activatorEvent.touches?.[0]?.clientY;
-        
-        if (startX && startY && delta) {
-          // Calculate final position considering scroll offsets
-          dropX = startX + delta.x;
-          dropY = startY + delta.y;
-        }
-      }
-
-      // Fallback methods if primary calculation fails
-      if (!dropX || !dropY || dropX < 0 || dropY < 0) {
-        // Use canvas center as fallback
-        dropX = canvasRect.left + canvasRect.width / 2;
-        dropY = canvasRect.top + canvasRect.height / 2;
-      }
-
-      // Convert screen coordinates to canvas coordinates
-      const canvasX = (dropX - canvasRect.left) + mainScrollLeft;
-      const canvasY = (dropY - canvasRect.top) + mainScrollTop;
-
-      // Validate drop is within canvas bounds
-      if (canvasX < 0 || canvasY < 0 || canvasX > canvasRect.width || canvasY > canvasRect.height) {
-        // Force to canvas center if outside bounds
-        const centerX = canvasRect.width / 2;
-        const centerY = canvasRect.height / 2;
-        
-        const plantSize = (draggedData.size || 1) * gridSize;
-        let plantX = centerX - (plantSize / 2);
-        let plantY = centerY - (plantSize / 2);
-
-        // Apply grid snapping if enabled
-        if (showGrid) {
-          plantX = snapToGrid(Math.max(0, plantX), gridSize);
-          plantY = snapToGrid(Math.max(0, plantY), gridSize);
-        } else {
-          plantX = Math.max(0, plantX);
-          plantY = Math.max(0, plantY);
-        }
-
-        // Create new plant object
-        const newPlant = {
-          ...draggedData,
-          id: `plant-${Date.now()}`,
-          plantId: draggedData.id,
-          x: plantX,
-          y: plantY,
-          isFromLibrary: false,
-          plantedDate: new Date()
-        };
-
-        handleNewPlantPlacement(newPlant);
-        return;
-      }
-
-      // Normal placement logic
-      const plantSize = (draggedData.size || 1) * gridSize;
-      let plantX = canvasX - (plantSize / 2);
-      let plantY = canvasY - (plantSize / 2);
-
-      // Apply grid snapping if enabled
-      if (showGrid) {
-        plantX = snapToGrid(Math.max(0, plantX), gridSize);
-        plantY = snapToGrid(Math.max(0, plantY), gridSize);
-      } else {
-        plantX = Math.max(0, plantX);
-        plantY = Math.max(0, plantY);
-      }
-
-      // Ensure plant stays within garden boundaries
-      const maxX = (dimensions.width * gridSize) - plantSize;
-      const maxY = (dimensions.height * gridSize) - plantSize;
-      plantX = Math.min(plantX, Math.max(0, maxX));
-      plantY = Math.min(plantY, Math.max(0, maxY));
-
-      // Create new plant object
       const newPlant = {
-        ...draggedData,
+        ...placement.plant,
         id: `plant-${Date.now()}`,
         plantId: draggedData.id,
-        x: plantX,
-        y: plantY,
         isFromLibrary: false,
         plantedDate: new Date()
       };
@@ -527,6 +543,10 @@ function GardenPlannerPageContent() {
       handleNewPlantPlacement(newPlant);
       
     } else if (!draggedData?.isFromLibrary) {
+      if (!over || over.id !== 'garden-canvas') {
+        return;
+      }
+
       // Moving existing plant
       setPlacedPlants(prev => prev.map(plant => {
         if (plant.id === active.id) {
@@ -564,7 +584,7 @@ function GardenPlannerPageContent() {
     plant_name: plant.name,
     plant_emoji: plant.emoji,
     plant_size: plant.size || 1,
-    plant_category: plant.category || 'other',
+    plant_category: getBestPlantCategory(plant),
     x_position: Math.floor((plant.x || 0) / gridSize),
     y_position: Math.floor((plant.y || 0) / gridSize),
     planted_date: plant.plantedDate ?
@@ -603,6 +623,12 @@ function GardenPlannerPageContent() {
 
     if (!currentGarden?.id) {
       setLayoutSaveError('Create or select a garden before saving a layout.');
+      return;
+    }
+
+    if (!hasUnsavedChanges) {
+      setLayoutSaveError('');
+      setLayoutSaveMessage('No changes to save.');
       return;
     }
 
@@ -691,10 +717,28 @@ function GardenPlannerPageContent() {
 
   const safeGardenName = getSafeGardenName(currentGarden);
 
+  const getBestPlantCategory = (plant) => {
+    const existingCategory = plant?.category || plant?.plant_category || plant?.type;
+    if (existingCategory && existingCategory.toLowerCase?.() !== 'other') {
+      return existingCategory;
+    }
+
+    const plantId = plant?.plantId || plant?.plant_id || plant?.id?.replace?.('plant-', '');
+    const plantName = plant?.name?.toLowerCase?.().trim();
+    const availablePlantData = [...libraryPlants, ...(PLANT_LIBRARY || [])];
+    const libraryPlant = availablePlantData.find((libraryItem) => (
+      libraryItem.id === plantId ||
+      libraryItem.name?.toLowerCase?.().trim() === plantName
+    ));
+
+    return libraryPlant?.category || libraryPlant?.type || existingCategory || null;
+  };
+
   // Load garden using apiClient
   const handleLoadGarden = async (gardenData) => {
     if (!gardenData) {
-      alert("Garden not found");
+      setLayoutSaveMessage('');
+      setLayoutSaveError('Garden not found.');
       return;
     }
     
@@ -711,7 +755,7 @@ function GardenPlannerPageContent() {
       name: item.name,
       emoji: item.emoji,
       size: item.size,
-      category: item.category,
+      category: getBestPlantCategory(item),
       x: gridToPixels(item.xPosition || 0),
       y: gridToPixels(item.yPosition || 0),
       plantedDate: item.plantedDate ? new Date(item.plantedDate) : null,
@@ -769,7 +813,10 @@ function GardenPlannerPageContent() {
         setHasUnsavedChanges(true);
       }
       setDimensions(newDimensions);
+      return true;
     }
+
+    return false;
   };
 
   const handleGridSizeChange = (newGridSize) => {
@@ -826,6 +873,24 @@ function GardenPlannerPageContent() {
     );
   }
 
+  if (plannerLoadError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white/90 border border-red-100 rounded-2xl shadow-xl p-6 text-center">
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">Planner unavailable</h1>
+          <p className="text-sm text-gray-600 mb-5">{plannerLoadError}</p>
+          <button
+            type="button"
+            onClick={() => router.push('/gardens')}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium"
+          >
+            Go to My Gardens
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!gardenId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center px-4">
@@ -875,7 +940,9 @@ function GardenPlannerPageContent() {
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
         {/* Plant Library Sidebar */}
         <div 
@@ -933,6 +1000,7 @@ function GardenPlannerPageContent() {
               showRuler={showRuler}
               placedPlants={placedPlants}
               onPlantRemove={handlePlantRemove}
+              placementPreview={placementPreview}
             />
           </div>
         </div>

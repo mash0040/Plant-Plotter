@@ -30,6 +30,7 @@ export default function PlantEditModal({
   
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [companionPlantsText, setCompanionPlantsText] = useState('');
   const [avoidPlantsText, setAvoidPlantsText] = useState('');
 
@@ -116,6 +117,7 @@ export default function PlantEditModal({
       setCompanionPlantsText(companionText);
       setAvoidPlantsText(avoidText);
       setError('');
+      setShowDeleteConfirm(false);
     }
   }, [isOpen, plant]);
 
@@ -248,16 +250,18 @@ export default function PlantEditModal({
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to ${isPlaced ? 'remove' : 'delete'} this plant?`)) {
-      return;
-    }
+    setShowDeleteConfirm(true);
+  };
 
+  const handleConfirmDelete = async () => {
     try {
       await onDelete(plant);
+      setShowDeleteConfirm(false);
       onClose();
     } catch (error) {
       console.error('Failed to delete plant:', error);
       setError(error.message || 'Failed to delete plant');
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -322,6 +326,33 @@ export default function PlantEditModal({
           <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span className="text-sm">{error}</span>
+          </div>
+        )}
+
+        {showDeleteConfirm && (
+          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm font-medium text-red-800">
+              {isPlaced ? 'Remove this plant from the garden?' : 'Delete this plant?'}
+            </p>
+            <p className="text-sm text-red-700 mt-1">
+              {isPlaced ? 'This removes the planted item from the current layout.' : 'This action cannot be undone.'}
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium"
+              >
+                {isPlaced ? 'Remove' : 'Delete'}
+              </button>
+            </div>
           </div>
         )}
 

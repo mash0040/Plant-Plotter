@@ -29,6 +29,28 @@ class ApiClient {
     }
   }
 
+  getBestPlantCategory(item = {}) {
+    return item.category || item.plant_category || item.type || item.plantType || null;
+  }
+
+  transformPlantedItem(item = {}) {
+    return {
+      id: item.id,
+      plantId: item.plant_id || item.plantId,
+      name: item.name || item.plant_name,
+      emoji: item.emoji || item.plant_emoji,
+      size: item.size || item.plant_size || 1,
+      category: this.getBestPlantCategory(item),
+      type: item.type,
+      xPosition: item.xPosition ?? item.x_position,
+      yPosition: item.yPosition ?? item.y_position,
+      plantedDate: item.plantedDate || item.planted_date || item.created_at,
+      created_at: item.created_at || item.createdAt,
+      updated_at: item.updated_at || item.updatedAt,
+      notes: item.notes || ''
+    };
+  }
+
   // Get auth token from localStorage
   getAuthToken() {
     if (typeof window !== 'undefined') {
@@ -220,7 +242,9 @@ class ApiClient {
           status: garden.status || 'Active',
           plantCount: garden.plant_count || garden.plantCount || garden.plantedItems?.length || 0,
           plant_count: garden.plant_count || garden.plantCount || garden.plantedItems?.length || 0,
-          plantedItems: garden.plantedItems || [],
+          plantedItems: Array.isArray(garden.plantedItems)
+            ? garden.plantedItems.map(item => this.transformPlantedItem(item))
+            : [],
           created_at: garden.created_at || garden.createdAt,
           createdAt: garden.created_at || garden.createdAt,
           updated_at: garden.updated_at || garden.updatedAt,
@@ -258,17 +282,7 @@ class ApiClient {
       }
       
       // Transform planted items to consistent format
-      const transformedPlantedItems = plantedItems.map(item => ({
-        id: item.id,
-        plantId: item.plant_id,
-        name: item.name,
-        emoji: item.emoji,
-        size: item.size || 1,
-        xPosition: item.xPosition,
-        yPosition: item.yPosition,
-        plantedDate: item.plantedDate,
-        notes: item.notes
-      }));
+      const transformedPlantedItems = plantedItems.map(item => this.transformPlantedItem(item));
       
       // Combine garden data with planted items
       const completeGarden = {
@@ -347,17 +361,9 @@ class ApiClient {
     try {
       const plantedItems = await this.request(`/gardens/${gardenId}/plants`);
       
-      const transformedItems = Array.isArray(plantedItems) ? plantedItems.map(item => ({
-        id: item.id,
-        plantId: item.plant_id,
-        name: item.name,
-        emoji: item.emoji,
-        size: item.size || 1,
-        xPosition: item.xPosition,
-        yPosition: item.yPosition,
-        plantedDate: item.plantedDate,
-        notes: item.notes
-      })) : [];
+      const transformedItems = Array.isArray(plantedItems)
+        ? plantedItems.map(item => this.transformPlantedItem(item))
+        : [];
       
       return transformedItems;
     } catch (error) {
@@ -376,8 +382,8 @@ class ApiClient {
           plant_emoji: plantData.plant_emoji || plantData.emoji,
           plant_size: plantData.plant_size || plantData.size,
           plant_category: plantData.plant_category || plantData.category,
-          x_position: plantData.x_position || plantData.xPosition,
-          y_position: plantData.y_position || plantData.yPosition,
+          x_position: plantData.x_position ?? plantData.xPosition,
+          y_position: plantData.y_position ?? plantData.yPosition,
           notes: plantData.notes
         }),
       });

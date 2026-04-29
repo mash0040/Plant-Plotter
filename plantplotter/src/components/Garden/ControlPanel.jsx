@@ -52,16 +52,16 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
     if (field === 'width' || field === 'height') {
       const metersValue = unit === 'imperial' ? feetToMeters(numValue) : numValue;
       const clampedValue = Math.max(1, Math.min(50, Math.round(metersValue)));
-      
-      onDimensionChange({
+      const nextDimensions = {
         ...dimensions,
         [field]: clampedValue
-      });
+      };
+      const dimensionChangeAccepted = onDimensionChange(nextDimensions);
       
-      // Update input to show clamped value
+      const displayedValue = dimensionChangeAccepted === false ? dimensions[field] : clampedValue;
       setInputValues(prev => ({
         ...prev,
-        [field]: unit === 'imperial' ? metersToFeet(clampedValue) : clampedValue.toString()
+        [field]: unit === 'imperial' ? metersToFeet(displayedValue) : displayedValue.toString()
       }));
     } else if (field === 'zoom') {
       const clampedZoomValue = Math.max(50, Math.min(250, Math.round(numValue)));
@@ -79,9 +79,16 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
   // Handle +/- buttons
   const adjustDimension = (type, delta) => {
     const newValue = Math.max(1, Math.min(50, dimensions[type] + delta));
-    onDimensionChange({ ...dimensions, [type]: newValue });
+    const dimensionChangeAccepted = onDimensionChange({ ...dimensions, [type]: newValue });
     
-    // Update input values
+    if (dimensionChangeAccepted === false) {
+      setInputValues(prev => ({
+        ...prev,
+        [type]: unit === 'imperial' ? metersToFeet(dimensions[type]) : dimensions[type].toString()
+      }));
+      return;
+    }
+
     setInputValues(prev => ({
       ...prev,
       [type]: unit === 'imperial' ? metersToFeet(newValue) : newValue.toString()
@@ -200,7 +207,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             
             {/* Width Controls */}
             <div className="flex items-center gap-0.5">
-              <span className="text-xs font-medium text-gray-600 px-1">Width</span>
+              <span className="text-xs font-medium text-gray-600 px-1">Width (X)</span>
               <button 
                 onClick={() => adjustDimension('width', -1)} 
                 className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
@@ -228,11 +235,9 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
               </button>
             </div>
             
-            <span className="text-xs text-gray-400">x</span>
-            
             {/* Height Controls */}
             <div className="flex items-center gap-0.5">
-              <span className="text-xs font-medium text-gray-600 px-1">Height</span>
+              <span className="text-xs font-medium text-gray-600 px-1">Height (Y)</span>
               <button 
                 onClick={() => adjustDimension('height', -1)} 
                 className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"

@@ -201,6 +201,51 @@ function GardenDetailPageContent() {
     return libraryPlant?.category || libraryPlant?.type || 'Other';
   };
 
+  const getPlantSizeLabel = (plantedItem) => {
+    const libraryPlant = findLibraryPlantForPlantedItem(plantedItem);
+    const width = plantedItem?.width || plantedItem?.plant_width || libraryPlant?.width || libraryPlant?.plant_width;
+    const height = plantedItem?.height || plantedItem?.plant_height || libraryPlant?.height || libraryPlant?.plant_height;
+    const size = plantedItem?.size || plantedItem?.plant_size || libraryPlant?.size || libraryPlant?.plant_size;
+
+    if (width && height) {
+      return `Size: ${width}x${height}`;
+    }
+
+    if (size) {
+      return `Size: ${size}x${size}`;
+    }
+
+    return 'Size unavailable';
+  };
+
+  const getPlantPositionLabel = (plantedItem) => {
+    const xPosition = plantedItem?.xPosition ?? plantedItem?.x_position;
+    const yPosition = plantedItem?.yPosition ?? plantedItem?.y_position;
+
+    if (xPosition === undefined || xPosition === null || yPosition === undefined || yPosition === null) {
+      return 'Position unavailable';
+    }
+
+    return `Position: (${xPosition}, ${yPosition})`;
+  };
+
+  const getPlantSortTime = (plantedItem) => {
+    const timestamp = plantedItem?.created_at || plantedItem?.plantedDate || plantedItem?.planted_date || plantedItem?.updated_at;
+    const parsedTimestamp = timestamp ? new Date(timestamp).getTime() : 0;
+    return Number.isNaN(parsedTimestamp) ? 0 : parsedTimestamp;
+  };
+
+  const sortPlantedItemsNewestFirst = (plantedItems = []) => {
+    return [...plantedItems].sort((firstPlant, secondPlant) => {
+      const timeDifference = getPlantSortTime(secondPlant) - getPlantSortTime(firstPlant);
+      if (timeDifference !== 0) return timeDifference;
+
+      const firstId = Number(firstPlant?.id) || 0;
+      const secondId = Number(secondPlant?.id) || 0;
+      return secondId - firstId;
+    });
+  };
+
   const parsePlantList = (value) => {
     if (!value) return [];
     if (Array.isArray(value)) return value;
@@ -217,17 +262,6 @@ function GardenDetailPageContent() {
   const getCompanionSuggestions = () => {
     if (!garden?.plantedItems || garden.plantedItems.length === 0) {
       return { groups: [] };
-    }
-
-    if (!plantLibrary.length) {
-      return {
-        groups: garden.plantedItems.map(plantedItem => ({
-          plantedItem,
-          companions: [],
-          avoid: [],
-          hasData: false
-        }))
-      };
     }
 
     // Map plant names to plant library IDs
@@ -348,15 +382,58 @@ function GardenDetailPageContent() {
         'walnut tree': 'walnut_tree', 'walnut': 'walnut_tree', 'black walnut': 'walnut_tree'
       };
       
-      return nameToIdMap[plantName.toLowerCase().trim()] || null;
+      return nameToIdMap[normalizePlantName(plantName)] || null;
     };
 
+    const getCompanionGroupKey = (plantedItem) => {
+      const plantName = plantedItem.name || plantedItem.plant_name;
+      const mappedPlantId = mapPlantNameToId(plantName);
+      const libraryPlant = findLibraryPlantForPlantedItem(plantedItem);
+
+      return (
+        mappedPlantId ||
+        libraryPlant?.id ||
+        normalizePlantName(plantName) ||
+        plantedItem.plantId ||
+        plantedItem.plant_id ||
+        plantedItem.id
+      )?.toString().toLowerCase().trim();
+    };
+
+    const getUniqueCompanionItems = () => {
+      const seenPlants = new Set();
+
+      return garden.plantedItems.filter((plantedItem) => {
+        const plantKey = getCompanionGroupKey(plantedItem);
+
+        if (!plantKey || seenPlants.has(plantKey)) {
+          return false;
+        }
+
+        seenPlants.add(plantKey);
+        return true;
+      });
+    };
+
+    const uniquePlantedItems = getUniqueCompanionItems();
+
+    if (!plantLibrary.length) {
+      return {
+        groups: uniquePlantedItems.map(plantedItem => ({
+          plantedItem,
+          companions: [],
+          avoid: [],
+          hasData: false
+        }))
+      };
+    }
+
     const plantedPlantIds = garden.plantedItems
-      .map(item => item.plantId || item.plant_id || mapPlantNameToId(item.name))
+      .map(item => item.plantId || item.plant_id || mapPlantNameToId(item.name || item.plant_name))
       .filter(Boolean);
 
-    const groups = garden.plantedItems.map((plantedItem) => {
-      const plantId = plantedItem.plantId || plantedItem.plant_id || mapPlantNameToId(plantedItem.name);
+    const groups = uniquePlantedItems.map((plantedItem) => {
+      const plantId = plantedItem.plantId || plantedItem.plant_id || mapPlantNameToId(plantedItem.name || plantedItem.plant_name);
       const plantData = findLibraryPlantForPlantedItem(plantedItem) || plantLibrary.find(p => p.id === plantId);
 
       if (!plantData) {
@@ -437,6 +514,7 @@ function GardenDetailPageContent() {
   ];
 
   const companionData = getCompanionSuggestions();
+  const sortedPlantedItems = sortPlantedItemsNewestFirst(garden?.plantedItems || []);
 
   return (
     <div className="min-h-screen overflow-auto shadow-lg bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50">
@@ -710,11 +788,11 @@ function GardenDetailPageContent() {
                   </div>
                 </div>
 
-                {garden.plantedItems && garden.plantedItems.length > 0 && (
+                {sortedPlantedItems.length > 0 && (
                   <div>
                     <h4 className="font-medium text-gray-800 mb-4">Recent Plants Added</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {garden.plantedItems.slice(0, 6).map((plant, index) => (
+                      {sortedPlantedItems.slice(0, 6).map((plant, index) => (
                         <div key={index} className="bg-gray-50 rounded-lg p-4 flex items-center gap-3">
                           <span className="text-2xl flex-shrink-0">{plant.emoji || '🌱'}</span>
                           <div className="min-w-0">
@@ -744,19 +822,19 @@ function GardenDetailPageContent() {
                   </button>
                 </div>
                 
-                {garden.plantedItems && garden.plantedItems.length > 0 ? (
+                {sortedPlantedItems.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {garden.plantedItems.map((plant, index) => (
+                    {sortedPlantedItems.map((plant, index) => (
                       <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
                         <div className="flex items-center gap-3 mb-3">
                           <span className="text-3xl flex-shrink-0">{plant.emoji || '🌱'}</span>
                           <div className="min-w-0">
                             <h4 className="font-semibold text-gray-800 truncate">{plant.name}</h4>
-                            <p className="text-sm text-gray-600">Size: {plant.size}x{plant.size}</p>
+                            <p className="text-sm text-gray-600">{getPlantSizeLabel(plant)}</p>
                           </div>
                         </div>
                         <div className="space-y-1 text-sm text-gray-600">
-                          <p>Position: ({plant.xPosition || 'N/A'}, {plant.yPosition || 'N/A'})</p>
+                          <p>{getPlantPositionLabel(plant)}</p>
                           <p>Planted: {plant.plantedDate ? new Date(plant.plantedDate).toLocaleDateString() : 'Unknown'}</p>
                           {plant.notes && <p className="truncate">Notes: {plant.notes}</p>}
                         </div>
@@ -849,12 +927,11 @@ function GardenDetailPageContent() {
                     </div>
 
 
-                    {/* Growth Timeline */}
+                    {/* Recent Plantings */}
                     <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                      <h4 className="font-semibold text-gray-800 mb-4">Planting Timeline</h4>
+                      <h4 className="font-semibold text-gray-800 mb-4">Recent Plantings</h4>
                       <div className="space-y-3">
-                        {garden.plantedItems
-                          .sort((a, b) => new Date(b.plantedDate) - new Date(a.plantedDate))
+                        {sortedPlantedItems
                           .slice(0, 5)
                           .map((plant, index) => (
                           <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
@@ -875,8 +952,8 @@ function GardenDetailPageContent() {
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <BarChart3 className="w-8 h-8 text-gray-400" />
                     </div>
-                    <h4 className="text-lg font-semibold text-gray-800 mb-2">No analytics available</h4>
-                    <p className="text-gray-600">Add some plants to see garden analytics and insights.</p>
+                    <h4 className="text-lg font-semibold text-gray-800 mb-2">No recent plantings yet</h4>
+                    <p className="text-gray-600">No planting activity yet. Add plants in the planner to start building your garden history.</p>
                   </div>
                 )}
               </div>
