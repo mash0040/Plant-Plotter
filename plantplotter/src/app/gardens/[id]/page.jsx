@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Settings, ChevronDown, Heart, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { findPlantInLibrary, normalizePlantName } from '@/lib/plantLookup';
 import GardenForm from '@/components/Gardens/GardenForm'; 
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -177,18 +178,8 @@ function GardenDetailPageContent() {
     }
   };
 
-  const normalizePlantName = (name) => String(name || '').toLowerCase().trim();
-
   const findLibraryPlantForPlantedItem = (plantedItem) => {
-    if (!plantedItem || !plantLibrary.length) return null;
-
-    const plantedItemId = plantedItem.plantId || plantedItem.plant_id || plantedItem.id;
-    const plantedItemName = normalizePlantName(plantedItem.name || plantedItem.plant_name);
-
-    return plantLibrary.find((plant) => (
-      plant.id === plantedItemId ||
-      normalizePlantName(plant.name) === plantedItemName
-    )) || null;
+    return findPlantInLibrary(plantedItem, plantLibrary);
   };
 
   const getPlantCategory = (plantedItem) => {
@@ -258,140 +249,16 @@ function GardenDetailPageContent() {
     }
   };
 
-  // Clean companion plant suggestions with name-based mapping
   const getCompanionSuggestions = () => {
     if (!garden?.plantedItems || garden.plantedItems.length === 0) {
       return { groups: [] };
     }
 
-    // Map plant names to plant library IDs
-    const mapPlantNameToId = (plantName) => {
-      const nameToIdMap = {
-        // VEGETABLES
-        'alliums': 'alliums', 'allium': 'alliums', 'onion family': 'alliums',
-        'asparagus': 'asparagus',
-        'bush beans': 'beans_bush', 'beans bush': 'beans_bush',
-        'pole beans': 'beans_pole', 'beans pole': 'beans_pole', 'climbing beans': 'beans_pole',
-        'fava beans': 'beans_fava', 'beans fava': 'beans_fava', 'broad beans': 'beans_fava',
-        'beets': 'beets', 'beet': 'beets', 'beetroot': 'beets',
-        'brassicas': 'brassicas', 'brassica': 'brassicas', 'cabbage family': 'brassicas',
-        'broccoli': 'broccoli',
-        'brussels sprouts': 'brussels_sprouts', 'brussels sprout': 'brussels_sprouts',
-        'cabbage': 'cabbage',
-        'carrot': 'carrot', 'carrots': 'carrot',
-        'cauliflower': 'cauliflower',
-        'celery': 'celery',
-        'chard': 'chard', 'swiss chard': 'chard',
-        'corn': 'corn', 'maize': 'corn', 'sweet corn': 'corn',
-        'cucumber': 'cucumber', 'cucumbers': 'cucumber',
-        'cucurbits': 'cucurbits', 'squash family': 'cucurbits',
-        'eggplant': 'eggplant', 'aubergine': 'eggplant',
-        'kohlrabi': 'kohlrabi',
-        'leek': 'leek', 'leeks': 'leek',
-        'legumes': 'legumes', 'legume': 'legumes', 'beans and peas': 'legumes',
-        'lettuce': 'lettuce', 'leafy greens': 'lettuce',
-        'mustard': 'mustard', 'mustard greens': 'mustard',
-        'nightshades': 'nightshades', 'nightshade': 'nightshades', 'tomato family': 'nightshades',
-        'okra': 'okra',
-        'onion': 'onion', 'onions': 'onion',
-        'parsnip': 'parsnip', 'parsnips': 'parsnip',
-        'peas': 'peas', 'pea': 'peas', 'garden peas': 'peas',
-        'pepper': 'pepper', 'bell pepper': 'pepper', 'sweet pepper': 'pepper', 'peppers': 'pepper', 'bell peppers': 'pepper',
-        'potato': 'potato', 'potatoes': 'potato',
-        'pumpkin': 'pumpkin', 'pumpkins': 'pumpkin',
-        'radish': 'radish', 'radishes': 'radish',
-        'soybean': 'soybean', 'soybeans': 'soybean', 'soy': 'soybean',
-        'spinach': 'spinach',
-        'squash': 'squash', 'summer squash': 'squash', 'zucchini': 'squash', 'courgette': 'squash',
-        'sweet potato': 'sweet_potato', 'sweet potatoes': 'sweet_potato',
-        'tomato': 'tomato', 'tomatoes': 'tomato',
-        'turnip': 'turnip', 'turnips': 'turnip',
-
-        // FRUITS
-        'apple': 'apple', 'apples': 'apple', 'apple tree': 'apple', 'apple trees': 'apple',
-        'apricot': 'apricot', 'apricots': 'apricot', 'apricot tree': 'apricot',
-        'blueberry': 'blueberry', 'blueberries': 'blueberry', 'blueberry bush': 'blueberry',
-        'fruit trees': 'fruit_trees', 'fruit tree': 'fruit_trees',
-        'grape': 'grape', 'grapes': 'grape', 'grapevine': 'grape', 'grape vine': 'grape',
-        'melon': 'melon', 'melons': 'melon', 'cantaloupe': 'melon', 'honeydew': 'melon',
-        'passion fruit': 'passion_fruit', 'passionfruit': 'passion_fruit',
-        'pear': 'pear', 'pears': 'pear', 'pear tree': 'pear',
-        'strawberry': 'strawberry', 'strawberries': 'strawberry', 'strawberry plant': 'strawberry',
-        'raspberry': 'raspberry', 'raspberries': 'raspberry', 'raspberry canes': 'raspberry',
-        'cherry': 'cherry', 'cherries': 'cherry', 'cherry tree': 'cherry',
-        'peach': 'peach', 'peaches': 'peach', 'peach tree': 'peach',
-        'fig': 'fig', 'figs': 'fig', 'fig tree': 'fig',
-
-        // HERBS
-        'anise': 'anise',
-        'basil': 'basil', 'sweet basil': 'basil', 'thai basil': 'basil',
-        'borage': 'borage',
-        'caraway': 'caraway',
-        'catnip': 'catnip', 'cat mint': 'catnip',
-        'chamomile': 'chamomile', 'german chamomile': 'chamomile',
-        'chervil': 'chervil',
-        'chives': 'chives',
-        'cilantro': 'cilantro', 'coriander': 'cilantro', 'fresh coriander': 'cilantro',
-        'dill': 'dill', 'dill weed': 'dill',
-        'fennel': 'fennel', 'florence fennel': 'fennel',
-        'flax': 'flax', 'linseed': 'flax',
-        'garlic': 'garlic',
-        'hyssop': 'hyssop',
-        'lavender': 'lavender', 'english lavender': 'lavender', 'french lavender': 'lavender',
-        'lemongrass': 'lemongrass', 'lemon grass': 'lemongrass',
-        'lovage': 'lovage',
-        'oregano': 'oregano', 'wild marjoram': 'oregano',
-        'parsley': 'parsley', 'flat leaf parsley': 'parsley', 'curly parsley': 'parsley', 'italian parsley': 'parsley',
-        'peppermint': 'peppermint',
-        'mint': 'peppermint', // default to peppermint unless specified
-        'rosemary': 'rosemary',
-        'sage': 'sage', 'common sage': 'sage',
-        'southernwood': 'southernwood',
-        'spearmint': 'spearmint', 'garden mint': 'spearmint',
-        'stinging nettle': 'stinging_nettle', 'nettle': 'stinging_nettle',
-        'summer savory': 'summer_savory', 'savory': 'summer_savory',
-        'tarragon': 'tarragon', 'french tarragon': 'tarragon',
-        'thyme': 'thyme', 'common thyme': 'thyme', 'garden thyme': 'thyme',
-        'wormwood': 'wormwood',
-        'yarrow': 'yarrow', 'achillea': 'yarrow',
-
-        // FLOWERS
-        'alyssum': 'alyssum', 'sweet alyssum': 'alyssum',
-        'baby breath': 'baby_breath', "baby's breath": 'baby_breath',
-        'bee balm': 'bee_balm', 'monarda': 'bee_balm',
-        'california poppy': 'california_poppy',
-        'dianthus': 'dianthus', 'carnation': 'dianthus', 'pinks': 'dianthus',
-        'geranium': 'geranium', 'pelargonium': 'geranium',
-        'larkspur': 'larkspur',
-        'lupin': 'lupin', 'lupine': 'lupin',
-        'marigold': 'marigold', 'french marigold': 'marigold', 'african marigold': 'marigold',
-        'nasturtium': 'nasturtium', 'indian cress': 'nasturtium',
-        'pansy': 'pansy', 'viola': 'pansy',
-        'petunia': 'petunia',
-        'phacelia': 'phacelia', 'bee bread': 'phacelia',
-        'rose': 'rose', 'roses': 'rose', 'rose bush': 'rose',
-        'sunflower': 'sunflower', 'sunflowers': 'sunflower',
-        'swan plant': 'swan_plant', 'milkweed': 'swan_plant',
-        'sweet pea': 'sweet_pea', 'sweet peas': 'sweet_pea',
-        'tansy': 'tansy',
-        'zinnia': 'zinnia', 'zinnias': 'zinnia',
-
-        // OTHER
-        'alfalfa': 'alfalfa', 'lucerne': 'alfalfa',
-        'peanut': 'peanut', 'peanuts': 'peanut', 'groundnut': 'peanut',
-        'walnut tree': 'walnut_tree', 'walnut': 'walnut_tree', 'black walnut': 'walnut_tree'
-      };
-      
-      return nameToIdMap[normalizePlantName(plantName)] || null;
-    };
-
     const getCompanionGroupKey = (plantedItem) => {
       const plantName = plantedItem.name || plantedItem.plant_name;
-      const mappedPlantId = mapPlantNameToId(plantName);
       const libraryPlant = findLibraryPlantForPlantedItem(plantedItem);
 
       return (
-        mappedPlantId ||
         libraryPlant?.id ||
         normalizePlantName(plantName) ||
         plantedItem.plantId ||
@@ -428,13 +295,31 @@ function GardenDetailPageContent() {
       };
     }
 
-    const plantedPlantIds = garden.plantedItems
-      .map(item => item.plantId || item.plant_id || mapPlantNameToId(item.name || item.plant_name))
+    const resolvePlantReference = (plantReference) => {
+      return findPlantInLibrary({
+        plant_id: plantReference,
+        plantId: plantReference,
+        name: plantReference,
+        plant_name: plantReference
+      }, plantLibrary);
+    };
+
+    const getPlantReferenceKey = (plantReference) => {
+      const resolvedPlant = resolvePlantReference(plantReference);
+      return (resolvedPlant?.id || normalizePlantName(plantReference))?.toString().toLowerCase().trim();
+    };
+
+    const plantedPlantKeys = garden.plantedItems
+      .map(item => (
+        findLibraryPlantForPlantedItem(item)?.id ||
+        item.plantId ||
+        item.plant_id ||
+        normalizePlantName(item.name || item.plant_name)
+      )?.toString().toLowerCase().trim())
       .filter(Boolean);
 
     const groups = uniquePlantedItems.map((plantedItem) => {
-      const plantId = plantedItem.plantId || plantedItem.plant_id || mapPlantNameToId(plantedItem.name || plantedItem.plant_name);
-      const plantData = findLibraryPlantForPlantedItem(plantedItem) || plantLibrary.find(p => p.id === plantId);
+      const plantData = findLibraryPlantForPlantedItem(plantedItem);
 
       if (!plantData) {
         return {
@@ -452,12 +337,12 @@ function GardenDetailPageContent() {
         plantedItem,
         hasData: companionPlants.length > 0 || avoidPlants.length > 0,
         companions: companionPlants
-          .filter(id => !plantedPlantIds.includes(id))
-          .map(id => plantLibrary.find(p => p.id === id))
+          .filter(id => !plantedPlantKeys.includes(getPlantReferenceKey(id)))
+          .map(id => resolvePlantReference(id))
           .filter(Boolean),
         avoid: avoidPlants
-          .filter(id => !plantedPlantIds.includes(id))
-          .map(id => plantLibrary.find(p => p.id === id))
+          .filter(id => !plantedPlantKeys.includes(getPlantReferenceKey(id)))
+          .map(id => resolvePlantReference(id))
           .filter(Boolean)
       };
     });
