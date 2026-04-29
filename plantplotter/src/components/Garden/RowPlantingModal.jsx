@@ -69,7 +69,7 @@ export default function RowPlantingModal({
     setValidationMessage('');
     setRowConfig(prev => ({
       ...prev,
-      [field]: value
+      [field]: field === 'spacing' ? Math.max(0, Math.round(value) || 0) : value
     }));
   };
 
@@ -226,9 +226,9 @@ export default function RowPlantingModal({
                 No Gap
               </button>
               <button
-                onClick={() => handleConfigChange('spacing', 0.5)}
+                onClick={() => handleConfigChange('spacing', 1)}
                 className={`px-3 py-1 text-xs rounded border ${
-                  rowConfig.spacing === 0.5 
+                  rowConfig.spacing === 1
                     ? 'bg-green-100 border-green-300 text-green-700' 
                     : 'bg-white border-gray-300'
                 }`}
@@ -236,9 +236,9 @@ export default function RowPlantingModal({
                 Small Gap
               </button>
               <button
-                onClick={() => handleConfigChange('spacing', 1)}
+                onClick={() => handleConfigChange('spacing', 2)}
                 className={`px-3 py-1 text-xs rounded border ${
-                  rowConfig.spacing === 1 
+                  rowConfig.spacing === 2
                     ? 'bg-green-100 border-green-300 text-green-700' 
                     : 'bg-white border-gray-300'
                 }`}
@@ -249,7 +249,7 @@ export default function RowPlantingModal({
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleConfigChange('spacing', Math.max(0, rowConfig.spacing - 0.5))}
+                onClick={() => handleConfigChange('spacing', Math.max(0, rowConfig.spacing - 1))}
                 className="p-1 hover:bg-gray-100 rounded"
               >
                 <Minus className="w-4 h-4" />
@@ -257,14 +257,14 @@ export default function RowPlantingModal({
               <input
                 type="number"
                 value={rowConfig.spacing}
-                onChange={(e) => handleConfigChange('spacing', Math.max(0, parseFloat(e.target.value) || 0))}
+                onChange={(e) => handleConfigChange('spacing', Math.max(0, parseInt(e.target.value, 10) || 0))}
                 className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
                 min="0"
-                step="0.5"
+                step="1"
                 max="5"
               />
               <button
-                onClick={() => handleConfigChange('spacing', Math.min(5, rowConfig.spacing + 0.5))}
+                onClick={() => handleConfigChange('spacing', Math.min(5, rowConfig.spacing + 1))}
                 className="p-1 hover:bg-gray-100 rounded"
               >
                 <Plus className="w-4 h-4" />
@@ -273,6 +273,9 @@ export default function RowPlantingModal({
             </div>
             <p className="text-xs text-gray-500 mt-1">
               {rowConfig.spacing === 0 ? 'Plants will touch each other' : `${rowConfig.spacing} unit${rowConfig.spacing !== 1 ? 's' : ''} between plants`}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Spacing uses full grid units so saved layouts stay aligned to the garden grid.
             </p>
           </div>
 

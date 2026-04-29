@@ -2,7 +2,7 @@
 import { Plus, Minus, Grid, Ruler, Save, Menu, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
-export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler, onDimensionChange, onGridSizeChange, onToggleGrid, onToggleRuler, onSave, hasUnsavedChanges, onToggleSidebar, gardenName, onBackClick, saveLabel = 'Save' }) {
+export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler, onDimensionChange, onGridSizeChange, onToggleGrid, onToggleRuler, onSave, hasUnsavedChanges, onToggleSidebar, gardenName, onBackClick, backLabel = 'Back to Garden List', saveLabel = 'Save' }) {
   const [unit, setUnit] = useState('metric');
   const [inputValues, setInputValues] = useState({
     width: dimensions.width.toString(),
@@ -114,10 +114,14 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           {onBackClick && (
             <button 
               onClick={onBackClick}
-              className="min-h-10 min-w-10 p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-              title="Back to gardens list"
+              className="min-h-10 min-w-10 px-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5 flex-shrink-0"
+              title={backLabel}
+              aria-label={backLabel}
             >
               <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <span className="hidden sm:inline text-sm font-medium text-gray-600 whitespace-nowrap">
+                {backLabel}
+              </span>
             </button>
           )}
           

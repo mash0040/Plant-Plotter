@@ -1016,6 +1016,7 @@ function GardenPlannerPageContent() {
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             gardenName={safeGardenName}
             onBackClick={handleBackToGarden}
+            backLabel={gardenId ? 'Back to Garden' : 'Back to Garden List'}
             saveLabel={isSavingLayout ? 'Saving...' : 'Save Changes'}
           />
 
