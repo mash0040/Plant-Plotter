@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Settings, Menu, X, Heart, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Settings, ChevronDown, Heart, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import GardenForm from '@/components/Gardens/GardenForm'; 
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -56,12 +56,12 @@ function GardenDetailPageContent() {
     }
   }, [params.id]);
 
-  // Close mobile menu when clicking outside
+  // Close mobile garden actions menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (mobileMenuOpen) {
-        const menu = event.target.closest('[data-mobile-menu]');
-        const button = event.target.closest('[data-mobile-menu-button]');
+        const menu = event.target.closest('[data-garden-actions-menu]');
+        const button = event.target.closest('[data-garden-actions-button]');
         
         if (!menu && !button) {
           setMobileMenuOpen(false);
@@ -85,6 +85,16 @@ function GardenDetailPageContent() {
 
   const handleOpenGardenPlanner = () => {
     router.push(`/garden?id=${garden.id}`);
+  };
+
+  const handleMobileEditGarden = () => {
+    handleEditBasicInfo();
+    setMobileMenuOpen(false);
+  };
+
+  const handleMobileOpenGardenPlanner = () => {
+    setMobileMenuOpen(false);
+    handleOpenGardenPlanner();
   };
 
   const handleEditBasicInfo = (e) => {
@@ -401,14 +411,6 @@ function GardenDetailPageContent() {
         isOpen={showEditForm}
       />
 
-      {/* Mobile Menu Backdrop */}
-      {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
       {/* Header */}
       <div className="bg-white/70 backdrop-blur-sm border-b border-green-100 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
@@ -452,45 +454,49 @@ function GardenDetailPageContent() {
               </button>
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              data-mobile-menu-button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="sm:hidden p-2 hover:bg-green-50 rounded-lg transition-colors"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
+            {/* Mobile Garden Actions */}
+            <div className="relative sm:hidden flex-shrink-0">
+              <button
+                data-garden-actions-button
+                type="button"
+                onClick={() => setMobileMenuOpen((isOpen) => !isOpen)}
+                aria-expanded={mobileMenuOpen}
+                aria-haspopup="menu"
+                className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium"
+              >
+                Actions
+                <ChevronDown className={`w-4 h-4 transition-transform ${mobileMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-          {/* Mobile Action Menu */}
-          {mobileMenuOpen && (
-            <div 
-              data-mobile-menu
-              className="sm:hidden mt-3 pt-3 border-t border-green-100 space-y-2"
-            >
-              <button
-                onClick={() => {
-                  handleEditBasicInfo();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full p-3 text-left bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-3"
-              >
-                <Edit className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-blue-800">Edit Garden Info</span>
-              </button>
-              
-              <button
-                onClick={() => {
-                  handleOpenGardenPlanner();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full p-3 text-left bg-green-50 hover:bg-green-100 rounded-lg transition-colors flex items-center gap-3"
-              >
-                <Settings className="w-5 h-5 text-green-600" />
-                <span className="font-medium text-green-800">Open Garden Planner</span>
-              </button>
+              {mobileMenuOpen && (
+                <div
+                  data-garden-actions-menu
+                  role="menu"
+                  className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-green-100 bg-white shadow-lg z-40 overflow-hidden"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleMobileEditGarden}
+                    className="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors flex items-center gap-3"
+                  >
+                    <Edit className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <span className="font-medium text-blue-800">Edit Garden Info</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleMobileOpenGardenPlanner}
+                    className="w-full px-4 py-3 text-left hover:bg-green-50 transition-colors flex items-center gap-3"
+                  >
+                    <Settings className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <span className="font-medium text-green-800">Open Garden Planner</span>
+                  </button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
 

@@ -47,7 +47,7 @@ export default function LoginPage() {
           {/* Hero Banner */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <h1 className="text-5xl lg:text-6xl font-bold text-gray-800 leading-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-800 leading-tight">
                 Make and Build Your 
                 <span className="text-green-600 block">Garden Here!</span>
               </h1>

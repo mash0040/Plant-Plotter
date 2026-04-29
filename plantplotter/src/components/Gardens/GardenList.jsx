@@ -70,7 +70,7 @@ export default function GardenList({
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-100">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             {/* Decorative elements */}
             <div className="absolute top-10 left-10 opacity-10">
               <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
@@ -81,7 +81,7 @@ export default function GardenList({
             </div>
             <button
               onClick={onAddNew}
-              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center gap-2"
+              className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Add New Garden

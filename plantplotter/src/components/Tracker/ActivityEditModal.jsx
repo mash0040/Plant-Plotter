@@ -162,7 +162,7 @@ export default function ActivityEditModal({
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
           {/* Garden Selection */}
           {gardens.length > 1 && (
             <div>
@@ -275,7 +275,7 @@ export default function ActivityEditModal({
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-6 border-t border-gray-200 bg-gray-50">
           <div>
             {activity && onDelete && (
               <button
@@ -289,7 +289,7 @@ export default function ActivityEditModal({
             )}
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <button
               type="button"
               onClick={onClose}
@@ -300,7 +300,7 @@ export default function ActivityEditModal({
             <button
               onClick={handleSubmit}
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
+              className="flex items-center justify-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
             >
               {isSaving ? (
                 <>

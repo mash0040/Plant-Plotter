@@ -482,10 +482,10 @@ function TrackingPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900">
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="flex gap-6">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar */}
-          <div className="w-64 space-y-6">
+          <div className="w-full lg:w-64 space-y-6">
             <GardenSelector 
               gardens={gardens}
               selectedGarden={selectedGarden}
@@ -498,7 +498,7 @@ function TrackingPageContent() {
           </div>
 
           {/* Main Calendar */}
-          <div className="flex-1">
+          <div className="w-full lg:flex-1 min-w-0">
             <TrackingCalendar
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
@@ -509,7 +509,7 @@ function TrackingPageContent() {
           </div>
 
           {/* Right Sidebar */}
-          <div className="w-80 space-y-6">
+          <div className="w-full lg:w-80 space-y-6">
             {/* Weather Widget - Now clickable for detailed view */}
             <div onClick={() => setShowDetailedWeather(true)} className="cursor-pointer">
               <WeatherWidget />
