@@ -322,7 +322,7 @@ function AllGardensContent() {
         throw error;
       }
 
-      alert('Failed to save garden. Please try again.');
+      setError('Failed to save garden. Please try again.');
     }
   };
 
