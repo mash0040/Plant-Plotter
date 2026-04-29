@@ -14,7 +14,7 @@ import GardenForm from '@/components/Gardens/GardenForm';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
-import { snapToGrid, checkPlantOverlap, isWithinBounds } from '@/components/Garden/Utils/GardenUtils';
+import { snapToGrid, checkPlantOverlap, isWithinBounds, getPlantFootprint } from '@/components/Garden/Utils/GardenUtils';
 import apiClient from '@/lib/api';
 
 function GardenPlannerPageContent() {
@@ -326,7 +326,7 @@ function GardenPlannerPageContent() {
 
   // Enhanced bounds checking
   const isWithinBoundsFlexible = (plant, dimensions, gridSize, useGrid = true) => {
-    const plantSize = (plant.size || 1) * gridSize;
+    const plantSize = getPlantFootprint(plant) * gridSize;
     const maxX = dimensions.width * gridSize;
     const maxY = dimensions.height * gridSize;
     
@@ -345,10 +345,10 @@ function GardenPlannerPageContent() {
     if (useGrid) {
       return checkPlantOverlap(newPlant, existingPlants, gridSize);
     } else {
-      const newSize = (newPlant.size || 1) * gridSize;
+      const newSize = getPlantFootprint(newPlant) * gridSize;
       
       return existingPlants.some(existing => {
-        const existingSize = (existing.size || 1) * gridSize;
+        const existingSize = getPlantFootprint(existing) * gridSize;
         
         return !(newPlant.x >= existing.x + existingSize ||
                  existing.x >= newPlant.x + newSize ||
@@ -372,7 +372,8 @@ function GardenPlannerPageContent() {
   const validateNewPlantPlacement = (newPlant) => {
     const withinBounds = isWithinBoundsFlexible(newPlant, dimensions, gridSize, showGrid);
     const hasOverlap = checkPlantOverlapFlexible(newPlant, placedPlants, gridSize, showGrid);
-    const footprintLabel = `${newPlant.size || 1}x${newPlant.size || 1}`;
+    const plantFootprint = getPlantFootprint(newPlant);
+    const footprintLabel = `${plantFootprint}x${plantFootprint}`;
 
     if (!withinBounds) {
       setLayoutSaveMessage('');
@@ -421,7 +422,25 @@ function GardenPlannerPageContent() {
     }
   };
 
-  const getDragClientPoint = (activatorEvent, delta) => {
+  const getDragClientPoint = (dragEvent) => {
+    const translatedRect = dragEvent?.active?.rect?.current?.translated;
+    if (translatedRect) {
+      return {
+        x: translatedRect.left + (translatedRect.width / 2),
+        y: translatedRect.top + (translatedRect.height / 2)
+      };
+    }
+
+    const initialRect = dragEvent?.active?.rect?.current?.initial;
+    if (initialRect && dragEvent?.delta) {
+      return {
+        x: initialRect.left + (initialRect.width / 2) + dragEvent.delta.x,
+        y: initialRect.top + (initialRect.height / 2) + dragEvent.delta.y
+      };
+    }
+
+    const activatorEvent = dragEvent?.activatorEvent;
+    const delta = dragEvent?.delta;
     const startX = activatorEvent?.clientX ?? activatorEvent?.touches?.[0]?.clientX ?? activatorEvent?.changedTouches?.[0]?.clientX;
     const startY = activatorEvent?.clientY ?? activatorEvent?.touches?.[0]?.clientY ?? activatorEvent?.changedTouches?.[0]?.clientY;
 
@@ -437,24 +456,38 @@ function GardenPlannerPageContent() {
 
   const getLibraryPlantPlacement = (dragEvent, draggedData) => {
     const canvasElement = document.querySelector('[data-canvas="true"]');
-    const clientPoint = getDragClientPoint(dragEvent.activatorEvent, dragEvent.delta);
+    const clientPoint = getDragClientPoint(dragEvent);
 
     if (!canvasElement || !clientPoint) {
       return null;
     }
 
     const canvasRect = canvasElement.getBoundingClientRect();
-    const canvasX = clientPoint.x - canvasRect.left;
-    const canvasY = clientPoint.y - canvasRect.top;
+    let canvasX = clientPoint.x - canvasRect.left;
+    let canvasY = clientPoint.y - canvasRect.top;
+    const isOverGardenCanvas = dragEvent?.over?.id === 'garden-canvas';
 
     if (canvasX < 0 || canvasY < 0 || canvasX > canvasRect.width || canvasY > canvasRect.height) {
-      return {
-        isInsideCanvas: false,
-        message: 'Drop plants inside the garden canvas.'
-      };
+      const outsideDistance = Math.max(
+        canvasX < 0 ? Math.abs(canvasX) : 0,
+        canvasY < 0 ? Math.abs(canvasY) : 0,
+        canvasX > canvasRect.width ? canvasX - canvasRect.width : 0,
+        canvasY > canvasRect.height ? canvasY - canvasRect.height : 0
+      );
+
+      if (!isOverGardenCanvas || outsideDistance > gridSize) {
+        return {
+          isInsideCanvas: false,
+          message: 'Drop plants inside the garden canvas.'
+        };
+      }
+
+      canvasX = Math.min(Math.max(canvasX, 0), canvasRect.width);
+      canvasY = Math.min(Math.max(canvasY, 0), canvasRect.height);
     }
 
-    const plantSize = (draggedData.size || 1) * gridSize;
+    const plantFootprint = getPlantFootprint(draggedData);
+    const plantSize = plantFootprint * gridSize;
     let plantX = canvasX - (plantSize / 2);
     let plantY = canvasY - (plantSize / 2);
 
@@ -479,7 +512,7 @@ function GardenPlannerPageContent() {
     };
     const withinBounds = isWithinBoundsFlexible(proposedPlant, dimensions, gridSize, showGrid);
     const hasOverlap = checkPlantOverlapFlexible(proposedPlant, placedPlants, gridSize, showGrid);
-    const footprintLabel = `${draggedData.size || 1}x${draggedData.size || 1}`;
+    const footprintLabel = `${plantFootprint}x${plantFootprint}`;
 
     return {
       isInsideCanvas: true,
@@ -487,7 +520,7 @@ function GardenPlannerPageContent() {
       preview: {
         x: plantX,
         y: plantY,
-        size: draggedData.size || 1,
+        size: plantFootprint,
         isValid: withinBounds && !hasOverlap,
         message: !withinBounds
           ? `This ${footprintLabel} plant needs to fit fully inside the garden.`
@@ -516,7 +549,7 @@ function GardenPlannerPageContent() {
   };
 
   const handleDragEnd = (event) => {
-    const { active, over, delta, activatorEvent } = event;
+    const { active, over, delta } = event;
 
     setActiveId(null);
     setPlacementPreview(null);
@@ -524,7 +557,7 @@ function GardenPlannerPageContent() {
     const draggedData = active.data.current;
 
     if (draggedData?.isFromLibrary) {
-      const placement = getLibraryPlantPlacement({ activatorEvent, delta }, draggedData);
+      const placement = getLibraryPlantPlacement(event, draggedData);
 
       if (!placement?.isInsideCanvas) {
         setLayoutSaveMessage('');
@@ -583,7 +616,7 @@ function GardenPlannerPageContent() {
     plant_id: plant.plantId || plant.id?.replace('plant-', '') || 'unknown',
     plant_name: plant.name,
     plant_emoji: plant.emoji,
-    plant_size: plant.size || 1,
+    plant_size: getPlantFootprint(plant),
     plant_category: getBestPlantCategory(plant),
     x_position: Math.floor((plant.x || 0) / gridSize),
     y_position: Math.floor((plant.y || 0) / gridSize),
@@ -597,7 +630,7 @@ function GardenPlannerPageContent() {
 
   const getMinimumDimensionsForPlacedPlants = () => {
     return placedPlants.reduce((minimumDimensions, plant) => {
-      const plantSize = plant.size || 1;
+      const plantSize = getPlantFootprint(plant);
       const plantGridX = pixelsToGrid(plant.x);
       const plantGridY = pixelsToGrid(plant.y);
 
@@ -716,6 +749,8 @@ function GardenPlannerPageContent() {
   };
 
   const safeGardenName = getSafeGardenName(currentGarden);
+  const activePlantFootprint = activePlant ? getPlantFootprint(activePlant) : 1;
+  const isCompactDragOverlay = activePlantFootprint === 1 || gridSize < 48;
 
   const getBestPlantCategory = (plant) => {
     const existingCategory = plant?.category || plant?.plant_category || plant?.type;
@@ -1018,11 +1053,11 @@ function GardenPlannerPageContent() {
           {activePlant ? (
             <div
               style={{
-                width: (activePlant.size || 1) * gridSize,
-                height: (activePlant.size || 1) * gridSize,
+                width: activePlantFootprint * gridSize,
+                height: activePlantFootprint * gridSize,
                 pointerEvents: 'none',
               }}
-              className="relative flex flex-col items-center justify-center border-4 border-green-500 rounded-xl bg-white shadow-2xl transform scale-125"
+              className="relative flex flex-col items-center justify-center overflow-visible border-4 border-green-500 rounded-xl bg-white shadow-2xl transform scale-125"
             >
               {/* Glow effect background */}
               <div className="absolute inset-0 bg-gradient-to-br from-green-400/30 to-blue-400/30 rounded-xl blur-lg -z-10"></div>
@@ -1031,22 +1066,30 @@ function GardenPlannerPageContent() {
               <div className="absolute -inset-4 border-2 border-dashed border-green-400 rounded-xl opacity-60 animate-ping"></div>
               
               {/* Plant emoji - large and prominent */}
-              <div className="text-5xl mb-2 filter drop-shadow-2xl animate-bounce">
+              <div className={`${isCompactDragOverlay ? 'text-2xl' : 'text-5xl mb-2'} filter drop-shadow-2xl animate-bounce`}>
                 {activePlant.emoji}
               </div>
               
               {/* Plant name with high contrast */}
-              <div className="text-sm text-center font-bold text-gray-900 px-3 py-1 bg-white rounded-full border-2 border-green-500 shadow-lg">
+              <div className={`text-center font-bold text-gray-900 bg-white rounded-full border-2 border-green-500 shadow-lg ${
+                isCompactDragOverlay
+                  ? 'absolute -bottom-6 max-w-28 truncate px-2 py-0.5 text-[10px]'
+                  : 'px-3 py-1 text-sm'
+              }`}>
                 {activePlant.name}
               </div>
               
               {/* Size indicator */}
-              <div className="text-xs text-gray-700 mt-2 font-medium bg-green-100 px-2 py-1 rounded border border-green-300">
-                {activePlant.size}×{activePlant.size} units
-              </div>
+              {!isCompactDragOverlay && (
+                <div className="text-xs text-gray-700 mt-2 font-medium bg-green-100 px-2 py-1 rounded border border-green-300">
+                  {activePlantFootprint}x{activePlantFootprint} units
+                </div>
+              )}
               
               {/* Drop zone indicator */}
-              <div className="absolute -bottom-6 text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded border border-green-200">
+              <div className={`absolute text-green-600 font-medium bg-green-50 px-2 py-1 rounded border border-green-200 ${
+                isCompactDragOverlay ? '-bottom-12 text-[10px]' : '-bottom-6 text-xs'
+              }`}>
                 Drop on canvas
               </div>
             </div>

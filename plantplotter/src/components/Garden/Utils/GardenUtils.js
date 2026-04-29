@@ -1,9 +1,18 @@
+export const getPlantFootprint = (plant = {}) => {
+  if (!plant || typeof plant !== 'object') {
+    return 1;
+  }
+
+  const footprint = Number(plant.size ?? plant.plant_size);
+  return Number.isFinite(footprint) && footprint > 0 ? Math.max(1, Math.round(footprint)) : 1;
+};
+
 export const snapToGrid = (value, gridSize) => {
   return Math.round(value / gridSize) * gridSize;
 };
 
 export const isWithinBounds = (plant, dimensions, gridSize) => {
-  const plantSize = (plant.size || 1) * gridSize;
+  const plantSize = getPlantFootprint(plant) * gridSize;
   const maxX = (dimensions.width * gridSize) - plantSize;
   const maxY = (dimensions.height * gridSize) - plantSize;
   
@@ -14,10 +23,10 @@ export const isWithinBounds = (plant, dimensions, gridSize) => {
 };
 
 export const checkPlantOverlap = (newPlant, existingPlants, gridSize) => {
-  const newSize = (newPlant.size || 1) * gridSize;
+  const newSize = getPlantFootprint(newPlant) * gridSize;
   
   return existingPlants.some(existing => {
-    const existingSize = (existing.size || 1) * gridSize;
+    const existingSize = getPlantFootprint(existing) * gridSize;
     
     // Check if rectangles overlap
     return !(newPlant.x >= existing.x + existingSize ||

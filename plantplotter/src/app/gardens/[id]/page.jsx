@@ -217,7 +217,14 @@ function GardenDetailPageContent() {
       return 'Position unavailable';
     }
 
-    return `Position: (${xPosition}, ${yPosition})`;
+    const displayX = Number(xPosition);
+    const displayY = Number(yPosition);
+
+    if (Number.isNaN(displayX) || Number.isNaN(displayY)) {
+      return 'Position unavailable';
+    }
+
+    return `Grid position: (${displayX + 1}, ${displayY + 1})`;
   };
 
   const getPlantSortTime = (plantedItem) => {
@@ -247,6 +254,18 @@ function GardenDetailPageContent() {
     } catch (error) {
       return [];
     }
+  };
+
+  const getPlantDisplayName = (plant) => {
+    return String(plant?.name || plant?.plant_name || '').trim();
+  };
+
+  const sortPlantsByDisplayName = (plants = []) => {
+    return [...plants].sort((firstPlant, secondPlant) => (
+      getPlantDisplayName(firstPlant).localeCompare(getPlantDisplayName(secondPlant), undefined, {
+        sensitivity: 'base'
+      })
+    ));
   };
 
   const getCompanionSuggestions = () => {
@@ -286,7 +305,7 @@ function GardenDetailPageContent() {
 
     if (!plantLibrary.length) {
       return {
-        groups: uniquePlantedItems.map(plantedItem => ({
+        groups: sortPlantsByDisplayName(uniquePlantedItems).map(plantedItem => ({
           plantedItem,
           companions: [],
           avoid: [],
@@ -318,7 +337,7 @@ function GardenDetailPageContent() {
       )?.toString().toLowerCase().trim())
       .filter(Boolean);
 
-    const groups = uniquePlantedItems.map((plantedItem) => {
+    const groups = sortPlantsByDisplayName(uniquePlantedItems).map((plantedItem) => {
       const plantData = findLibraryPlantForPlantedItem(plantedItem);
 
       if (!plantData) {
@@ -339,11 +358,21 @@ function GardenDetailPageContent() {
         companions: companionPlants
           .filter(id => !plantedPlantKeys.includes(getPlantReferenceKey(id)))
           .map(id => resolvePlantReference(id))
-          .filter(Boolean),
+          .filter(Boolean)
+          .sort((firstPlant, secondPlant) => (
+            getPlantDisplayName(firstPlant).localeCompare(getPlantDisplayName(secondPlant), undefined, {
+              sensitivity: 'base'
+            })
+          )),
         avoid: avoidPlants
           .filter(id => !plantedPlantKeys.includes(getPlantReferenceKey(id)))
           .map(id => resolvePlantReference(id))
           .filter(Boolean)
+          .sort((firstPlant, secondPlant) => (
+            getPlantDisplayName(firstPlant).localeCompare(getPlantDisplayName(secondPlant), undefined, {
+              sensitivity: 'base'
+            })
+          ))
       };
     });
 
