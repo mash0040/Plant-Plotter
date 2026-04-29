@@ -5,6 +5,7 @@ import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Setting
 import apiClient from '@/lib/api';
 import GardenForm from '@/components/Gardens/GardenForm'; 
 import ProtectedRoute from '@/components/ProtectedRoute';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 function GardenDetailPageContent() {
   const params = useParams();
@@ -16,6 +17,7 @@ function GardenDetailPageContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false); 
   const [successMessage, setSuccessMessage] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Single useEffect to load both garden and plant library data
   useEffect(() => {
@@ -156,10 +158,76 @@ function GardenDetailPageContent() {
     setShowEditForm(false);
   };
 
+  const handleConfirmDeleteGarden = async () => {
+    setShowDeleteConfirm(false);
+
+    try {
+      await apiClient.deleteGarden(garden.id);
+      router.push('/gardens');
+    } catch (error) {
+      console.error('Failed to delete garden via API:', error);
+      if (error.status === 401) {
+        return;
+      }
+
+      const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+      const updatedGardens = localGardens.filter(g => g.id != garden.id);
+      localStorage.setItem('gardens', JSON.stringify(updatedGardens));
+      router.push('/gardens');
+    }
+  };
+
+  const normalizePlantName = (name) => String(name || '').toLowerCase().trim();
+
+  const findLibraryPlantForPlantedItem = (plantedItem) => {
+    if (!plantedItem || !plantLibrary.length) return null;
+
+    const plantedItemId = plantedItem.plantId || plantedItem.plant_id || plantedItem.id;
+    const plantedItemName = normalizePlantName(plantedItem.name || plantedItem.plant_name);
+
+    return plantLibrary.find((plant) => (
+      plant.id === plantedItemId ||
+      normalizePlantName(plant.name) === plantedItemName
+    )) || null;
+  };
+
+  const getPlantCategory = (plantedItem) => {
+    const itemCategory = plantedItem?.category || plantedItem?.plant_category || plantedItem?.type;
+    if (itemCategory && itemCategory.toLowerCase?.() !== 'other') {
+      return itemCategory;
+    }
+
+    const libraryPlant = findLibraryPlantForPlantedItem(plantedItem);
+    return libraryPlant?.category || libraryPlant?.type || 'Other';
+  };
+
+  const parsePlantList = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+
+    try {
+      const parsedValue = JSON.parse(value);
+      return Array.isArray(parsedValue) ? parsedValue : [];
+    } catch (error) {
+      return [];
+    }
+  };
+
   // Clean companion plant suggestions with name-based mapping
   const getCompanionSuggestions = () => {
-    if (!garden?.plantedItems || garden.plantedItems.length === 0 || !plantLibrary.length) {
-      return { companions: [], avoid: [] };
+    if (!garden?.plantedItems || garden.plantedItems.length === 0) {
+      return { groups: [] };
+    }
+
+    if (!plantLibrary.length) {
+      return {
+        groups: garden.plantedItems.map(plantedItem => ({
+          plantedItem,
+          companions: [],
+          avoid: [],
+          hasData: false
+        }))
+      };
     }
 
     // Map plant names to plant library IDs
@@ -283,72 +351,41 @@ function GardenDetailPageContent() {
       return nameToIdMap[plantName.toLowerCase().trim()] || null;
     };
 
-    const companionIds = new Set();
-    const avoidIds = new Set();
-    
-    // Get plant IDs from planted items using name mapping
     const plantedPlantIds = garden.plantedItems
-      .map(item => mapPlantNameToId(item.name))
+      .map(item => item.plantId || item.plant_id || mapPlantNameToId(item.name))
       .filter(Boolean);
 
-    // Process each planted item
-    garden.plantedItems.forEach((plantedItem) => {
-      const plantId = mapPlantNameToId(plantedItem.name);
-      
-      if (!plantId) return;
-      
-      // Find plant data in library
-      const plantData = plantLibrary.find(p => p.id === plantId);
-      
-      if (plantData) {
-        // Parse companion and avoid plants
-        let companionPlants = [];
-        let avoidPlants = [];
-        
-        try {
-          companionPlants = plantData.companion_plants ? 
-            (typeof plantData.companion_plants === 'string' ? 
-              JSON.parse(plantData.companion_plants) : plantData.companion_plants) : [];
-        } catch (e) {
-          companionPlants = [];
-        }
-        
-        try {
-          avoidPlants = plantData.avoid_plants ? 
-            (typeof plantData.avoid_plants === 'string' ? 
-              JSON.parse(plantData.avoid_plants) : plantData.avoid_plants) : [];
-        } catch (e) {
-          avoidPlants = [];
-        }
-        
-        // Add suggestions that aren't already planted
-        companionPlants.forEach(id => {
-          if (!plantedPlantIds.includes(id)) {
-            companionIds.add(id);
-          }
-        });
-        
-        avoidPlants.forEach(id => {
-          if (!plantedPlantIds.includes(id)) {
-            avoidIds.add(id);
-          }
-        });
+    const groups = garden.plantedItems.map((plantedItem) => {
+      const plantId = plantedItem.plantId || plantedItem.plant_id || mapPlantNameToId(plantedItem.name);
+      const plantData = findLibraryPlantForPlantedItem(plantedItem) || plantLibrary.find(p => p.id === plantId);
+
+      if (!plantData) {
+        return {
+          plantedItem,
+          companions: [],
+          avoid: [],
+          hasData: false
+        };
       }
+
+      const companionPlants = parsePlantList(plantData.companion_plants || plantData.companionPlants);
+      const avoidPlants = parsePlantList(plantData.avoid_plants || plantData.avoidPlants);
+
+      return {
+        plantedItem,
+        hasData: companionPlants.length > 0 || avoidPlants.length > 0,
+        companions: companionPlants
+          .filter(id => !plantedPlantIds.includes(id))
+          .map(id => plantLibrary.find(p => p.id === id))
+          .filter(Boolean),
+        avoid: avoidPlants
+          .filter(id => !plantedPlantIds.includes(id))
+          .map(id => plantLibrary.find(p => p.id === id))
+          .filter(Boolean)
+      };
     });
 
-    // Get companion plant details from library
-    const companions = Array.from(companionIds)
-      .map(id => plantLibrary.find(p => p.id === id))
-      .filter(Boolean)
-      .slice(0, 8);
-
-    // Get avoid plant details from library
-    const avoid = Array.from(avoidIds)
-      .map(id => plantLibrary.find(p => p.id === id))
-      .filter(Boolean)
-      .slice(0, 6);
-
-    return { companions, avoid };
+    return { groups };
   };
 
   if (loading) {
@@ -630,9 +667,41 @@ function GardenDetailPageContent() {
                             <span className="text-gray-800">{garden.dimensions?.height || garden.height}m</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Total Area:</span>
+                            <span className="text-gray-600">Total Garden Area:</span>
                             <span className="text-gray-800">
-                              {((garden.dimensions?.width || garden.width) * (garden.dimensions?.height || garden.height)).toFixed(1)}m²
+                              {((garden.dimensions?.width || garden.width) * (garden.dimensions?.height || garden.height)).toFixed(1)} sq m
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 lg:col-span-2">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="font-medium text-gray-800 mb-2">Garden Information</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                          <div className="flex justify-between gap-3">
+                            <span className="text-gray-600">Created:</span>
+                            <span className="text-gray-800">
+                              {garden.created_at ? new Date(garden.created_at).toLocaleDateString() : 'Unknown'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <span className="text-gray-600">Last Updated:</span>
+                            <span className="text-gray-800">
+                              {garden.updated_at ? new Date(garden.updated_at).toLocaleDateString() : 'Unknown'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <span className="text-gray-600">Plant Count:</span>
+                            <span className="text-gray-800">
+                              {garden.plantedItems?.length || 0} {(garden.plantedItems?.length || 0) === 1 ? 'plant' : 'plants'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <span className="text-gray-600">Total Garden Area:</span>
+                            <span className="text-gray-800">
+                              {((garden.dimensions?.width || garden.width) * (garden.dimensions?.height || garden.height)).toFixed(1)} sq m
                             </span>
                           </div>
                         </div>
@@ -671,7 +740,7 @@ function GardenDetailPageContent() {
                     className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
                   >
                     <Leaf className="w-4 h-4" />
-                    Add Plants
+                    Manage Plants
                   </button>
                 </div>
                 
@@ -724,7 +793,7 @@ function GardenDetailPageContent() {
                       <div className="space-y-3">
                         {(() => {
                           const categories = garden.plantedItems.reduce((acc, plant) => {
-                            const category = plant.category || 'Other';
+                            const category = getPlantCategory(plant);
                             acc[category] = (acc[category] || 0) + 1;
                             return acc;
                           }, {});
@@ -771,7 +840,7 @@ function GardenDetailPageContent() {
                                 ></div>
                               </div>
                               <p className="text-xs text-gray-500 mt-1">
-                                {usedSpace.toFixed(1)}m² used of {totalArea.toFixed(1)}m² total
+                                {usedSpace.toFixed(1)} sq m used of {totalArea.toFixed(1)} sq m total
                               </p>
                             </div>
                           );
@@ -779,39 +848,6 @@ function GardenDetailPageContent() {
                       </div>
                     </div>
 
-                    {/* Plant Health Overview */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                      <h4 className="font-semibold text-gray-800 mb-4">Plant Health Overview</h4>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="text-center">
-                          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <span className="text-lg">🌱</span>
-                          </div>
-                          <p className="text-xs text-gray-600">Healthy</p>
-                          <p className="text-lg font-semibold text-green-600">
-                            {Math.floor(garden.plantedItems.length * 0.8)}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <span className="text-lg">⚠️</span>
-                          </div>
-                          <p className="text-xs text-gray-600">Attention</p>
-                          <p className="text-lg font-semibold text-yellow-600">
-                            {Math.floor(garden.plantedItems.length * 0.15)}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <span className="text-lg">🚨</span>
-                          </div>
-                          <p className="text-xs text-gray-600">Critical</p>
-                          <p className="text-lg font-semibold text-red-600">
-                            {Math.floor(garden.plantedItems.length * 0.05)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
 
                     {/* Growth Timeline */}
                     <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
@@ -852,98 +888,75 @@ function GardenDetailPageContent() {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800">Companion Planting Guide</h3>
                     <p className="text-sm text-gray-600 mt-1">Plants that work well with your current garden</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Suggestions are based on the app's companion planting dataset.
+                    </p>
                   </div>
-                  <button
-                    onClick={handleOpenGardenPlanner}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
-                  >
-                    <Heart className="w-4 h-4" />
-                    Add Companions
-                  </button>
                 </div>
                 
                 {garden.plantedItems && garden.plantedItems.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Good Companions */}
-                    {companionData.companions.length > 0 && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Heart className="w-5 h-5 text-green-500" />
-                          <h4 className="font-semibold text-gray-800">Good Companion Plants</h4>
-                          <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
-                            {companionData.companions.length}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          {companionData.companions.map((plant) => (
-                            <div key={plant.id} className="bg-green-50 rounded-lg p-3 flex items-center gap-2">
-                              <span className="text-xl">{plant.emoji}</span>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-gray-800 truncate">{plant.name}</p>
-                                <p className="text-xs text-gray-600">{plant.category}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                          <p className="text-xs text-green-700">
-                            💡 These plants work well with your current crops and can improve growth, pest control, or flavor.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Plants to Avoid */}
-                    {companionData.avoid.length > 0 && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                          <AlertTriangle className="w-5 h-5 text-orange-500" />
-                          <h4 className="font-semibold text-gray-800">Plants to Avoid</h4>
-                          <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full">
-                            {companionData.avoid.length}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          {companionData.avoid.map((plant) => (
-                            <div key={plant.id} className="bg-orange-50 rounded-lg p-3 flex items-center gap-2">
-                              <span className="text-xl">{plant.emoji}</span>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-gray-800 truncate">{plant.name}</p>
-                                <p className="text-xs text-gray-600">{plant.category}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-4 p-3 bg-orange-50 rounded-lg">
-                          <p className="text-xs text-orange-700">
-                            ⚠️ These plants may compete with or inhibit the growth of your current crops.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* No companion data */}
-                    {companionData.companions.length === 0 && companionData.avoid.length === 0 && (
-                      <div className="col-span-2">
-                        <div className="text-center py-12">
-                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Heart className="w-8 h-8 text-gray-400" />
+                  <div className="grid grid-cols-1 gap-4">
+                    {companionData.groups.map(({ plantedItem, companions, avoid, hasData }) => (
+                      <div key={plantedItem.id || plantedItem.name} className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="text-2xl">{plantedItem.emoji || 'Plant'}</span>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">{plantedItem.name}</h4>
+                            <p className="text-xs text-gray-500 capitalize">{getPlantCategory(plantedItem)}</p>
                           </div>
-                          <h4 className="text-lg font-semibold text-gray-800 mb-2">No companion suggestions available</h4>
-                          <p className="text-gray-600 mb-6">
-                            {plantLibrary.length === 0 
-                              ? 'Plant library is still loading...' 
-                              : 'Your current plants don\'t have specific companion recommendations.'}
-                          </p>
-                          <button
-                            onClick={handleOpenGardenPlanner}
-                            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                          >
-                            Add More Plants
-                          </button>
                         </div>
+
+                        {!hasData ? (
+                          <p className="text-sm text-gray-600">No companion planting data is available for this plant yet.</p>
+                        ) : (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-3">
+                                <Heart className="w-4 h-4 text-green-500" />
+                                <h5 className="text-sm font-semibold text-gray-800">Good companions</h5>
+                              </div>
+                              {companions.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {companions.map((plant) => (
+                                    <div key={plant.id} className="bg-green-50 rounded-lg p-3 flex items-center gap-2">
+                                      <span className="text-xl">{plant.emoji}</span>
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium text-gray-800 truncate">{plant.name}</p>
+                                        <p className="text-xs text-gray-600 capitalize">{plant.category || plant.type}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500">No additional companion suggestions for this plant.</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <div className="flex items-center gap-2 mb-3">
+                                <AlertTriangle className="w-4 h-4 text-orange-500" />
+                                <h5 className="text-sm font-semibold text-gray-800">Plants to avoid</h5>
+                              </div>
+                              {avoid.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {avoid.map((plant) => (
+                                    <div key={plant.id} className="bg-orange-50 rounded-lg p-3 flex items-center gap-2">
+                                      <span className="text-xl">{plant.emoji}</span>
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium text-gray-800 truncate">{plant.name}</p>
+                                        <p className="text-xs text-gray-600 capitalize">{plant.category || plant.type}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500">No incompatible plants listed for this plant.</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
                 ) : (
                   <div className="text-center py-12">
@@ -967,91 +980,13 @@ function GardenDetailPageContent() {
               <div className="space-y-4 sm:space-y-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Garden Settings</h3>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                    <h4 className="font-semibold text-gray-800 mb-4">Quick Actions</h4>
-                    <div className="space-y-3">
-                      <button
-                        onClick={handleEditBasicInfo}
-                        className="w-full p-3 text-left bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-3"
-                      >
-                        <Edit className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="font-medium text-blue-800">Edit Garden Info</p>
-                          <p className="text-sm text-blue-600">Update name, location, soil type, etc.</p>
-                        </div>
-                      </button>
-                      
-                      <button
-                        onClick={handleOpenGardenPlanner}
-                        className="w-full p-3 text-left bg-green-50 hover:bg-green-100 rounded-lg transition-colors flex items-center gap-3"
-                      >
-                        <Settings className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="font-medium text-green-800">Open Garden Planner</p>
-                          <p className="text-sm text-green-600">Design and manage plant layouts</p>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                    <h4 className="font-semibold text-gray-800 mb-4">Garden Information</h4>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Created:</span>
-                        <span className="text-gray-800">
-                          {garden.created_at ? new Date(garden.created_at).toLocaleDateString() : 'Unknown'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Last Updated:</span>
-                        <span className="text-gray-800">
-                          {garden.updated_at ? new Date(garden.updated_at).toLocaleDateString() : 'Unknown'}
-                        </span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                        <span className="text-gray-600">Garden ID:</span>
-                        <span className="text-gray-800 font-mono text-xs break-all">{garden.id}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Plant Count:</span>
-                        <span className="text-gray-800">{garden.plantedItems?.length || 0} plants</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Garden Area:</span>
-                        <span className="text-gray-800">
-                          {((garden.dimensions?.width || garden.width) * (garden.dimensions?.height || garden.height)).toFixed(1)}m²
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6">
                   <h4 className="font-semibold text-red-800 mb-2">Danger Zone</h4>
                   <p className="text-sm text-red-600 mb-4">
                     Once you delete a garden, there is no going back. Please be certain.
                   </p>
                   <button
-                    onClick={async () => {
-                      if (confirm(`Are you sure you want to delete "${garden.name}"? This action cannot be undone.`)) {
-                        try {
-                          await apiClient.deleteGarden(garden.id);
-                          router.push('/gardens');
-                        } catch (error) {
-                          console.error('Failed to delete garden via API:', error);
-                          if (error.status === 401) {
-                            return;
-                          }
-                          // Fallback to localStorage deletion
-                          const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-                          const updatedGardens = localGardens.filter(g => g.id != garden.id);
-                          localStorage.setItem('gardens', JSON.stringify(updatedGardens));
-                          router.push('/gardens');
-                        }
-                      }
-                    }}
+                    onClick={() => setShowDeleteConfirm(true)}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
                   >
                     Delete Garden
@@ -1062,6 +997,16 @@ function GardenDetailPageContent() {
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        title="Delete garden?"
+        message={`Delete "${garden.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDeleteGarden}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

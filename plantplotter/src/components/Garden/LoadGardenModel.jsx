@@ -2,10 +2,13 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const [gardens, setGardens] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [gardenPendingDelete, setGardenPendingDelete] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -70,14 +73,21 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
 
   const handleDelete = async (gardenId, e) => {
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this garden?')) {
-      try {
-        await apiClient.deleteGarden(gardenId);
-        setGardens(prev => prev.filter(g => g.id !== gardenId));
-      } catch (error) {
-        console.error('Failed to delete garden:', error);
-        alert('Failed to delete garden. Please try again.');
-      }
+    const garden = gardens.find(item => item.id === gardenId);
+    setGardenPendingDelete(garden || { id: gardenId, name: 'this garden' });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!gardenPendingDelete) return;
+
+    try {
+      setDeleteError('');
+      await apiClient.deleteGarden(gardenPendingDelete.id);
+      setGardens(prev => prev.filter(g => g.id !== gardenPendingDelete.id));
+      setGardenPendingDelete(null);
+    } catch (error) {
+      console.error('Failed to delete garden:', error);
+      setDeleteError('Failed to delete garden. Please try again.');
     }
   };
 
@@ -92,6 +102,12 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {deleteError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {deleteError}
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-8">
@@ -143,6 +159,16 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
           </div>
         )}
       </div>
+      <ConfirmationModal
+        isOpen={Boolean(gardenPendingDelete)}
+        title="Delete garden?"
+        message={`Delete "${gardenPendingDelete?.name || 'this garden'}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setGardenPendingDelete(null)}
+      />
     </div>
   );
 }

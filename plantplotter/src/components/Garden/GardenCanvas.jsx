@@ -23,7 +23,10 @@ export default function GardenCanvas({
   };
 
   return (
-    <div className="flex-1 h-screen overflow-auto bg-white p-2 sm:p-4">
+    <div className="relative h-full min-h-0 overflow-auto bg-white p-2 sm:p-4">
+      <div className="sm:hidden sticky top-2 left-2 z-20 mb-2 inline-flex rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-600 shadow-sm border border-gray-200">
+        Scroll to pan garden
+      </div>
       <div className="inline-block min-w-full">
         {/* Top Ruler */}
         {showRuler && (
@@ -56,6 +59,9 @@ export default function GardenCanvas({
               className="w-12 bg-white border border-gray-300 border-r-2 border-r-gray-400 relative"
               style={{ height: canvasHeight }}
             >
+              <div className="absolute left-1 top-1 z-10 text-[10px] font-semibold uppercase text-gray-500">
+                Y
+              </div>
               {Array.from({ length: dimensions.height }, (_, i) => (
                 <div
                   key={i}

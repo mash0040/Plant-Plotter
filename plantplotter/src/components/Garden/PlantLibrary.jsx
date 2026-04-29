@@ -400,7 +400,7 @@ export default function PlantLibrary({
 
   if (loading) {
     return (
-      <div className="fixed lg:relative top-0 left-0 h-screen w-72 sm:w-80 lg:w-64 bg-white border-r border-gray-200 flex items-center justify-center">
+      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white border-r border-gray-200 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading plants...</p>
@@ -411,7 +411,7 @@ export default function PlantLibrary({
 
   if (error) {
     return (
-      <div className="fixed lg:relative top-0 left-0 h-screen w-72 sm:w-80 lg:w-64 bg-white border-r border-gray-200 flex flex-col">
+      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white border-r border-gray-200 flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -473,7 +473,7 @@ export default function PlantLibrary({
         bg-white 
         border-r border-gray-200 
         transform transition-transform duration-300 ease-in-out
-        w-72 sm:w-80 lg:w-64
+        w-[85vw] max-w-80 lg:w-64 lg:max-w-none
         z-50 lg:z-auto
         shadow-lg lg:shadow-none
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}

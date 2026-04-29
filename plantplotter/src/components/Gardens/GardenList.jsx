@@ -34,9 +34,7 @@ export default function GardenList({
 
   const handleDelete = async (garden, e) => {
     e?.stopPropagation();
-    if (window.confirm(`Delete "${garden.name}"?`)) {
-      onDelete?.(garden);
-    }
+    onDelete?.(garden);
   };
 
   if (loading) {

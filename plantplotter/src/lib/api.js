@@ -413,6 +413,33 @@ class ApiClient {
     }
   }
 
+  async saveGardenPlantedItems(gardenId, plantedItems = []) {
+    try {
+      return await this.request(`/gardens/${gardenId}/complete`, {
+        method: 'PUT',
+        body: JSON.stringify({ plantedItems }),
+      });
+    } catch (plantError) {
+      await this.clearGardenPlants(gardenId);
+
+      const failedPlants = [];
+      for (const plant of plantedItems) {
+        try {
+          await this.addPlantToGarden(gardenId, plant);
+        } catch (error) {
+          console.error(`Failed to add plant ${plant.plant_name}:`, error.message);
+          failedPlants.push(plant.plant_name || plant.plant_id || 'plant');
+        }
+      }
+
+      if (failedPlants.length > 0) {
+        throw new Error(`Failed to save ${failedPlants.length} planted item${failedPlants.length === 1 ? '' : 's'}.`);
+      }
+
+      return { success: true, totalPlants: plantedItems.length };
+    }
+  }
+
   // Enhanced save complete garden method
   async saveCompleteGarden(gardenData, plantedItems = []) {
     try {      

@@ -6,6 +6,7 @@ import apiClient from '@/lib/api';
 import GardenList from '@/components/Gardens/GardenList';
 import GardenForm from '@/components/Gardens/GardenForm';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 
 function GardensLoading() {
@@ -30,6 +31,7 @@ function AllGardensContent() {
   const [error, setError] = useState(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [gardenPendingDelete, setGardenPendingDelete] = useState(null);
 
   // Check for success parameters from garden planner
   useEffect(() => {
@@ -139,19 +141,27 @@ function AllGardensContent() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (garden) => {
-    if (!window.confirm(`Delete "${garden.name}"? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDelete = (garden) => {
+    setGardenPendingDelete(garden);
+  };
+
+  const handleCancelDelete = () => {
+    setGardenPendingDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!gardenPendingDelete) return;
+    const gardenToDelete = gardenPendingDelete;
+    setGardenPendingDelete(null);
 
     try {
       // Try to delete via API first
-      await apiClient.deleteGarden(garden.id);
+      await apiClient.deleteGarden(gardenToDelete.id);
       
       // Reload gardens to reflect the deletion
       await loadGardens();
       
-      setSuccessMessage(`"${garden.name}" deleted successfully!`);
+      setSuccessMessage(`"${gardenToDelete.name}" deleted successfully!`);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
@@ -163,18 +173,18 @@ function AllGardensContent() {
       // Fallback to localStorage deletion
       try {
         const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-        const updatedGardens = localGardens.filter(g => g.id !== garden.id);
+        const updatedGardens = localGardens.filter(g => g.id !== gardenToDelete.id);
         localStorage.setItem('gardens', JSON.stringify(updatedGardens));
         
         // Reload gardens to reflect the deletion
         await loadGardens();
         
-        setSuccessMessage(`"${garden.name}" deleted successfully!`);
+        setSuccessMessage(`"${gardenToDelete.name}" deleted successfully!`);
         setShowSuccessMessage(true);
         setTimeout(() => setShowSuccessMessage(false), 3000);
       } catch (localError) {
         console.error('Failed to delete from localStorage:', localError);
-        alert('Failed to delete garden. Please try again.');
+        setError('Failed to delete garden. Please try again.');
       }
     }
   };
@@ -384,6 +394,17 @@ function AllGardensContent() {
         onSave={handleSave}
         onClose={handleClose}
         isOpen={isFormOpen}
+      />
+
+      <ConfirmationModal
+        isOpen={Boolean(gardenPendingDelete)}
+        title="Delete garden?"
+        message={`Delete "${gardenPendingDelete?.name || 'this garden'}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
       />
 
       <style jsx>{`
