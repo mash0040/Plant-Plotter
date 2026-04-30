@@ -1,8 +1,21 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const pool = mysql.createPool({
+const parseBooleanEnv = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === '') {
+    return defaultValue;
+  }
+
+  return value.toString().trim().toLowerCase() === 'true';
+};
+
+const dbPort = Number.parseInt(process.env.DB_PORT || '3306', 10);
+const useSsl = parseBooleanEnv(process.env.DB_SSL, false);
+const rejectUnauthorized = parseBooleanEnv(process.env.DB_SSL_REJECT_UNAUTHORIZED, true);
+
+const poolConfig = {
   host: process.env.DB_HOST,
+  port: Number.isNaN(dbPort) ? 3306 : dbPort,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
@@ -10,7 +23,15 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   waitForConnections: true,
   queueLimit: 0
-});
+};
+
+if (useSsl) {
+  poolConfig.ssl = {
+    rejectUnauthorized
+  };
+}
+
+const pool = mysql.createPool(poolConfig);
 
 // Test the connection
 (async () => {
