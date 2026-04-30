@@ -10,7 +10,7 @@ export const gardens = [
   {
     id: 1,
     name: "Main Vegetable Garden",
-    icon: "🥕",
+    icon: "Veg",
     location: "Backyard",
     soilType: "Loamy",
     dimensions: { width: 16, height: 12 },

@@ -416,19 +416,22 @@ export const getPriorityColor = (priority) => {
 
 // Format date for display
 export const formatTaskDate = (dateString) => {
-  const date = new Date(dateString);
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
   
-  const dateStr = date.toISOString().split('T')[0];
-  const todayStr = today.toISOString().split('T')[0];
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const dateStr = typeof dateString === 'string'
+    ? dateString.split('T')[0]
+    : `${dateString.getFullYear()}-${(dateString.getMonth() + 1).toString().padStart(2, '0')}-${dateString.getDate().toString().padStart(2, '0')}`;
+  const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  const tomorrowStr = `${tomorrow.getFullYear()}-${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}-${tomorrow.getDate().toString().padStart(2, '0')}`;
   
   if (dateStr === todayStr) return 'Today';
   if (dateStr === tomorrowStr) return 'Tomorrow';
+
+  const [year, month, day] = dateStr.split('-').map(Number);
   
-  return date.toLocaleDateString('en-US', { 
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', { 
     month: 'short', 
     day: 'numeric' 
   });

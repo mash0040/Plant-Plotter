@@ -20,7 +20,6 @@ export default function TasksList({
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
         <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">{title}</h3>
         <div className="text-center py-6">
-          <div className="text-4xl mb-3">🎉</div>
           <div className="mb-2">
             <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
           </div>
@@ -41,7 +40,9 @@ export default function TasksList({
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
         <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">{title}</h3>
         <div className="text-center py-6">
-          <div className="text-4xl mb-2">📋</div>
+          <div className="mb-2">
+            <Clock className="w-8 h-8 text-gray-400 mx-auto" />
+          </div>
           <p className="text-gray-500 dark:text-gray-400">
             {emptyMessage}
           </p>
@@ -95,7 +96,7 @@ export default function TasksList({
                     {task.title || task.task}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {task.plant} • {task.description || ''}
+                    {[task.plant, task.description].filter(Boolean).join(' - ')}
                   </div>
                   
                   {/* Task metadata */}
@@ -122,7 +123,7 @@ export default function TasksList({
                   
                   {task.isRecurring && (
                     <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      🔄 Recurring ({task.recurringPattern?.replace('-', ' ')})
+                      Recurring ({task.recurringPattern?.replace('-', ' ')})
                     </div>
                   )}
                 </div>

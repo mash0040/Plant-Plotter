@@ -18,10 +18,17 @@ export default function RowPlantingModal({
   });
   
   const [previewPositions, setPreviewPositions] = useState([]);
+  const [validationMessage, setValidationMessage] = useState('');
+
+  const handleClose = () => {
+    setValidationMessage('');
+    onClose();
+  };
 
   // Calculate preview positions when config changes
   useEffect(() => {
     if (!plant) return;
+    setValidationMessage('');
     
     const positions = [];
     const plantSize = plant.size || 1;
@@ -59,28 +66,14 @@ export default function RowPlantingModal({
   }, [rowConfig, plant, dimensions]);
 
   const handleConfigChange = (field, value) => {
+    setValidationMessage('');
     setRowConfig(prev => ({
       ...prev,
-      [field]: value
+      [field]: field === 'spacing' ? Math.max(0, Math.round(value) || 0) : value
     }));
   };
 
-  const handlePlantRow = () => {
-    const validPositions = previewPositions.filter(pos => pos.withinBounds);
-    
-    if (validPositions.length === 0) {
-      alert('No valid positions found. Please adjust your settings.');
-      return;
-    }
-    
-    if (validPositions.length < rowConfig.count) {
-      const proceed = confirm(
-        `Only ${validPositions.length} out of ${rowConfig.count} plants can fit. Continue?`
-      );
-      if (!proceed) return;
-    }
-    
-    // Create plant data for each position
+  const plantValidPositions = (validPositions) => {
     const plantsToAdd = validPositions.map((pos, index) => ({
       ...plant,
       id: `plant-row-${Date.now()}-${index}`,
@@ -92,8 +85,31 @@ export default function RowPlantingModal({
       notes: `Row plant ${index + 1}/${validPositions.length}`
     }));
     
-    onPlant(plantsToAdd);
-    onClose();
+    const result = onPlant(plantsToAdd);
+    if (result?.success === false) {
+      setValidationMessage(result.message || 'Row planting failed. Adjust the row and try again.');
+      return;
+    }
+
+    handleClose();
+  };
+
+  const boundaryValidationMessage = 'This row does not fit inside the garden. Adjust the count, spacing, direction, or starting position.';
+
+  const handlePlantRow = () => {
+    const validPositions = previewPositions.filter(pos => pos.withinBounds);
+
+    if (validPositions.length === 0) {
+      setValidationMessage('No valid positions found. Please adjust your settings.');
+      return;
+    }
+
+    if (validPositions.length < rowConfig.count) {
+      setValidationMessage(boundaryValidationMessage);
+      return;
+    }
+
+    plantValidPositions(validPositions);
   };
 
   const getDirectionIcon = () => {
@@ -109,23 +125,28 @@ export default function RowPlantingModal({
 
   const maxLength = rowConfig.direction === 'horizontal' ? dimensions.width : dimensions.height;
   const willFit = totalLength <= maxLength;
+  const previewValidationMessage = validationMessage || (!willFit ? boundaryValidationMessage : '');
 
   if (!isOpen || !plant) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-lg p-6 w-96 max-w-[90vw] max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{plant.emoji}</span>
             <h3 className="text-lg font-semibold">Plant Row: {plant.name}</h3>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={handleClose} className="text-gray-500 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Row planting adds multiple of the same plant.
+          </p>
+
           {/* Plant Count */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -205,9 +226,9 @@ export default function RowPlantingModal({
                 No Gap
               </button>
               <button
-                onClick={() => handleConfigChange('spacing', 0.5)}
+                onClick={() => handleConfigChange('spacing', 1)}
                 className={`px-3 py-1 text-xs rounded border ${
-                  rowConfig.spacing === 0.5 
+                  rowConfig.spacing === 1
                     ? 'bg-green-100 border-green-300 text-green-700' 
                     : 'bg-white border-gray-300'
                 }`}
@@ -215,9 +236,9 @@ export default function RowPlantingModal({
                 Small Gap
               </button>
               <button
-                onClick={() => handleConfigChange('spacing', 1)}
+                onClick={() => handleConfigChange('spacing', 2)}
                 className={`px-3 py-1 text-xs rounded border ${
-                  rowConfig.spacing === 1 
+                  rowConfig.spacing === 2
                     ? 'bg-green-100 border-green-300 text-green-700' 
                     : 'bg-white border-gray-300'
                 }`}
@@ -228,7 +249,7 @@ export default function RowPlantingModal({
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleConfigChange('spacing', Math.max(0, rowConfig.spacing - 0.5))}
+                onClick={() => handleConfigChange('spacing', Math.max(0, rowConfig.spacing - 1))}
                 className="p-1 hover:bg-gray-100 rounded"
               >
                 <Minus className="w-4 h-4" />
@@ -236,14 +257,14 @@ export default function RowPlantingModal({
               <input
                 type="number"
                 value={rowConfig.spacing}
-                onChange={(e) => handleConfigChange('spacing', Math.max(0, parseFloat(e.target.value) || 0))}
+                onChange={(e) => handleConfigChange('spacing', Math.max(0, parseInt(e.target.value, 10) || 0))}
                 className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
                 min="0"
-                step="0.5"
+                step="1"
                 max="5"
               />
               <button
-                onClick={() => handleConfigChange('spacing', Math.min(5, rowConfig.spacing + 0.5))}
+                onClick={() => handleConfigChange('spacing', Math.min(5, rowConfig.spacing + 1))}
                 className="p-1 hover:bg-gray-100 rounded"
               >
                 <Plus className="w-4 h-4" />
@@ -252,6 +273,9 @@ export default function RowPlantingModal({
             </div>
             <p className="text-xs text-gray-500 mt-1">
               {rowConfig.spacing === 0 ? 'Plants will touch each other' : `${rowConfig.spacing} unit${rowConfig.spacing !== 1 ? 's' : ''} between plants`}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Spacing uses full grid units so saved layouts stay aligned to the garden grid.
             </p>
           </div>
 
@@ -290,6 +314,12 @@ export default function RowPlantingModal({
               <Grid className="w-4 h-4 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">Preview</span>
             </div>
+
+            {previewValidationMessage && (
+              <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                {previewValidationMessage}
+              </div>
+            )}
             
             <div className="text-sm text-gray-600 space-y-1">
               <div className="flex items-center gap-2">
@@ -310,22 +340,17 @@ export default function RowPlantingModal({
               </div>
               
               <div>
-                Valid positions: {previewPositions.filter(p => p.withinBounds).length}/{rowConfig.count}
+                Positions in bounds: {previewPositions.filter(p => p.withinBounds).length}/{rowConfig.count}
               </div>
             </div>
 
-            {!willFit && (
-              <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs text-yellow-800">
-                ⚠️ Some plants will be outside garden boundaries
-              </div>
-            )}
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-3 mt-6">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             Cancel
@@ -335,7 +360,7 @@ export default function RowPlantingModal({
             disabled={previewPositions.filter(p => p.withinBounds).length === 0}
             className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Plant Row ({previewPositions.filter(p => p.withinBounds).length})
+            Plant Row ({rowConfig.count})
           </button>
         </div>
       </div>

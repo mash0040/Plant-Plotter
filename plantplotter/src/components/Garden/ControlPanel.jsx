@@ -1,29 +1,20 @@
 'use client';
-import { Plus, Minus, Grid, Ruler, Save, FolderOpen, Menu, ArrowLeft } from 'lucide-react';
+import { Plus, Minus, Grid, Ruler, Save, Menu, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
-export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler, onDimensionChange, onGridSizeChange, onToggleGrid, onToggleRuler, onSave, hasUnsavedChanges, onToggleSidebar, gardenName, onBackClick }) {
+export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler, onDimensionChange, onGridSizeChange, onToggleGrid, onToggleRuler, onSave, hasUnsavedChanges, onToggleSidebar, gardenName, onBackClick, backLabel = 'Back to Garden List', saveLabel = 'Save' }) {
   const [unit, setUnit] = useState('metric');
   const [inputValues, setInputValues] = useState({
     width: dimensions.width.toString(),
     height: dimensions.height.toString(),
-    grid: (gridSize / 40).toFixed(1)
+    zoom: Math.round((gridSize / 40) * 100).toString()
   });
 
   // Conversion functions
   const metersToFeet = (meters) => (meters * 3.28084).toFixed(2);
   const feetToMeters = (feet) => (feet / 3.28084);
-  const pixelsToMeters = (pixels) => (pixels / 40);
-  const metersToPixels = (meters) => Math.round(meters * 40);
-
-  // Get display values based on current unit
-  const getDisplayValue = (meters, precision = 1) => {
-    if (unit === 'metric') {
-      return parseFloat(meters).toFixed(precision);
-    } else {
-      return metersToFeet(meters);
-    }
-  };
+  const gridSizeToZoom = (size) => Math.round((size / 40) * 100);
+  const zoomToGridSize = (zoom) => Math.round((zoom / 100) * 40);
 
   const getUnitLabel = () => unit === 'metric' ? 'm' : 'ft';
 
@@ -37,13 +28,13 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
       setInputValues({
         width: metersToFeet(dimensions.width),
         height: metersToFeet(dimensions.height),
-        grid: metersToFeet(pixelsToMeters(gridSize))
+        zoom: gridSizeToZoom(gridSize).toString()
       });
     } else {
       setInputValues({
         width: dimensions.width.toString(),
         height: dimensions.height.toString(),
-        grid: pixelsToMeters(gridSize).toFixed(1)
+        zoom: gridSizeToZoom(gridSize).toString()
       });
     }
   };
@@ -61,29 +52,26 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
     if (field === 'width' || field === 'height') {
       const metersValue = unit === 'imperial' ? feetToMeters(numValue) : numValue;
       const clampedValue = Math.max(1, Math.min(50, Math.round(metersValue)));
-      
-      onDimensionChange({
+      const nextDimensions = {
         ...dimensions,
         [field]: clampedValue
-      });
+      };
+      const dimensionChangeAccepted = onDimensionChange(nextDimensions);
       
-      // Update input to show clamped value
+      const displayedValue = dimensionChangeAccepted === false ? dimensions[field] : clampedValue;
       setInputValues(prev => ({
         ...prev,
-        [field]: unit === 'imperial' ? metersToFeet(clampedValue) : clampedValue.toString()
+        [field]: unit === 'imperial' ? metersToFeet(displayedValue) : displayedValue.toString()
       }));
-    } else if (field === 'grid') {
-      const metersValue = unit === 'imperial' ? feetToMeters(numValue) : numValue;
-      const pixelValue = metersToPixels(metersValue);
-      const clampedPixelValue = Math.max(20, Math.min(100, pixelValue));
+    } else if (field === 'zoom') {
+      const clampedZoomValue = Math.max(50, Math.min(250, Math.round(numValue)));
+      const clampedPixelValue = Math.max(20, Math.min(100, zoomToGridSize(clampedZoomValue)));
       
       onGridSizeChange(clampedPixelValue);
       
-      // Update input to show clamped value
-      const clampedMetersValue = pixelsToMeters(clampedPixelValue);
       setInputValues(prev => ({
         ...prev,
-        grid: unit === 'imperial' ? metersToFeet(clampedMetersValue) : clampedMetersValue.toFixed(1)
+        zoom: gridSizeToZoom(clampedPixelValue).toString()
       }));
     }
   };
@@ -91,9 +79,16 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
   // Handle +/- buttons
   const adjustDimension = (type, delta) => {
     const newValue = Math.max(1, Math.min(50, dimensions[type] + delta));
-    onDimensionChange({ ...dimensions, [type]: newValue });
+    const dimensionChangeAccepted = onDimensionChange({ ...dimensions, [type]: newValue });
     
-    // Update input values
+    if (dimensionChangeAccepted === false) {
+      setInputValues(prev => ({
+        ...prev,
+        [type]: unit === 'imperial' ? metersToFeet(dimensions[type]) : dimensions[type].toString()
+      }));
+      return;
+    }
+
     setInputValues(prev => ({
       ...prev,
       [type]: unit === 'imperial' ? metersToFeet(newValue) : newValue.toString()
@@ -104,11 +99,9 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
     const newSize = Math.max(20, Math.min(100, gridSize + delta));
     onGridSizeChange(newSize);
     
-    // Update input values
-    const metersValue = pixelsToMeters(newSize);
     setInputValues(prev => ({
       ...prev,
-      grid: unit === 'imperial' ? metersToFeet(metersValue) : metersValue.toFixed(1)
+      zoom: gridSizeToZoom(newSize).toString()
     }));
   };
 
@@ -121,10 +114,14 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           {onBackClick && (
             <button 
               onClick={onBackClick}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-              title="Back to gardens list"
+              className="min-h-10 min-w-10 px-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5 flex-shrink-0"
+              title={backLabel}
+              aria-label={backLabel}
             >
               <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <span className="hidden sm:inline text-sm font-medium text-gray-600 whitespace-nowrap">
+                {backLabel}
+              </span>
             </button>
           )}
           
@@ -132,7 +129,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           {onToggleSidebar && (
             <button 
               onClick={onToggleSidebar}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+              className="lg:hidden min-h-10 min-w-10 p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
               title="Toggle plant library"
             >
               <Menu className="w-5 h-5 text-gray-600" />
@@ -159,7 +156,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
             <button
               onClick={onToggleGrid}
-              className={`p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
+              className={`min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
                 showGrid 
                   ? 'bg-green-100 hover:bg-green-200 text-green-700' 
                   : 'hover:bg-gray-100 text-gray-600'
@@ -172,7 +169,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             
             <button
               onClick={onToggleRuler}
-              className={`p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
+              className={`min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
                 showRuler 
                   ? 'bg-green-100 hover:bg-green-200 text-green-700' 
                   : 'hover:bg-gray-100 text-gray-600'
@@ -185,7 +182,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             
             <button 
               onClick={onSave}
-              className={`p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
+              className={`min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
                 hasUnsavedChanges 
                   ? 'bg-green-100 text-green-700 hover:bg-green-200' 
                   : 'hover:bg-gray-100 text-gray-600'
@@ -193,7 +190,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
               title="Save garden"
             >
               <Save className="w-4 h-4" />
-              <span className="hidden sm:inline">Save</span>
+              <span className="hidden sm:inline">{saveLabel}</span>
             </button>
           </div>
 
@@ -201,7 +198,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           <div className="flex items-center bg-white rounded-lg p-1 shadow-sm border border-gray-200">
             <button
               onClick={toggleUnit}
-              className="px-2 py-1.5 rounded text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-700"
+              className="min-h-9 px-3 sm:px-2 py-2 sm:py-1.5 rounded text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-700"
               title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
             >
               {unit === 'metric' ? 'Metric (m)' : 'Imperial (ft)'}
@@ -214,9 +211,10 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             
             {/* Width Controls */}
             <div className="flex items-center gap-0.5">
+              <span className="text-xs font-medium text-gray-600 px-1">Width (X)</span>
               <button 
                 onClick={() => adjustDimension('width', -1)} 
-                className="p-1 hover:bg-gray-100 rounded text-gray-600"
+                className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
                 title="Decrease width"
               >
                 <Minus className="w-3 h-3" />
@@ -226,27 +224,27 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
                 value={inputValues.width}
                 onChange={(e) => handleInputChange('width', e.target.value)}
                 onBlur={(e) => handleInputBlur('width', e.target.value)}
-                className="w-12 px-1 py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                aria-label="Garden width"
+                className="w-14 sm:w-12 min-h-9 sm:min-h-0 px-1 py-2 sm:py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 step={unit === 'imperial' ? '0.1' : '1'}
                 min="1"
               />
               <span className="text-xs text-gray-500">{getUnitLabel()}</span>
               <button 
                 onClick={() => adjustDimension('width', 1)} 
-                className="p-1 hover:bg-gray-100 rounded text-gray-600"
+                className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
                 title="Increase width"
               >
                 <Plus className="w-3 h-3" />
               </button>
             </div>
             
-            <span className="text-xs text-gray-400">×</span>
-            
             {/* Height Controls */}
             <div className="flex items-center gap-0.5">
+              <span className="text-xs font-medium text-gray-600 px-1">Height (Y)</span>
               <button 
                 onClick={() => adjustDimension('height', -1)} 
-                className="p-1 hover:bg-gray-100 rounded text-gray-600"
+                className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
                 title="Decrease height"
               >
                 <Minus className="w-3 h-3" />
@@ -256,14 +254,15 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
                 value={inputValues.height}
                 onChange={(e) => handleInputChange('height', e.target.value)}
                 onBlur={(e) => handleInputBlur('height', e.target.value)}
-                className="w-12 px-1 py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                aria-label="Garden height"
+                className="w-14 sm:w-12 min-h-9 sm:min-h-0 px-1 py-2 sm:py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 step={unit === 'imperial' ? '0.1' : '1'}
                 min="1"
               />
               <span className="text-xs text-gray-500">{getUnitLabel()}</span>
               <button 
                 onClick={() => adjustDimension('height', 1)} 
-                className="p-1 hover:bg-gray-100 rounded text-gray-600"
+                className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
                 title="Increase height"
               >
                 <Plus className="w-3 h-3" />
@@ -271,30 +270,31 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             </div>
           </div>
 
-          {/* Grid Size Controls Group - Same height */}
+          {/* Zoom Controls Group - Same height */}
           <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
-            <span className="text-xs font-medium text-gray-600 hidden md:inline px-1">Grid:</span>
+            <span className="text-xs font-medium text-gray-600 hidden md:inline px-1">Zoom:</span>
             <button 
               onClick={() => adjustGridSize(-5)} 
-              className="p-1 hover:bg-gray-100 rounded text-gray-600"
-              title="Decrease grid size"
+              className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
+              title="Zoom out"
             >
               <Minus className="w-3 h-3" />
             </button>
             <input
               type="number"
-              value={inputValues.grid}
-              onChange={(e) => handleInputChange('grid', e.target.value)}
-              onBlur={(e) => handleInputBlur('grid', e.target.value)}
-              className="w-12 px-1 py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              step="0.1"
-              min="0.5"
+              value={inputValues.zoom}
+              onChange={(e) => handleInputChange('zoom', e.target.value)}
+              onBlur={(e) => handleInputBlur('zoom', e.target.value)}
+              className="w-14 sm:w-12 min-h-9 sm:min-h-0 px-1 py-2 sm:py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              step="10"
+              min="50"
+              max="250"
             />
-            <span className="text-xs text-gray-500">{getUnitLabel()}</span>
+            <span className="text-xs text-gray-500">%</span>
             <button 
               onClick={() => adjustGridSize(5)} 
-              className="p-1 hover:bg-gray-100 rounded text-gray-600"
-              title="Increase grid size"
+              className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
+              title="Zoom in"
             >
               <Plus className="w-3 h-3" />
             </button>

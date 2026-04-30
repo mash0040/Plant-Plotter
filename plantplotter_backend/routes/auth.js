@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController.js');
 const verifyToken = require('../middleware/verifyToken');
+const { authLimiter } = require('../middleware/rateLimiters');
 
 // POST /api/auth/login
-router.post('/login', userController.loginUser);
+router.post('/login', authLimiter, userController.loginUser);
 
 // POST /api/auth/register  
-router.post('/register', userController.registerUser);
+router.post('/register', authLimiter, userController.registerUser);
 
 // Auth verification endpoint
 router.get('/verify', verifyToken, (req, res) => {

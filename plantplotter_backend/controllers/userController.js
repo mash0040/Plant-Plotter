@@ -2,31 +2,35 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = require('../config/jwtSecret');
+const { validatePassword } = require('../utils/passwordValidation');
+const { validateEmail } = require('../utils/emailValidation');
 
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
+  const trimmedUsername = typeof username === 'string' ? username.trim() : '';
+  const trimmedEmail = typeof email === 'string' ? email.trim() : '';
 
   // Check for missing fields
-  if (!username || !email || !password) {
+  if (!trimmedUsername || !trimmedEmail || !password) {
     return res.status(400).json({ message: 'Please fill in all fields' });
   }
 
-  // Basic validation
-  if (password.length < 6) {
-    return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+  const emailError = validateEmail(trimmedEmail);
+  if (emailError) {
+    return res.status(400).json({ message: emailError });
+  }
+
+  // Password strength validation (must match frontend AuthForm rules)
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return res.status(400).json({ message: passwordError });
   }
 
   try {
-    // Check if email already exists
-    const [existing] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+    // Email is the unique login identifier; display name (username column) is NOT unique.
+    const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [trimmedEmail]);
     if (existing.length > 0) {
       return res.status(409).json({ message: 'Email already registered' });
-    }
-
-    // Check if username already exists
-    const [existingUsername] = await db.execute('SELECT * FROM users WHERE username = ?', [username]);
-    if (existingUsername.length > 0) {
-      return res.status(409).json({ message: 'Username already taken' });
     }
 
     // Hash password
@@ -35,7 +39,7 @@ const registerUser = async (req, res) => {
     // Insert user into database
     const [result] = await db.execute(
       'INSERT INTO users (username, email, password_hash, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
-      [username, email, hashedPassword, 'user', true]
+      [trimmedUsername, trimmedEmail, hashedPassword, 'user', true]
     );
 
     const userId = result.insertId;
@@ -43,8 +47,8 @@ const registerUser = async (req, res) => {
     // Generate JWT token for immediate login
     const tokenPayload = { 
       id: userId, 
-      email: email,
-      username: username,
+      email: trimmedEmail,
+      username: trimmedUsername,
       role: 'user'
     };
 
@@ -60,8 +64,8 @@ const registerUser = async (req, res) => {
       token: token,
       user: {
         id: userId,
-        username: username,
-        email: email,
+        username: trimmedUsername,
+        email: trimmedEmail,
         role: 'user'
       }
     });

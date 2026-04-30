@@ -2,10 +2,12 @@
 // Save this as: components/Tracker/Constants/ActivitiesData.js
 
 export const activityTypes = [
-  { id: 'planted', label: 'Planted', color: 'bg-green-200 text-green-800', icon: '🌱' },
-  { id: 'watered', label: 'Watered', color: 'bg-blue-200 text-blue-800', icon: '💧' },
-  { id: 'fertilized', label: 'Fertilized', color: 'bg-yellow-200 text-yellow-800', icon: '🌿' },
-  { id: 'harvested', label: 'Harvested', color: 'bg-red-200 text-red-800', icon: '🌾' }
+  { id: 'planted', label: 'Planted', color: 'bg-green-200 text-green-800', icon: 'Pl' },
+  { id: 'watered', label: 'Watered', color: 'bg-blue-200 text-blue-800', icon: 'W' },
+  { id: 'fertilized', label: 'Fertilized', color: 'bg-yellow-200 text-yellow-800', icon: 'F' },
+  { id: 'harvested', label: 'Harvested', color: 'bg-red-200 text-red-800', icon: 'H' },
+  { id: 'pruned', label: 'Pruned', color: 'bg-purple-200 text-purple-800', icon: 'Pr' },
+  { id: 'weeded', label: 'Weeded', color: 'bg-emerald-200 text-emerald-800', icon: 'We' }
 ];
 
 // Enhanced plant list based on your rich garden data

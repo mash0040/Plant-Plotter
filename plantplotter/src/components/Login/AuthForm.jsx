@@ -1,50 +1,103 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff, AlertCircle, User } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, User, Info } from 'lucide-react';
+import { useAuth, SESSION_EXPIRED_FLAG } from '@/hooks/useAuth';
+import { validateNewPassword, PASSWORD_RULES_HINT } from '@/lib/passwordValidation';
+import { validateEmail } from '@/lib/emailValidation';
+
+const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '' };
 
 export default function AuthForm() {
   const router = useRouter();
-  const { login, register, loading, error } = useAuth(); 
+  const { login, register, loading, clearError } = useAuth();
 
-  const [mode, setMode] = useState('login'); // 'login', 'register', 'forgot'
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
+  const [mode, setMode] = useState('login'); // 'login' or 'register'
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [sessionNotice, setSessionNotice] = useState('');
+
+  // One-time session-expired notice: only shown when the user lost an active
+  // session (set by AuthProvider). Manual nav to /login should never see this.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const flag = window.sessionStorage.getItem(SESSION_EXPIRED_FLAG);
+      if (flag) {
+        setSessionNotice('Your session expired. Please sign in again.');
+        window.sessionStorage.removeItem(SESSION_EXPIRED_FLAG);
+      }
+    } catch (storageError) {
+      // ignore
+    }
+    // Always clear any sticky context error when arriving on the form fresh.
+    if (clearError) clearError();
+  }, [clearError]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setLocalError(''); // Clear error when user types
+    setLocalError('');
+    setSessionNotice('');
+  };
+
+  // Reset everything when the user toggles between Sign In and Create Account.
+  // We never want a typed email/password to leak between modes.
+  const switchMode = (nextMode) => {
+    setMode(nextMode);
+    setFormData(EMPTY_FORM);
+    setLocalError('');
+    setSessionNotice('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setLocalError('');
+    setSessionNotice('');
 
+    // Custom empty-field checks (form has noValidate, so the browser will
+    // not show its own "Please fill out this field" bubble).
+    const trimmedEmail = formData.email.trim();
+    if (mode === 'register' && !formData.name.trim()) {
+      setLocalError('Display name is required');
+      return;
+    }
+    if (!trimmedEmail) {
+      setLocalError('Email is required');
+      return;
+    }
+    const emailError = validateEmail(trimmedEmail);
+    if (emailError) {
+      setLocalError(emailError);
+      return;
+    }
+    if (!formData.password) {
+      setLocalError('Password is required');
+      return;
+    }
+    if (mode === 'register' && !formData.confirmPassword) {
+      setLocalError('Please confirm your password');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       if (mode === 'login') {
-        await login(formData.email, formData.password);
+        await login(trimmedEmail, formData.password);
         router.push('/gardens');
-      } else if (mode === 'register') {
-        // Validate passwords match
+      } else {
+        const passwordError = validateNewPassword(formData.password);
+        if (passwordError) {
+          throw new Error(passwordError);
+        }
         if (formData.password !== formData.confirmPassword) {
           throw new Error('Passwords do not match');
         }
-        if (formData.password.length < 6) {
-          throw new Error('Password must be at least 6 characters long');
-        }
-        
-        await register(formData.name, formData.email, formData.password);
+        await register(formData.name.trim(), trimmedEmail, formData.password);
         router.push('/gardens');
       }
     } catch (err) {
@@ -54,109 +107,21 @@ export default function AuthForm() {
     }
   };
 
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setLocalError('');
-
-    try {
-      // Simulate API call for password reset
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (resetEmail) {
-        alert(`Password reset link sent to: ${resetEmail}`);
-        setMode('login');
-        setResetEmail('');
-      } else {
-        throw new Error('Please enter your email address');
-      }
-    } catch (err) {
-      setLocalError(err.message || 'Failed to send reset link. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDemoLogin = () => {
-    setFormData(prev => ({
-      ...prev,
-      email: 'demo@plantplotter.com',
-      password: 'demo123'
-    }));
-    setMode('login');
-    // Auto-submit after setting values
-    setTimeout(() => {
-      const form = document.querySelector('form');
-      if (form) {
-        form.requestSubmit();
-      }
-    }, 100);
-  };
-
-  const displayError = localError || error;
-
-  // Forgot Password Form
-  if (mode === 'forgot') {
-    return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">
-            Reset Password
-          </h3>
-          <p className="text-gray-600 text-sm">
-            Enter your email to receive a password reset link
-          </p>
-        </div>
-
-        {displayError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-            <p className="text-red-600 text-sm">{displayError}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleForgotPassword} className="space-y-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
-              value={resetEmail}
-              onChange={(e) => setResetEmail(e.target.value)}
-              required
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg hover:shadow-xl"
-          >
-            {isSubmitting ? 'Sending...' : 'Send Reset Link'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setMode('login');
-              setLocalError('');
-            }}
-            className="w-full text-gray-600 hover:text-green-600 font-medium py-2 transition-colors"
-            disabled={isSubmitting}
-          >
-            Back to Login
-          </button>
-        </form>
-      </div>
-    );
-  }
+  const displayError = localError;
+  const passwordAutocomplete = mode === 'register' ? 'new-password' : 'current-password';
+  const passwordPlaceholder = mode === 'register'
+    ? `Create password (${PASSWORD_RULES_HINT.toLowerCase()})`
+    : 'Password';
 
   return (
     <div className="space-y-6">
+      {sessionNotice && !displayError && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
+          <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <p className="text-amber-800 text-sm">{sessionNotice}</p>
+        </div>
+      )}
+
       {displayError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
@@ -164,37 +129,8 @@ export default function AuthForm() {
         </div>
       )}
 
-      {/* Demo Login Button - only show on login mode */}
-      {/* {mode === 'login' && (
-        <>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-blue-800 text-sm mb-2">
-              <strong>Demo Mode:</strong> Click below for instant access
-            </p>
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              disabled={isSubmitting || loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-            >
-              Try Demo Login
-            </button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">or continue with email</span>
-            </div>
-          </div>
-        </>
-      )}*/}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         <div className="space-y-4">
-          {/* Name field - only show for registration */}
           {mode === 'register' && (
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -202,17 +138,17 @@ export default function AuthForm() {
               </div>
               <input
                 type="text"
-                placeholder="Full name"
+                placeholder="Display name"
+                aria-label="Display name"
+                autoComplete="name"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                required
                 disabled={isSubmitting || loading}
               />
             </div>
           )}
 
-          {/* Email field */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Mail className="h-5 w-5 text-gray-400" />
@@ -220,26 +156,27 @@ export default function AuthForm() {
             <input
               type="email"
               placeholder="Email address"
+              aria-label="Email address"
+              autoComplete="email"
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              required
               disabled={isSubmitting || loading}
             />
           </div>
 
-          {/* Password field */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type={showPassword ? 'text' : 'password'}
-              placeholder={mode === 'register' ? 'Create password (min 6 characters)' : 'Password'}
+              placeholder={passwordPlaceholder}
+              aria-label="Password"
+              autoComplete={passwordAutocomplete}
               className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
-              required
               disabled={isSubmitting || loading}
             />
             <button
@@ -247,6 +184,7 @@ export default function AuthForm() {
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
               onClick={() => setShowPassword(!showPassword)}
               disabled={isSubmitting || loading}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
@@ -256,48 +194,51 @@ export default function AuthForm() {
             </button>
           </div>
 
-          {/* Confirm Password field - only show for registration */}
           {mode === 'register' && (
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-gray-400" />
+            <>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Confirm password"
+                  aria-label="Confirm password"
+                  autoComplete="new-password"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  disabled={isSubmitting || loading}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={isSubmitting || loading}
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
               </div>
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Confirm password"
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                required
-                disabled={isSubmitting || loading}
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={isSubmitting || loading}
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                ) : (
-                  <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                )}
-              </button>
-            </div>
+              <p className="text-xs text-gray-500">
+                {PASSWORD_RULES_HINT}
+              </p>
+            </>
           )}
         </div>
 
-        {/* Forgot password link - only show for login */}
         {mode === 'login' && (
           <div className="text-right">
-            <button
-              type="button"
-              onClick={() => setMode('forgot')}
-              className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors"
-              disabled={isSubmitting || loading}
+            <span
+              className="text-sm text-gray-400 italic"
+              title="Password reset is not available yet."
             >
-              Forgot password?
-            </button>
+              Forgot password? (coming soon)
+            </span>
           </div>
         )}
 
@@ -317,24 +258,14 @@ export default function AuthForm() {
         </button>
       </form>
 
-      {/* Toggle between login/register */}
       <div className="text-center text-sm text-gray-600">
-        {/* {mode === 'login' ? (
-          <p>
-            Demo credentials: Any email/password combination works!
-          </p>
-        ) : null} */}
-        
         <div className="mt-3">
           {mode === 'login' ? (
             <p>
               New to PlantPlotter?{' '}
               <button
-                onClick={() => {
-                  setMode('register');
-                  setLocalError('');
-                  setFormData({ name: '', email: '', password: '', confirmPassword: '' });
-                }}
+                type="button"
+                onClick={() => switchMode('register')}
                 className="text-green-600 hover:text-green-700 font-medium hover:underline"
                 disabled={isSubmitting || loading}
               >
@@ -345,11 +276,8 @@ export default function AuthForm() {
             <p>
               Already have an account?{' '}
               <button
-                onClick={() => {
-                  setMode('login');
-                  setLocalError('');
-                  setFormData(prev => ({ ...prev, name: '', confirmPassword: '' }));
-                }}
+                type="button"
+                onClick={() => switchMode('login')}
                 className="text-green-600 hover:text-green-700 font-medium hover:underline"
                 disabled={isSubmitting || loading}
               >

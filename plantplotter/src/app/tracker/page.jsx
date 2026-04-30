@@ -12,17 +12,6 @@ import TaskEditModal from '@/components/Tracker/TaskEditModal';
 import ActivityEditModal from '@/components/Tracker/ActivityEditModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useWeather } from '@/hooks/useWeather'; 
-import { 
-  generateCalendarData, 
-  addActivity,
-  getActivitiesByGarden
-} from '@/components/Tracker/Constants/TrackerData';
-import { 
-  getTodayTasks, 
-  getUpcomingTasks, 
-  completeTask,
-  resetTaskDatabase
-} from '@/components/Tracker/Constants/TaskData';
 import apiClient from '@/lib/api';
 
 function TrackingPageContent() {
@@ -32,7 +21,7 @@ function TrackingPageContent() {
     const today = new Date();
     return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
   });
-  const [calendarData, setCalendarData] = useState(generateCalendarData());
+  const [calendarData, setCalendarData] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     activity: '',
@@ -44,18 +33,39 @@ function TrackingPageContent() {
   // Task state
   const [todayTasks, setTodayTasks] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
+  const [overdueTasks, setOverdueTasks] = useState([]);
+  const [calendarTasks, setCalendarTasks] = useState({});
+  const [taskError, setTaskError] = useState('');
+  const [taskSuccess, setTaskSuccess] = useState('');
+  const [activityError, setActivityError] = useState('');
+  const [activitySuccess, setActivitySuccess] = useState('');
   
   // Edit modal states
   const [showTaskEditModal, setShowTaskEditModal] = useState(false);
   const [showActivityEditModal, setShowActivityEditModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
+  const [activityToDelete, setActivityToDelete] = useState(null);
   
   // Weather modal state
   const [showDetailedWeather, setShowDetailedWeather] = useState(false);
   
   // Get weather data for the detailed modal
   const { weatherData } = useWeather();
+
+  useEffect(() => {
+    if (!taskSuccess) return undefined;
+
+    const timeoutId = setTimeout(() => setTaskSuccess(''), 4000);
+    return () => clearTimeout(timeoutId);
+  }, [taskSuccess]);
+
+  useEffect(() => {
+    if (!activitySuccess) return undefined;
+
+    const timeoutId = setTimeout(() => setActivitySuccess(''), 4000);
+    return () => clearTimeout(timeoutId);
+  }, [activitySuccess]);
 
   // Load gardens from the API
   useEffect(() => {
@@ -65,7 +75,6 @@ function TrackingPageContent() {
   // Load tasks and activities when garden changes
   useEffect(() => {
     if (selectedGarden) {
-      resetTaskDatabase();
       loadTasks();
       loadActivities();
     }
@@ -139,21 +148,12 @@ function TrackingPageContent() {
       
       // Transform activities to calendar format
       const calendarActivities = {};
+      const currentPlantNames = new Set((selectedGarden.plantedItems || []).map(plant => (
+        plant?.name || plant?.plant_name || plant?.plantName || ''
+      )).filter(Boolean));
       activities.forEach(activity => {
-        // Ensure proper date formatting - handle different date formats
-        let dateKey;
-        if (activity.activity_date) {
-          // If it's already a date string, use it
-          if (typeof activity.activity_date === 'string') {
-            dateKey = activity.activity_date.split('T')[0]; // Remove time part if present
-          } else {
-            // If it's a Date object, format it
-            dateKey = new Date(activity.activity_date).toISOString().split('T')[0];
-          }
-        } else {
-          // Fallback to created_at date
-          dateKey = new Date(activity.created_at).toISOString().split('T')[0];
-        }
+        const dateKey = getDateKey(activity.activity_date || activity.created_at);
+        const plantName = activity.plant_name || 'Unknown Plant';
         
         if (!calendarActivities[dateKey]) {
           calendarActivities[dateKey] = [];
@@ -175,13 +175,14 @@ function TrackingPageContent() {
         calendarActivities[dateKey].push({
           id: activity.id,
           activity: activity.activity_type,
-          plant: activity.plant_name || 'Unknown Plant',
+          plant: plantName,
           notes: activity.notes || '',
           time: timeString,
           activity_date: dateKey,
           activity_type: activity.activity_type,
-          plant_name: activity.plant_name,
-          garden_id: activity.garden_id
+          plant_name: plantName,
+          garden_id: activity.garden_id,
+          plant_no_longer_planted: plantName !== 'Unknown Plant' && !currentPlantNames.has(plantName)
         });
       });
       
@@ -210,11 +211,11 @@ function TrackingPageContent() {
       
       // Return icon based on most common category
       switch (mostCommon) {
-        case 'vegetables': return '🥕';
-        case 'fruits': return '🍎';
-        case 'herbs': return '🌿';
-        case 'flowers': return '🌸';
-        default: return '🌱';
+        case 'vegetables': return 'Veg';
+        case 'fruits': return 'Fruit';
+        case 'herbs': return 'Herb';
+        case 'flowers': return 'Flower';
+        default: return 'Garden';
       }
     }
     
@@ -222,41 +223,181 @@ function TrackingPageContent() {
     const name = garden.name?.toLowerCase() || '';
     const location = garden.location?.toLowerCase() || '';
     
-    if (name.includes('herb') || location.includes('herb')) return '🌿';
-    if (name.includes('vegetable') || location.includes('vegetable')) return '🥕';
-    if (name.includes('fruit') || location.includes('fruit')) return '🍎';
-    if (name.includes('flower') || location.includes('flower')) return '🌸';
+    if (name.includes('herb') || location.includes('herb')) return 'Herb';
+    if (name.includes('vegetable') || location.includes('vegetable')) return 'Veg';
+    if (name.includes('fruit') || location.includes('fruit')) return 'Fruit';
+    if (name.includes('flower') || location.includes('flower')) return 'Flower';
     
-    return '🌱'; // Default garden icon
+    return 'Garden';
   };
 
-  const loadTasks = () => {
+  const getDateKey = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value.split('T')[0];
+    return new Date(value).toISOString().split('T')[0];
+  };
+
+  const getTodayDateKey = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  };
+
+  const isFutureDateKey = (dateKey) => dateKey > getTodayDateKey();
+  const getPlantedItemName = (plant) => plant?.name || plant?.plant_name || plant?.plantName || '';
+  const selectedGardenPlants = selectedGarden?.plantedItems || [];
+  const hasSelectedGardenPlants = selectedGardenPlants.some(plant => getPlantedItemName(plant));
+  const isQuickLogDisabled = isFutureDateKey(selectedDate) || !hasSelectedGardenPlants;
+  const quickLogHelperText = isFutureDateKey(selectedDate)
+    ? 'Quick Log is for completed care. Select today or a past date, or create a task for future work.'
+    : 'Add plants to this garden before logging care activity.';
+  const taskHelperText = 'Add plants to this garden before creating care tasks.';
+
+  const normalizeTask = (task) => {
+    const dueDate = getDateKey(task.due_date || task.dueDate);
+    const isRecurring = Boolean(task.is_recurring ?? task.isRecurring);
+    const recurringPattern = task.recurring_pattern || task.recurringPattern || 'none';
+    // 'overdue' is a derived state from due_date < today, not a stored status we expose.
+    // Treat any 'overdue' or 'in_progress' rows as pending so list filtering stays date-driven.
+    const rawStatus = task.status;
+    const backendSafeStatus = (rawStatus === 'in_progress' || rawStatus === 'overdue') ? 'pending' : rawStatus;
+
+    return {
+      ...task,
+      garden_id: task.garden_id ?? task.gardenId,
+      gardenId: task.gardenId ?? task.garden_id,
+      due_date: dueDate,
+      dueDate,
+      plant_name: task.plant_name || task.plant || '',
+      plant: task.plant || task.plant_name || '',
+      task_type: task.task_type || task.taskType || 'maintenance',
+      taskType: task.taskType || task.task_type || 'maintenance',
+      estimated_duration: task.estimated_duration ?? task.estimatedDuration ?? '',
+      estimatedDuration: task.estimatedDuration ?? task.estimated_duration,
+      is_recurring: isRecurring,
+      isRecurring,
+      recurring_pattern: recurringPattern,
+      recurringPattern,
+      priority: task.priority || 'medium',
+      status: backendSafeStatus || 'pending'
+    };
+  };
+
+  const isPendingTask = (task) => task.status === 'pending';
+  const sortTasksByDueDate = (tasks) => {
+    return [...tasks].sort((a, b) => {
+      const aDue = `${a.dueDate || ''} ${a.due_time || a.dueTime || ''}`;
+      const bDue = `${b.dueDate || ''} ${b.due_time || b.dueTime || ''}`;
+      return aDue.localeCompare(bDue) || Number(a.id || 0) - Number(b.id || 0);
+    });
+  };
+
+  const loadTasks = async () => {
     if (!selectedGarden) return;
-    
-    const today = getTodayTasks(selectedGarden.id);
-    const upcoming = getUpcomingTasks(selectedGarden.id);
-    setTodayTasks(today);
-    setUpcomingTasks(upcoming);
+
+    try {
+      setTaskError('');
+      const backendTasks = await apiClient.getTasks(selectedGarden.id);
+      const normalizedTasks = Array.isArray(backendTasks)
+        ? backendTasks.map(normalizeTask)
+        : [];
+
+      const today = getTodayDateKey();
+      const calendarTaskData = normalizedTasks
+        .filter(task => task.dueDate && isPendingTask(task))
+        .reduce((groupedTasks, task) => {
+          if (!groupedTasks[task.dueDate]) groupedTasks[task.dueDate] = [];
+          groupedTasks[task.dueDate].push(task);
+          return groupedTasks;
+        }, {});
+      Object.keys(calendarTaskData).forEach(dateKey => {
+        calendarTaskData[dateKey] = sortTasksByDueDate(calendarTaskData[dateKey]);
+      });
+
+      const todayTasks = sortTasksByDueDate(normalizedTasks.filter(task => task.dueDate === today && isPendingTask(task)));
+      const upcomingTasks = sortTasksByDueDate(normalizedTasks.filter(task => (
+        task.dueDate && isPendingTask(task) && task.dueDate > today
+      )));
+      const overdueTasks = sortTasksByDueDate(normalizedTasks.filter(task => (
+        task.dueDate && isPendingTask(task) && task.dueDate < today
+      )));
+
+      setTodayTasks(todayTasks);
+      setUpcomingTasks(upcomingTasks);
+      setOverdueTasks(overdueTasks);
+      setCalendarTasks(calendarTaskData);
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+      if (error.status === 401) {
+        setTodayTasks([]);
+        setUpcomingTasks([]);
+        setOverdueTasks([]);
+        setCalendarTasks({});
+        return;
+      }
+
+      setTaskError('Failed to load tasks. Please try again.');
+      setTodayTasks([]);
+      setUpcomingTasks([]);
+      setOverdueTasks([]);
+      setCalendarTasks({});
+    }
   };
 
-  // Function to add activity to calendar when task is completed
-  const addActivityToCalendar = (date, activityData) => {
-    const updatedCalendarData = addActivity(calendarData, date, activityData);
-    setCalendarData(updatedCalendarData);
+  const getTaskUpdatePayload = (task, updates = {}) => {
+    const normalizedTask = normalizeTask({ ...task, ...updates });
+
+    return {
+      title: normalizedTask.title,
+      description: normalizedTask.description || '',
+      due_date: normalizedTask.dueDate || null,
+      priority: normalizedTask.priority || 'medium',
+      status: normalizedTask.status || 'pending',
+      plant_name: normalizedTask.plant_name || null,
+      task_type: normalizedTask.task_type || 'maintenance',
+      estimated_duration: normalizedTask.estimated_duration || null,
+      is_recurring: normalizedTask.is_recurring,
+      recurring_pattern: normalizedTask.recurring_pattern === 'none' ? null : normalizedTask.recurring_pattern,
+      notes: normalizedTask.notes || ''
+    };
   };
 
-  const handleTaskComplete = (taskId) => {
-    // Complete the task and add activity to calendar
-    const success = completeTask(taskId, addActivityToCalendar);
-    
-    if (success) {
-      // Reload tasks to reflect the completed task
-      loadTasks();
+  const getTaskCreatePayload = (taskData) => {
+    const recurringPattern = taskData.recurring_pattern || 'none';
+
+    return {
+      title: taskData.title,
+      description: taskData.description || '',
+      garden_id: taskData.garden_id,
+      due_date: taskData.due_date,
+      priority: taskData.priority || 'medium',
+      status: 'pending',
+      plant_name: taskData.plant_name || null,
+      task_type: taskData.task_type || 'maintenance',
+      estimated_duration: taskData.estimated_duration || null,
+      is_recurring: recurringPattern !== 'none',
+      recurring_pattern: recurringPattern === 'none' ? null : recurringPattern,
+      notes: taskData.notes || ''
+    };
+  };
+
+  const handleTaskComplete = async (taskId) => {
+    const taskToComplete = [...todayTasks, ...upcomingTasks, ...overdueTasks].find(task => task.id === taskId);
+    if (!taskToComplete) return;
+
+    try {
+      await apiClient.updateTask(taskId, getTaskUpdatePayload(taskToComplete, { status: 'completed' }));
+      await loadTasks();
+    } catch (error) {
+      console.error('Failed to complete task:', error);
+      setTaskError('Failed to complete task. Please try again.');
     }
   };
 
   const handleQuickAction = (action) => {
     if (!selectedGarden) return;
+    if (isQuickLogDisabled) return;
+    setActivityError('');
+    setActivitySuccess('');
     
     setFormData({ 
       activity: action, 
@@ -271,6 +412,8 @@ function TrackingPageContent() {
     if (!selectedGarden) return;
     
     try {
+      setActivityError('');
+      setActivitySuccess('');
       // Try to add activity via API
       const newActivityData = {
         ...activityData,
@@ -302,24 +445,11 @@ function TrackingPageContent() {
       }
       updatedCalendarData[selectedDate].push(activityForCalendar);
       setCalendarData(updatedCalendarData);
+      setActivitySuccess('Activity logged.');
       
     } catch (error) {
       console.error('Failed to add activity via API:', error);
-      
-      // Fallback to local calendar data only
-      const newActivityData = {
-        activity: activityData.activity,
-        plant: activityData.plant,
-        notes: activityData.notes,
-        time: new Date().toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        gardenId: selectedGarden.id
-      };
-      
-      const updatedCalendarData = addActivity(calendarData, selectedDate, newActivityData);
-      setCalendarData(updatedCalendarData);
+      setActivityError('Failed to log activity. Please try again.');
     }
     
     setShowForm(false);
@@ -328,17 +458,23 @@ function TrackingPageContent() {
 
   // Activity management functions
   const handleActivityEdit = (activity) => {
+    setActivityError('');
+    setActivitySuccess('');
     setEditingActivity(activity);
     setShowActivityEditModal(true);
   };
 
   const handleActivityAdd = () => {
+    setActivityError('');
+    setActivitySuccess('');
     setEditingActivity(null);
     setShowActivityEditModal(true);
   };
 
   const handleActivitySave = async (activityData) => {
     try {
+      setActivityError('');
+      setActivitySuccess('');
       if (activityData.id) {
         // Update existing activity
         await apiClient.updateActivity(activityData.id, {
@@ -360,6 +496,7 @@ function TrackingPageContent() {
       
       // Reload activities to refresh calendar
       await loadActivities();
+      setActivitySuccess(activityData.id ? 'Activity updated.' : 'Activity logged.');
       
     } catch (error) {
       console.error('Failed to save activity:', error);
@@ -367,60 +504,73 @@ function TrackingPageContent() {
     }
   };
 
-  const handleActivityDelete = async (activity) => {
-    if (!confirm('Are you sure you want to delete this activity?')) {
-      return;
-    }
+  const handleActivityDelete = async (activityOrId) => {
+    const activityId = typeof activityOrId === 'object' ? activityOrId.id : activityOrId;
 
     try {
-      await apiClient.deleteActivity(activity.id);
-      
-      // Remove from local calendar data for immediate UI update
-      const updatedCalendarData = { ...calendarData };
-      const activityDate = activity.activity_date || activity.date || selectedDate;
-      
-      if (updatedCalendarData[activityDate]) {
-        updatedCalendarData[activityDate] = updatedCalendarData[activityDate].filter(
-          a => a.id !== activity.id
-        );
-        
-        // Remove the date entry if no activities left
-        if (updatedCalendarData[activityDate].length === 0) {
-          delete updatedCalendarData[activityDate];
-        }
-      }
-      
-      setCalendarData(updatedCalendarData);
+      await apiClient.deleteActivity(activityId);
+      await loadActivities();
+      setActivitySuccess('Activity deleted.');
       
     } catch (error) {
       console.error('Failed to delete activity:', error);
-      alert('Failed to delete activity. Please try again.');
+      throw error;
+    }
+  };
+
+  const handleActivityDeleteRequest = (activity) => {
+    setActivityToDelete(activity);
+  };
+
+  const handleConfirmActivityDelete = async () => {
+    if (!activityToDelete) return;
+
+    try {
+      setActivityError('');
+      setActivitySuccess('');
+      await handleActivityDelete(activityToDelete);
+      setActivityToDelete(null);
+    } catch (error) {
+      setActivityError('Failed to delete activity. Please try again.');
     }
   };
 
   // Task management functions
   const handleTaskEdit = (task) => {
+    setTaskError('');
+    setTaskSuccess('');
     setEditingTask(task);
     setShowTaskEditModal(true);
   };
 
   const handleTaskAdd = () => {
+    setTaskError('');
+    setTaskSuccess('');
     setEditingTask(null);
     setShowTaskEditModal(true);
   };
 
   const handleTaskSave = async (taskData) => {
     try {
+      setTaskError('');
+      setTaskSuccess('');
       if (taskData.id) {
         // Update existing task
-        await apiClient.updateTask(taskData.id, taskData);
+        await apiClient.updateTask(taskData.id, getTaskUpdatePayload(taskData));
+        setTaskSuccess('Task updated.');
+        await loadTasks();
       } else {
         // Create new task
-        await apiClient.createTask(taskData);
+        const createPayload = getTaskCreatePayload(taskData);
+        await apiClient.createTask(createPayload);
+        setTaskSuccess('Task created.');
+        const targetGarden = gardens.find(garden => String(garden.id) === String(createPayload.garden_id));
+        if (targetGarden && String(targetGarden.id) !== String(selectedGarden?.id)) {
+          setSelectedGarden(targetGarden);
+          return;
+        }
+        await loadTasks();
       }
-      
-      // Reload tasks
-      loadTasks();
       
     } catch (error) {
       console.error('Failed to save task:', error);
@@ -430,10 +580,13 @@ function TrackingPageContent() {
 
   const handleTaskDelete = async (taskId) => {
     try {
+      setTaskError('');
+      setTaskSuccess('');
       await apiClient.deleteTask(taskId);
       
       // Reload tasks
-      loadTasks();
+      await loadTasks();
+      setTaskSuccess('Task deleted.');
       
     } catch (error) {
       console.error('Failed to delete task:', error);
@@ -482,10 +635,10 @@ function TrackingPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900">
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="flex gap-6">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar */}
-          <div className="w-64 space-y-6">
+          <div className="w-full lg:w-64 space-y-6">
             <GardenSelector 
               gardens={gardens}
               selectedGarden={selectedGarden}
@@ -494,41 +647,101 @@ function TrackingPageContent() {
             <QuickActions 
               onQuickAction={handleQuickAction}
               selectedGarden={selectedGarden}
+              disabled={isQuickLogDisabled}
+              helperText={quickLogHelperText}
+              managePlantsHref={!hasSelectedGardenPlants ? `/garden?id=${selectedGarden.id}` : ''}
             />
           </div>
 
           {/* Main Calendar */}
-          <div className="flex-1">
+          <div className="w-full lg:flex-1 min-w-0">
             <TrackingCalendar
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
               calendarData={filteredCalendarData}
+              taskData={calendarTasks}
               onActivityEdit={handleActivityEdit}
-              onActivityDelete={handleActivityDelete}
+              onActivityDelete={handleActivityDeleteRequest}
             />
           </div>
 
           {/* Right Sidebar */}
-          <div className="w-80 space-y-6">
+          <div className="w-full lg:w-80 space-y-6">
             {/* Weather Widget - Now clickable for detailed view */}
             <div onClick={() => setShowDetailedWeather(true)} className="cursor-pointer">
               <WeatherWidget />
             </div>
+
+            {taskError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 shadow-sm">
+                {taskError}
+              </div>
+            )}
+
+            {taskSuccess && (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700 shadow-sm">
+                {taskSuccess}
+              </div>
+            )}
+
+            {activityError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 shadow-sm">
+                {activityError}
+              </div>
+            )}
+
+            {activitySuccess && (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700 shadow-sm">
+                {activitySuccess}
+              </div>
+            )}
             
+            <div className="rounded-lg bg-white p-4 shadow-lg dark:bg-gray-800">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="font-semibold text-gray-900 dark:text-white">Care Tasks</h3>
+                <button
+                  type="button"
+                  onClick={handleTaskAdd}
+                  disabled={!hasSelectedGardenPlants}
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Create Task
+                </button>
+              </div>
+              {!hasSelectedGardenPlants && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <p>{taskHelperText}</p>
+                  <a
+                    href={`/garden?id=${selectedGarden.id}`}
+                    className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800"
+                  >
+                    Manage Plants
+                  </a>
+                </div>
+              )}
+            </div>
             <TasksList
               title="Today Tasks"
               tasks={todayTasks}
               onTaskComplete={handleTaskComplete}
               onTaskEdit={handleTaskEdit}
-              onTaskAdd={handleTaskAdd}
+              onTaskAdd={hasSelectedGardenPlants ? handleTaskAdd : null}
               emptyMessage="No tasks for today"
+            />
+            <TasksList
+              title="Overdue Tasks"
+              tasks={overdueTasks}
+              onTaskComplete={handleTaskComplete}
+              onTaskEdit={handleTaskEdit}
+              onTaskAdd={null}
+              emptyMessage="No overdue tasks"
             />
             <TasksList
               title="Upcoming Tasks"
               tasks={upcomingTasks}
               onTaskComplete={handleTaskComplete}
               onTaskEdit={handleTaskEdit}
-              onTaskAdd={handleTaskAdd}
+              onTaskAdd={hasSelectedGardenPlants ? handleTaskAdd : null}
               showCheckboxes={true}
               emptyMessage="No upcoming tasks"
             />
@@ -559,6 +772,7 @@ function TrackingPageContent() {
         onSave={handleTaskSave}
         onDelete={editingTask?.id ? handleTaskDelete : null}
         gardens={gardens}
+        selectedGarden={selectedGarden}
       />
 
       {/* Activity Edit Modal */}
@@ -573,7 +787,35 @@ function TrackingPageContent() {
         onDelete={editingActivity?.id ? handleActivityDelete : null}
         gardens={gardens}
         selectedGarden={selectedGarden}
+        selectedDate={selectedDate}
       />
+
+      {activityToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold text-gray-800 mb-2">Delete activity?</h2>
+            <p className="text-sm text-gray-600 mb-6">
+              This will remove the {activityToDelete.activity || activityToDelete.activity_type} log for {activityToDelete.plant || activityToDelete.plant_name || 'this plant'}. This cannot be undone.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setActivityToDelete(null)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmActivityDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Delete Activity
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detailed Weather Modal */}
       <DetailedWeatherModal

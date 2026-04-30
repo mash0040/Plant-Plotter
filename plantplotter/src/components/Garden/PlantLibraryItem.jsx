@@ -4,15 +4,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { Info, Edit3, Grid } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
-export default function PlantLibraryItem({ plant, onEdit, onPlantRow, showEditButton = true }) {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ top: true, left: false });
+export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, showEditButton = true }) {
   const [isDragReady, setIsDragReady] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const itemRef = useRef(null);
-  const tooltipRef = useRef(null);
   const longPressTimer = useRef(null);
-  
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `library-${plant.id}`,
     data: { ...plant, isFromLibrary: true }
@@ -23,30 +19,10 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, showEditBu
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Detect touch device
   useEffect(() => {
     setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
   }, []);
 
-  // Calculate optimal tooltip position
-  useEffect(() => {
-    if (showTooltip && itemRef.current && tooltipRef.current) {
-      const itemRect = itemRef.current.getBoundingClientRect();
-      const tooltipRect = tooltipRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
-      
-      const wouldOverflowBottom = itemRect.top + tooltipRect.height > viewportHeight - 20;
-      const wouldOverflowRight = itemRect.left + tooltipRect.width > viewportWidth - 20;
-      
-      setTooltipPosition({
-        top: !wouldOverflowBottom,
-        left: !wouldOverflowRight
-      });
-    }
-  }, [showTooltip]);
-
-  // Enhanced touch handlers for mobile drag support
   const handleTouchStart = (e) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
@@ -57,11 +33,11 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, showEditBu
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-      
+
       const target = e.currentTarget;
       target.style.transform = 'scale(1.05)';
       target.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
-      
+
       setTimeout(() => {
         if (target) {
           target.style.transform = '';
@@ -80,7 +56,7 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, showEditBu
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
-    
+
     setIsDragReady(false);
 
     if (listeners.onTouchEnd) {
@@ -149,22 +125,10 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, showEditBu
 
   const colors = getCategoryColors(plant.category);
 
-  const getTooltipStyles = () => {
-    const baseClasses = 'absolute z-50 w-full max-w-xs sm:max-w-sm';
-    
-    if (tooltipPosition.top) {
-      return `${baseClasses} top-full mb-2`;
-    } else {
-      return `${baseClasses} bottom-full mt-2`;
-    }
-  };
-
-  const handleEditClick = (e) => {    
+  const handleEditClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    setShowTooltip(false);
-    
+
     if (onEdit) {
       onEdit(plant);
     } else {
@@ -175,13 +139,28 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, showEditBu
   const handleRowPlantClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    setShowTooltip(false);
-    
+
     if (onPlantRow) {
       onPlantRow(plant);
     } else {
       console.error('onPlantRow function is not available');
+    }
+  };
+
+  const handleInfoClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (onInfo) {
+      onInfo(plant);
+    }
+  };
+
+  const handleActionTouchStart = (e) => {
+    e.stopPropagation();
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
   };
 
@@ -193,14 +172,14 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, showEditBu
   } : listeners;
 
   return (
-    <div className="relative" ref={itemRef}>
+    <div className="relative">
       <div
         ref={setNodeRef}
         style={style}
         className={`
-          flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg 
+          flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg
           cursor-grab active:cursor-grabbing
-          ${colors.bg} ${colors.border} border-2 
+          ${colors.bg} ${colors.border} border-2
           ${colors.hover} transition-all duration-200 ease-in-out
           hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5
           active:scale-[1.05] sm:active:scale-[1.02]
@@ -221,227 +200,85 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, showEditBu
         )}
 
         <div className={`
-          w-8 h-8 sm:w-10 sm:h-10 ${colors.emoji} rounded-full 
+          w-8 h-8 sm:w-10 sm:h-10 ${colors.emoji} rounded-full
           flex items-center justify-center flex-shrink-0
           group-hover:scale-110 transition-transform duration-200
-          shadow-sm
-          pointer-events-none
+          shadow-sm pointer-events-none
         `}>
           <span className="text-lg sm:text-xl filter drop-shadow-sm">{plant.emoji}</span>
         </div>
-        
+
         <div className="flex-1 min-w-0 pointer-events-none">
           <div className="flex items-center justify-between">
             <span className="text-sm sm:text-base font-semibold text-gray-800 truncate">
               {plant.name}
             </span>
             <span className="text-xs text-gray-500 bg-white/70 px-1.5 sm:px-2 py-0.5 rounded-full ml-2 flex-shrink-0">
-              {plant.size}×{plant.size}
+              {plant.size}x{plant.size}
             </span>
           </div>
-          
+
           <div className="flex items-center justify-between mt-1">
             <span className="text-xs sm:text-sm text-gray-600 capitalize font-medium">
               {plant.category}
             </span>
-            
-            {/* Buttons - show on hover/touch */}
-            <div className="flex items-center gap-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100">
-              {/* Row Plant button */}
+
+            <div className="flex items-center gap-1 pointer-events-auto opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
               {onPlantRow && (
-                <button 
+                <button
                   className="
-                    w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 hover:bg-blue-200 active:bg-blue-300
+                    w-6 h-6 bg-blue-100 hover:bg-blue-200 active:bg-blue-300
                     rounded-full flex items-center justify-center transition-all duration-200
                     cursor-pointer z-10 touch-manipulation
                     hover:scale-110 active:scale-95 flex-shrink-0
-                    transform scale-90 hover:scale-100
                   "
                   onClick={handleRowPlantClick}
                   onMouseDown={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => {
-                    e.stopPropagation();
-                    if (longPressTimer.current) {
-                      clearTimeout(longPressTimer.current);
-                      longPressTimer.current = null;
-                    }
-                  }}
+                  onTouchStart={handleActionTouchStart}
                   title="Plant in row"
                   type="button"
                 >
-                  <Grid className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-600" />
+                  <Grid className="w-3 h-3 text-blue-600" />
                 </button>
               )}
 
-              {/* Edit button */}
               {showEditButton && onEdit && (
-                <button 
+                <button
                   className="
-                    w-5 h-5 sm:w-6 sm:h-6 bg-orange-100 hover:bg-orange-200 active:bg-orange-300
+                    w-6 h-6 bg-orange-100 hover:bg-orange-200 active:bg-orange-300
                     rounded-full flex items-center justify-center transition-all duration-200
                     cursor-pointer z-10 touch-manipulation
                     hover:scale-110 active:scale-95 flex-shrink-0
-                    transform scale-90 hover:scale-100
                   "
                   onClick={handleEditClick}
                   onMouseDown={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => {
-                    e.stopPropagation();
-                    if (longPressTimer.current) {
-                      clearTimeout(longPressTimer.current);
-                      longPressTimer.current = null;
-                    }
-                  }}
+                  onTouchStart={handleActionTouchStart}
                   title="Edit plant"
                   type="button"
                 >
-                  <Edit3 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-600" />
+                  <Edit3 className="w-3 h-3 text-orange-600" />
                 </button>
               )}
-              
-              <div 
-                className="relative flex-shrink-0"
-                onMouseEnter={() => !isTouchDevice && setShowTooltip(true)}
-                onMouseLeave={() => !isTouchDevice && setShowTooltip(false)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  if (isTouchDevice) {
-                    setShowTooltip(!showTooltip);
-                  }
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                  if (longPressTimer.current) {
-                    clearTimeout(longPressTimer.current);
-                    longPressTimer.current = null;
-                  }
-                }}
-              >
-                <div className="
-                  w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 hover:bg-gray-200 active:bg-gray-300
+
+              <button
+                className="
+                  w-6 h-6 bg-gray-100 hover:bg-gray-200 active:bg-gray-300
                   rounded-full flex items-center justify-center transition-all duration-200
-                  cursor-help touch-manipulation
+                  cursor-pointer z-10 touch-manipulation
                   hover:scale-110 active:scale-95 flex-shrink-0
-                  transform scale-90 hover:scale-100
-                ">
-                  <Info className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-600" />
-                </div>
-              </div>
+                "
+                onClick={handleInfoClick}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={handleActionTouchStart}
+                title="View plant info"
+                type="button"
+              >
+                <Info className="w-3 h-3 text-gray-600" />
+              </button>
             </div>
           </div>
         </div>
       </div>
-
-      {showTooltip && (
-        <div 
-          ref={tooltipRef}
-          className={`
-            ${getTooltipStyles()}
-            bg-white border border-gray-200 rounded-lg shadow-2xl 
-            p-3 sm:p-4 text-xs sm:text-sm pointer-events-none
-            animate-in fade-in-0 zoom-in-95 duration-200
-          `}
-        >
-          <div 
-            className={`
-              absolute w-3 h-3 bg-white border transform rotate-45 left-4 sm:left-6
-              ${tooltipPosition.top 
-                ? '-bottom-1.5 border-t-0 border-l-0' 
-                : '-top-1.5 border-b-0 border-r-0'
-              }
-            `}
-          />
-          
-          <div className="flex items-center gap-2 mb-2 sm:mb-3">
-            <span className="text-lg sm:text-xl">{plant.emoji}</span>
-            <span className="font-semibold text-gray-800 text-sm sm:text-base">{plant.name}</span>
-          </div>
-          
-          <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-600">
-            <div className="flex justify-between">
-              <span>Category:</span>
-              <span className="capitalize font-medium">{plant.category}</span>
-            </div>
-            
-            <div className="flex justify-between">
-              <span>Size:</span>
-              <span className="font-medium">{plant.size}×{plant.size} grid units</span>
-            </div>
-            
-            {plant.sunlight && (
-              <div className="flex justify-between">
-                <span>Sunlight:</span>
-                <span className="font-medium">{plant.sunlight}</span>
-              </div>
-            )}
-            
-            {plant.waterNeeds && (
-              <div className="flex justify-between">
-                <span>Water:</span>
-                <span className="font-medium">{plant.waterNeeds}</span>
-              </div>
-            )}
-            
-            {plant.spacing && (
-              <div className="flex justify-between">
-                <span>Spacing:</span>
-                <span className="font-medium">{plant.spacing}</span>
-              </div>
-            )}
-            
-            {plant.plantingDepth && (
-              <div className="flex justify-between">
-                <span>Planting Depth:</span>
-                <span className="font-medium">{plant.plantingDepth}</span>
-              </div>
-            )}
-            
-            {plant.companionPlants && plant.companionPlants.length > 0 && (
-              <div>
-                <span className="text-green-600 font-medium">Good Companions:</span>
-                <div className="mt-1 text-green-700 text-xs">
-                  {plant.companionPlants.slice(0, 3).map(id => {
-                    return `${id.charAt(0).toUpperCase() + id.slice(1)}`;
-                  }).join(', ')}
-                  {plant.companionPlants.length > 3 && ` +${plant.companionPlants.length - 3} more`}
-                </div>
-              </div>
-            )}
-            
-            {plant.avoidPlants && plant.avoidPlants.length > 0 && (
-              <div>
-                <span className="text-red-600 font-medium">Avoid Near:</span>
-                <div className="mt-1 text-red-700 text-xs">
-                  {plant.avoidPlants.slice(0, 3).map(id => {
-                    return `${id.charAt(0).toUpperCase() + id.slice(1)}`;
-                  }).join(', ')}
-                  {plant.avoidPlants.length > 3 && ` +${plant.avoidPlants.length - 3} more`}
-                </div>
-              </div>
-            )}
-            
-            {plant.description && (
-              <div className="pt-1.5 sm:pt-2 border-t border-gray-100">
-                <p className="text-gray-700 italic text-xs sm:text-sm">{plant.description}</p>
-              </div>
-            )}
-          </div>
-          
-          <div className="mt-2 sm:mt-3 pt-2 border-t border-gray-100 text-xs text-gray-500">
-            <span className="hidden sm:inline">💡 Drag to garden or use row planting</span>
-            <span className="sm:hidden">💡 Long press & drag or use buttons</span>
-          </div>
-        </div>
-      )}
-      
-      {isTouchDevice && showTooltip && (
-        <div 
-          className="fixed inset-0 z-40"
-          onClick={() => setShowTooltip(false)}
-        />
-      )}
     </div>
   );
 }

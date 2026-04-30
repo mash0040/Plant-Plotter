@@ -1,6 +1,7 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { X } from 'lucide-react';
+import { getPlantFootprint } from './Utils/GardenUtils';
 
 export default function DraggablePlant({ 
   plant, 
@@ -23,7 +24,8 @@ export default function DraggablePlant({
     },
   });
 
-  const plantSize = (plant.size || 1) * gridSize;
+  const plantFootprint = getPlantFootprint(plant);
+  const plantSize = plantFootprint * gridSize;
   
   // Calculate transform for dragging
   const dragTransform = transform ? {
@@ -86,11 +88,10 @@ export default function DraggablePlant({
   // Calculate sizes based on plant size for better scaling
   const isSmall = plantSize < 50;
   const isMedium = plantSize >= 50 && plantSize < 80;
-  const isLarge = plantSize >= 80;
 
   const emojiSize = isSmall ? 'text-lg' : isMedium ? 'text-2xl' : 'text-4xl';
-  const textSize = isSmall ? 'text-xs' : isMedium ? 'text-sm' : 'text-base';
-  const padding = isSmall ? 'p-1' : isMedium ? 'p-2' : 'p-3';
+  const textSize = isSmall ? 'text-[10px]' : isMedium ? 'text-sm' : 'text-base';
+  const padding = isSmall ? 'p-1' : isMedium ? 'p-2' : 'p-2';
 
   return (
     <div
@@ -105,8 +106,9 @@ export default function DraggablePlant({
         transition-all duration-200 ease-in-out
         ${isCurrentlyDragging ? 'opacity-50 scale-110 rotate-3' : ''}
         ${isDragging ? 'opacity-80' : ''}
-        backdrop-blur-sm
+        backdrop-blur-sm group
       `}
+      tabIndex={isPlaced ? 0 : undefined}
       {...listeners}
       {...attributes}
     >
@@ -117,8 +119,7 @@ export default function DraggablePlant({
             e.stopPropagation();
             onRemove();
           }}
-          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 z-10 shadow-lg hover:scale-110 transition-all duration-200"
-          style={{ pointerEvents: 'auto' }}
+          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 z-10 shadow-lg hover:scale-110 transition-all duration-200 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto group-focus:opacity-100 group-focus:pointer-events-auto"
           title="Remove plant"
         >
           <X className="w-3 h-3" />
@@ -126,26 +127,32 @@ export default function DraggablePlant({
       )}
       
       {/* Plant emoji - larger and centered */}
-      <div className={`${emojiSize} mb-1 filter drop-shadow-sm`}>
+      <div className={`${emojiSize} ${isSmall ? '' : 'mb-1'} filter drop-shadow-sm`}>
         {plant.emoji}
       </div>
       
       {/* Plant name - responsive text size */}
-      <div className={`${textSize} text-center font-semibold text-gray-700 leading-tight px-1`}>
+      <div className={`${textSize} text-center font-semibold text-gray-700 leading-tight px-1 max-w-full truncate`}>
         {plant.name}
       </div>
       
       {/* Size indicator for medium/large plants */}
-      {!isSmall && (
+      {!isPlaced && !isSmall && (
         <div className="text-xs text-gray-500 mt-1 bg-white/70 px-2 py-0.5 rounded-full">
-          {plant.size}×{plant.size}
+          {plantFootprint}x{plantFootprint}
         </div>
       )}
       
       {/* Planted date indicator for placed plants */}
       {isPlaced && plant.plantedDate && !isSmall && (
-        <div className="absolute bottom-1 left-1 text-xs bg-white/80 text-gray-600 px-1 py-0.5 rounded text-center leading-none">
+        <div className="absolute bottom-1 left-1 text-xs bg-white/80 text-gray-600 px-1 py-0.5 rounded text-center leading-none opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 group-focus:opacity-100">
           {new Date(plant.plantedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </div>
+      )}
+
+      {isPlaced && !isSmall && (
+        <div className="absolute bottom-1 right-1 text-[10px] text-gray-600 bg-white/85 px-1.5 py-0.5 rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 group-focus:opacity-100">
+          {plantFootprint}x{plantFootprint}
         </div>
       )}
       

@@ -1,11 +1,18 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AuthForm from '@/components/Login/AuthForm';
-import Navbar from '@/components/Navbar';
-import { Leaf, Sun, Droplets, Sprout, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Leaf, Sprout, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function LoginPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // The auth card is below the hero on small screens. Always start at the top
+  // so the auth card is reachable on first paint and doesn't appear "scrolled".
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
+  }, []);
   
   const images = [
     {
@@ -31,23 +38,21 @@ export default function LoginPage() {
   };
 
   return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-10 left-10 opacity-10">
-          <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
-        </div>
-      <div className="absolute bottom-20 right-20 opacity-10">
+    <div className="relative">
+      {/* Decorative elements */}
+      <div className="pointer-events-none absolute top-0 left-0 opacity-10">
+        <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
+      </div>
+      <div className="pointer-events-none absolute bottom-0 right-0 opacity-10">
         <Sprout className="w-24 h-24 text-emerald-600 transform -rotate-12" />
       </div>
 
-      <Navbar />
-
-      <main className="flex items-center justify-center px-6 py-12 pt-24">
-        <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-12 items-center">
+      <div className="flex items-start justify-center">
+        <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-12 items-start">
           {/* Hero Banner */}
-          <div className="space-y-8">
+          <div className="space-y-8 order-2 lg:order-1">
             <div className="space-y-4">
-              <h1 className="text-5xl lg:text-6xl font-bold text-gray-800 leading-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-800 leading-tight">
                 Make and Build Your 
                 <span className="text-green-600 block">Garden Here!</span>
               </h1>
@@ -148,7 +153,7 @@ export default function LoginPage() {
           </div>
 
           {/* Login Container */}
-          <div className="max-w-md mx-auto w-full">
+          <div className="max-w-md mx-auto w-full order-1 lg:order-2">
             <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-white/50">
               <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -162,7 +167,7 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

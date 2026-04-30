@@ -29,6 +29,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
+  const [formError, setFormError] = useState('');
   const nameInputRef = useRef(null);
   const descriptionInputRef = useRef(null);
   const soilTypeInputRef = useRef(null);
@@ -221,6 +222,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
     setUnit('metric');
     setValidationErrors({});
     setTouchedFields({});
+    setFormError('');
     setIsLoading(false);
 
     if (garden) {
@@ -250,6 +252,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
     }
 
     setIsLoading(true);
+    setFormError('');
 
     try {
       // Convert dimensions to meters for storage
@@ -294,13 +297,14 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         }));
         requestAnimationFrame(() => scrollToFirstError(apiErrors));
       } else {
-        alert(error.message || 'Failed to save garden. Please try again.');
+        setFormError(error.message || 'Failed to save garden. Please try again.');
       }
     }
   };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setFormError('');
     setValidationErrors(prev => {
       if (!prev[field]) return prev;
       const next = { ...prev };
@@ -341,6 +345,12 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4" noValidate>
+          {formError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {formError}
+            </div>
+          )}
+
           {/* Garden Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

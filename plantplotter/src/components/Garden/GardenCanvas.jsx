@@ -8,7 +8,8 @@ export default function GardenCanvas({
   showGrid,
   showRuler,
   placedPlants,
-  onPlantRemove
+  onPlantRemove,
+  placementPreview
 }) {
   const { setNodeRef } = useDroppable({
     id: 'garden-canvas',
@@ -23,11 +24,15 @@ export default function GardenCanvas({
   };
 
   return (
-    <div className="flex-1 h-screen overflow-auto bg-white p-2 sm:p-4">
+    <div className="relative h-full min-h-0 overflow-auto bg-white p-2 sm:p-4">
+      <div className="sm:hidden sticky top-2 left-2 z-20 mb-2 inline-flex rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-600 shadow-sm border border-gray-200">
+        Scroll to pan garden
+      </div>
       <div className="inline-block min-w-full">
         {/* Top Ruler */}
         {showRuler && (
-          <div className="flex" style={{ marginLeft: showRuler ? '48px' : '0' }}>
+          <div className="flex">
+            <div className="w-12 h-10 bg-white border border-gray-300 border-r-2 border-r-gray-400 border-b-2 border-b-gray-400" />
             <div 
               className="h-10 bg-white border border-gray-300 border-b-2 border-b-gray-400 relative"
               style={{ width: canvasWidth }}
@@ -116,6 +121,30 @@ export default function GardenCanvas({
                 onRemove={() => onPlantRemove(plant.id)}
               />
             ))}
+
+            {placementPreview && (
+              <div
+                className={`absolute pointer-events-none rounded-xl border-2 border-dashed z-20 ${
+                  placementPreview.isValid
+                    ? 'border-green-500 bg-green-200/35'
+                    : 'border-red-500 bg-red-200/35'
+                }`}
+                style={{
+                  left: placementPreview.x,
+                  top: placementPreview.y,
+                  width: placementPreview.size * gridSize,
+                  height: placementPreview.size * gridSize
+                }}
+              >
+                <div className={`absolute left-1 top-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                  placementPreview.isValid
+                    ? 'bg-green-600 text-white'
+                    : 'bg-red-600 text-white'
+                }`}>
+                  {placementPreview.size}x{placementPreview.size}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -29,6 +29,28 @@ class ApiClient {
     }
   }
 
+  getBestPlantCategory(item = {}) {
+    return item.category || item.plant_category || item.type || item.plantType || null;
+  }
+
+  transformPlantedItem(item = {}) {
+    return {
+      id: item.id,
+      plantId: item.plant_id || item.plantId,
+      name: item.name || item.plant_name,
+      emoji: item.emoji || item.plant_emoji,
+      size: item.size || item.plant_size || 1,
+      category: this.getBestPlantCategory(item),
+      type: item.type,
+      xPosition: item.xPosition ?? item.x_position,
+      yPosition: item.yPosition ?? item.y_position,
+      plantedDate: item.plantedDate || item.planted_date || item.created_at,
+      created_at: item.created_at || item.createdAt,
+      updated_at: item.updated_at || item.updatedAt,
+      notes: item.notes || ''
+    };
+  }
+
   // Get auth token from localStorage
   getAuthToken() {
     if (typeof window !== 'undefined') {
@@ -54,11 +76,11 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-            
+
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
         let errorData = null;
-        
+
         try {
           errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
@@ -70,10 +92,20 @@ class ApiClient {
             // Use default error message
           }
         }
-        
+
+        // /auth/login and /auth/register can return 401 for "Invalid credentials".
+        // Those are user input errors, NOT session expirations — keep the server message
+        // and don't trigger the session-expired flow.
+        const isAuthEntryEndpoint = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/register');
+
         // Handle specific status codes
         switch (response.status) {
           case 401:
+            if (isAuthEntryEndpoint) {
+              const credError = new Error(errorMessage || 'Invalid credentials');
+              credError.status = 401;
+              throw credError;
+            }
             const authError = new Error('Your session expired. Please sign in again.');
             authError.status = 401;
             authError.code = errorData?.error || errorData?.code || 'UNAUTHORIZED';
@@ -220,7 +252,9 @@ class ApiClient {
           status: garden.status || 'Active',
           plantCount: garden.plant_count || garden.plantCount || garden.plantedItems?.length || 0,
           plant_count: garden.plant_count || garden.plantCount || garden.plantedItems?.length || 0,
-          plantedItems: garden.plantedItems || [],
+          plantedItems: Array.isArray(garden.plantedItems)
+            ? garden.plantedItems.map(item => this.transformPlantedItem(item))
+            : [],
           created_at: garden.created_at || garden.createdAt,
           createdAt: garden.created_at || garden.createdAt,
           updated_at: garden.updated_at || garden.updatedAt,
@@ -258,17 +292,7 @@ class ApiClient {
       }
       
       // Transform planted items to consistent format
-      const transformedPlantedItems = plantedItems.map(item => ({
-        id: item.id,
-        plantId: item.plant_id,
-        name: item.name,
-        emoji: item.emoji,
-        size: item.size || 1,
-        xPosition: item.xPosition,
-        yPosition: item.yPosition,
-        plantedDate: item.plantedDate,
-        notes: item.notes
-      }));
+      const transformedPlantedItems = plantedItems.map(item => this.transformPlantedItem(item));
       
       // Combine garden data with planted items
       const completeGarden = {
@@ -347,17 +371,9 @@ class ApiClient {
     try {
       const plantedItems = await this.request(`/gardens/${gardenId}/plants`);
       
-      const transformedItems = Array.isArray(plantedItems) ? plantedItems.map(item => ({
-        id: item.id,
-        plantId: item.plant_id,
-        name: item.name,
-        emoji: item.emoji,
-        size: item.size || 1,
-        xPosition: item.xPosition,
-        yPosition: item.yPosition,
-        plantedDate: item.plantedDate,
-        notes: item.notes
-      })) : [];
+      const transformedItems = Array.isArray(plantedItems)
+        ? plantedItems.map(item => this.transformPlantedItem(item))
+        : [];
       
       return transformedItems;
     } catch (error) {
@@ -376,8 +392,8 @@ class ApiClient {
           plant_emoji: plantData.plant_emoji || plantData.emoji,
           plant_size: plantData.plant_size || plantData.size,
           plant_category: plantData.plant_category || plantData.category,
-          x_position: plantData.x_position || plantData.xPosition,
-          y_position: plantData.y_position || plantData.yPosition,
+          x_position: plantData.x_position ?? plantData.xPosition,
+          y_position: plantData.y_position ?? plantData.yPosition,
           notes: plantData.notes
         }),
       });
@@ -410,6 +426,33 @@ class ApiClient {
     } catch (error) {
       console.error('Failed to clear plants:', error);
       throw error;
+    }
+  }
+
+  async saveGardenPlantedItems(gardenId, plantedItems = []) {
+    try {
+      return await this.request(`/gardens/${gardenId}/complete`, {
+        method: 'PUT',
+        body: JSON.stringify({ plantedItems }),
+      });
+    } catch (plantError) {
+      await this.clearGardenPlants(gardenId);
+
+      const failedPlants = [];
+      for (const plant of plantedItems) {
+        try {
+          await this.addPlantToGarden(gardenId, plant);
+        } catch (error) {
+          console.error(`Failed to add plant ${plant.plant_name}:`, error.message);
+          failedPlants.push(plant.plant_name || plant.plant_id || 'plant');
+        }
+      }
+
+      if (failedPlants.length > 0) {
+        throw new Error(`Failed to save ${failedPlants.length} planted item${failedPlants.length === 1 ? '' : 's'}.`);
+      }
+
+      return { success: true, totalPlants: plantedItems.length };
     }
   }
 
@@ -687,6 +730,19 @@ class ApiClient {
       return response;
     } catch (error) {
       console.error('Failed to update profile:', error);
+      throw error;
+    }
+  }
+
+  async deleteAccount() {
+    try {
+      const response = await this.request('/users/account', {
+        method: 'DELETE',
+      });
+      this.clearUserSessionStorage();
+      return response;
+    } catch (error) {
+      console.error('Failed to delete account:', error);
       throw error;
     }
   }

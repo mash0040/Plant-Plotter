@@ -1,49 +1,46 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import apiClient from '@/lib/api';
+import React, { useEffect } from 'react';
 
-export default function ActivityModal({ 
-  isOpen, 
-  formData, 
-  onFormDataChange, 
-  onSubmit, 
+export default function ActivityModal({
+  isOpen,
+  formData,
+  onFormDataChange,
+  onSubmit,
   onClose,
   selectedGarden
 }) {
-  const [plantLibrary, setPlantLibrary] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // Fetch plant library when modal opens
   useEffect(() => {
-    if (isOpen) {
-      loadPlantLibrary();
-    }
-  }, [isOpen]);
+    if (!isOpen) return undefined;
 
-  const loadPlantLibrary = async () => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      const plants = await apiClient.getPlantLibrary();
-      setPlantLibrary(plants || []);
-    } catch (error) {
-      console.error('Failed to load plant library:', error);
-      setError('Failed to load plant options');
-      // Fallback to empty array or default plants
-      setPlantLibrary([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.plant || !formData.activity) return;
-    
+  const gardenPlantOptions = Array.from(
+    new Set((selectedGarden.plantedItems || []).map(plant => (
+      plant?.name || plant?.plant_name || plant?.plantName || ''
+    )).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+  const activityLabels = {
+    planted: 'Planted',
+    watered: 'Watered',
+    fertilized: 'Fertilized',
+    harvested: 'Harvested',
+    pruned: 'Pruned',
+    weeded: 'Weeded'
+  };
+  const activityLabel = activityLabels[formData.activity] || 'Activity';
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (!formData.plant || !formData.activity || gardenPlantOptions.length === 0) return;
+
     onSubmit({
       activity: formData.activity,
       plant: formData.plant,
@@ -51,156 +48,84 @@ export default function ActivityModal({
     });
   };
 
-  // Group plants by category for better organization
-  const plantsByCategory = plantLibrary.reduce((acc, plant) => {
-    const category = plant.category || 'other';
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(plant);
-    return acc;
-  }, {});
-
-  // Sort categories for consistent display
-  const sortedCategories = Object.keys(plantsByCategory).sort();
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 max-w-md mx-4">
-        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
-          Add {formData.activity} Activity
-        </h3>
-        <div className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex items-center">
-          <span>to {selectedGarden.icon} {selectedGarden.name}</span>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-5 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Log {activityLabel}
+          </h3>
+          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            to {selectedGarden.name}
+          </div>
         </div>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Plant
-            </label>
-            
-            {loading ? (
-              <div className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span>Loading plants...</span>
-                </div>
-              </div>
-            ) : error ? (
-              <div className="space-y-2">
-                <div className="w-full p-2 border border-red-300 bg-red-50 text-red-700 rounded">
-                  {error}
-                </div>
-                <button 
-                  onClick={loadPlantLibrary}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  Try again
-                </button>
-              </div>
-            ) : (
+
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="space-y-4 overflow-y-auto p-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Plant
+              </label>
               <select
                 value={formData.plant}
-                onChange={(e) => onFormDataChange({...formData, plant: e.target.value})}
+                onChange={(event) => onFormDataChange({ ...formData, plant: event.target.value })}
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 required
+                disabled={gardenPlantOptions.length === 0}
               >
                 <option value="">Select a plant</option>
-                
-                {/* Show garden plants first if any */}
-                {selectedGarden.plantedItems && selectedGarden.plantedItems.length > 0 && (
-                  <optgroup label="🏡 Plants in Your Garden">
-                    {selectedGarden.plantedItems.map(plant => (
-                      <option key={`garden-${plant.id}`} value={plant.name}>
-                        {plant.emoji || '🌱'} {plant.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                
-                {/* Show all plant library plants grouped by category */}
-                {sortedCategories.map(category => (
-                  <optgroup 
-                    key={category} 
-                    label={`${getCategoryIcon(category)} ${category.charAt(0).toUpperCase() + category.slice(1)}`}
-                  >
-                    {plantsByCategory[category]
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map(plant => (
-                        <option key={`library-${plant.id}`} value={plant.name}>
-                          {plant.emoji || '🌱'} {plant.name}
-                        </option>
-                      ))
-                    }
-                  </optgroup>
+                {gardenPlantOptions.map(plantName => (
+                  <option key={plantName} value={plantName}>
+                    {plantName}
+                  </option>
                 ))}
               </select>
-            )}
-            
-            {plantLibrary.length === 0 && !loading && !error && (
-              <p className="text-xs text-gray-500 mt-1">
-                No plants found in library. You can still type a custom plant name below.
-              </p>
-            )}
+
+              {gardenPlantOptions.length === 0 && (
+                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <p>Add plants to this garden before logging care activity.</p>
+                  <a
+                    href={`/garden?id=${selectedGarden.id}`}
+                    className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800"
+                  >
+                    Manage Plants
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notes (optional)
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(event) => onFormDataChange({ ...formData, notes: event.target.value })}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                rows="3"
+                placeholder="Add any additional notes..."
+              />
+            </div>
           </div>
-          
-          {/* Custom plant input option */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Or enter custom plant name
-            </label>
-            <input
-              type="text"
-              value={formData.plant}
-              onChange={(e) => onFormDataChange({...formData, plant: e.target.value})}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="Type plant name..."
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Notes (optional)
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => onFormDataChange({...formData, notes: e.target.value})}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              rows="3"
-              placeholder="Add any additional notes..."
-            />
-          </div>
-          
-          <div className="flex space-x-3 pt-4">
+
+          <div className="flex flex-col sm:flex-row gap-3 border-t border-gray-200 bg-gray-50 p-5">
             <button
-              onClick={handleSubmit}
-              disabled={!formData.plant || !formData.activity}
-              className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              type="submit"
+              disabled={!formData.plant || !formData.activity || gardenPlantOptions.length === 0}
+              className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Add Activity
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400 transition-colors"
+              className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
             >
               Cancel
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
-}
-
-// Helper function to get category icons
-function getCategoryIcon(category) {
-  const icons = {
-    vegetables: '🥕',
-    fruits: '🍎',
-    herbs: '🌿',
-    flowers: '🌸',
-    other: '🌱'
-  };
-  return icons[category] || '🌱';
 }

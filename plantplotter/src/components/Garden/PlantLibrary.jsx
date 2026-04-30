@@ -23,6 +23,7 @@ export default function PlantLibrary({
   
   const [showCompanionGuide, setShowCompanionGuide] = useState(false);
   const [expandedPlants, setExpandedPlants] = useState({});
+  const [selectedInfoPlant, setSelectedInfoPlant] = useState(null);
 
   // Helper function to safely parse JSON or comma-separated strings
   const safeJsonParse = (value, fallback = []) => {
@@ -369,6 +370,99 @@ export default function PlantLibrary({
     }
   };
 
+  const formatPlantValue = (value) => {
+    if (value === undefined || value === null || value === '') return 'Not specified.';
+    if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : 'Not specified.';
+    if (typeof value === 'object') return 'Not specified.';
+    return String(value);
+  };
+
+  const formatPlantList = (value) => {
+    const list = safeJsonParse(value, []);
+    return list
+      .map(item => String(item).replace(/_/g, ' ').trim())
+      .filter(Boolean)
+      .map(item => item.charAt(0).toUpperCase() + item.slice(1));
+  };
+
+  const getPlantInfoRows = (plant) => ([
+    ['Category', plant.category || plant.type],
+    ['Garden footprint', plant.size ? `${plant.size}x${plant.size} grid units` : 'Not specified.'],
+    ['Sunlight', plant.sunlight],
+    ['Water needs', plant.waterNeeds || plant.water_needs],
+    ['Spacing', plant.spacing],
+    ['Planting depth', plant.plantingDepth || plant.planting_depth],
+    ['Difficulty', plant.difficulty],
+    ['Days to maturity', plant.daysToMaturity || plant.days_to_maturity]
+  ]);
+
+  const PlantInfoModal = ({ plant, onClose }) => {
+    if (!plant) return null;
+
+    const companions = formatPlantList(plant.companionPlants || plant.companion_plants);
+    const avoidPlants = formatPlantList(plant.avoidPlants || plant.avoid_plants);
+
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl border border-gray-100">
+          <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-3xl flex-shrink-0">{plant.emoji || 'Plant'}</span>
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-gray-900 truncate">{plant.name}</h2>
+                <p className="text-sm text-gray-500 capitalize">{formatPlantValue(plant.category || plant.type)}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              aria-label="Close plant details"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-5 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {getPlantInfoRows(plant).map(([label, value]) => (
+                <div key={label} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+                  <p className="mt-1 text-sm font-medium text-gray-800">{formatPlantValue(value)}</p>
+                </div>
+              ))}
+            </div>
+
+            {plant.description && (
+              <div className="rounded-lg border border-gray-100 p-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-1">Description</h3>
+                <p className="text-sm leading-6 text-gray-600">{formatPlantValue(plant.description)}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-lg border border-green-100 bg-green-50 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Heart className="w-4 h-4 text-green-600" />
+                  <h3 className="text-sm font-semibold text-green-800">Good companions</h3>
+                </div>
+                <p className="text-sm text-green-800">{companions.length > 0 ? companions.join(', ') : 'Not specified.'}</p>
+              </div>
+
+              <div className="rounded-lg border border-orange-100 bg-orange-50 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-orange-600" />
+                  <h3 className="text-sm font-semibold text-orange-800">Avoid near</h3>
+                </div>
+                <p className="text-sm text-orange-800">{avoidPlants.length > 0 ? avoidPlants.join(', ') : 'Not specified.'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleAddNewPlant = () => {
     if (!isAdmin) {
       return;
@@ -400,7 +494,7 @@ export default function PlantLibrary({
 
   if (loading) {
     return (
-      <div className="fixed lg:relative top-0 left-0 h-screen w-72 sm:w-80 lg:w-64 bg-white border-r border-gray-200 flex items-center justify-center">
+      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white border-r border-gray-200 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading plants...</p>
@@ -411,7 +505,7 @@ export default function PlantLibrary({
 
   if (error) {
     return (
-      <div className="fixed lg:relative top-0 left-0 h-screen w-72 sm:w-80 lg:w-64 bg-white border-r border-gray-200 flex flex-col">
+      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white border-r border-gray-200 flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -473,7 +567,7 @@ export default function PlantLibrary({
         bg-white 
         border-r border-gray-200 
         transform transition-transform duration-300 ease-in-out
-        w-72 sm:w-80 lg:w-64
+        w-[85vw] max-w-80 lg:w-64 lg:max-w-none
         z-50 lg:z-auto
         shadow-lg lg:shadow-none
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -663,6 +757,7 @@ export default function PlantLibrary({
                     plant={plant}
                     onEdit={handleEditPlant}
                     onPlantRow={handlePlantRow}
+                    onInfo={setSelectedInfoPlant}
                     showEditButton={isAdmin}
                     isInScrollContainer={true}
                   />
@@ -690,6 +785,11 @@ export default function PlantLibrary({
           </p>
         </div>
       </div>
+
+      <PlantInfoModal
+        plant={selectedInfoPlant}
+        onClose={() => setSelectedInfoPlant(null)}
+      />
     </>
   );
 }

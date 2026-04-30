@@ -66,7 +66,7 @@ export default function WeatherWidget() {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
-          <span className="text-2xl">{weather.icon}</span>
+          <span className="text-sm font-semibold text-blue-700">{weather.icon}</span>
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Ottawa Weather</h3>
             <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -136,7 +136,7 @@ export default function WeatherWidget() {
       {/* Gardening Advice */}
       <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-3">
         <div className="text-xs font-medium text-green-800 dark:text-green-300 mb-1">
-          🌱 Gardening Advice
+          Gardening Advice
         </div>
         <div className="text-xs text-green-700 dark:text-green-400">
           {gardeningAdvice}
@@ -150,9 +150,14 @@ export default function WeatherWidget() {
             <Clock className="w-3 h-3" />
             <span>Updated {formatLastUpdated(lastUpdated)}</span>
           </div>
-          {error && (
+          {error && !weatherData.isFallback && (
             <span className="text-yellow-600" title={error}>
               ⚠️ Using cached data
+            </span>
+          )}
+          {error && weatherData.isFallback && (
+            <span className="text-yellow-600" title={error}>
+              Using fallback demo weather
             </span>
           )}
         </div>
