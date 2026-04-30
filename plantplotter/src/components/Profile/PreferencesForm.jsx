@@ -1,355 +1,77 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { Settings, Save, AlertCircle, Globe, Palette, Bell, Shield } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { Settings, Info } from 'lucide-react';
+
+// Preferences UI is intentionally placeholder-only for the deployment.
+// Each setting in the previous form was either decorative (no app behavior wired
+// to it) or duplicated something already controlled per-garden/per-planner.
+// Showing fake toggles + a "Saved successfully" message would mislead users,
+// so this page now lists what's coming and where today's controls actually live.
+const upcomingSettings = [
+  { name: 'Language', note: 'App is currently English-only.' },
+  { name: 'Theme', note: 'Light theme is the only fully styled mode today.' },
+  { name: 'Email notifications', note: 'No email delivery is configured yet.' },
+  { name: 'Garden reminders', note: 'Reminders will arrive with the notifications system.' },
+  { name: 'Weather alerts', note: 'Weather currently uses a fixed location and rule-based advice.' },
+  { name: 'Default units (m / ft)', note: 'Pick units per garden in the Garden form.' },
+  { name: 'Public profile / Share gardens', note: 'Sharing is not part of this release.' }
+];
+
+const inAppToday = [
+  { label: 'Garden units (m / ft)', where: 'Garden create/edit form' },
+  { label: 'Planner grid & zoom', where: 'Planner toolbar (visual only, not stored)' },
+  { label: 'Save planner changes', where: 'Explicit "Save Changes" button in the planner' }
+];
 
 export default function PreferencesForm() {
-  const { user, updatePreferences, loading } = useAuth();
-  
-  const [preferences, setPreferences] = useState({
-    language: 'en',
-    theme: 'light',
-    notifications: {
-      email: true,
-      push: false,
-      gardenReminders: true,
-      weatherAlerts: true
-    },
-    privacy: {
-      profileVisible: true,
-      shareGardens: false
-    },
-    garden: {
-      defaultUnits: 'metric',
-      autoSave: true,
-      gridSize: 40
-    }
-  });
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-
-  // Load user preferences when user data changes
-  useEffect(() => {
-    if (user?.preferences) {
-      try {
-        const userPrefs = typeof user.preferences === 'string' 
-          ? JSON.parse(user.preferences) 
-          : user.preferences;
-        
-        // Deep merge preferences to ensure all default values are preserved
-        const mergedPreferences = {
-          language: userPrefs.language || 'en',
-          theme: userPrefs.theme || 'light',
-          notifications: {
-            email: userPrefs.notifications?.email ?? true,
-            push: userPrefs.notifications?.push ?? false,
-            gardenReminders: userPrefs.notifications?.gardenReminders ?? true,
-            weatherAlerts: userPrefs.notifications?.weatherAlerts ?? true
-          },
-          privacy: {
-            profileVisible: userPrefs.privacy?.profileVisible ?? true,
-            shareGardens: userPrefs.privacy?.shareGardens ?? false
-          },
-          garden: {
-            defaultUnits: userPrefs.garden?.defaultUnits || 'metric',
-            autoSave: userPrefs.garden?.autoSave ?? true,
-            gridSize: userPrefs.garden?.gridSize || 40
-          }
-        };
-        
-        setPreferences(mergedPreferences);
-        
-      } catch (error) {
-        console.error('Error parsing user preferences:', error);
-      }
-    }
-  }, [user]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage({ type: '', text: '' });
-    setIsSubmitting(true);
-    
-    try {
-      await updatePreferences(preferences);
-      setMessage({ type: 'success', text: 'Preferences saved successfully!' });
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setMessage({ type: '', text: '' });
-      }, 3000);
-    } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to save preferences' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const updatePreference = (path, value) => {
-    setPreferences(prev => {
-      const newPrefs = { ...prev };
-      const keys = path.split('.');
-      let current = newPrefs;
-      
-      for (let i = 0; i < keys.length - 1; i++) {
-        // Create nested object if it doesn't exist
-        if (!current[keys[i]] || typeof current[keys[i]] !== 'object') {
-          current[keys[i]] = {};
-        }
-        current = current[keys[i]];
-      }
-      
-      current[keys[keys.length - 1]] = value;
-      return newPrefs;
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-10 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-10 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-xl shadow-lg p-8">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="bg-white rounded-xl shadow-lg p-8 space-y-6">
+      <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
           <Settings className="w-5 h-5 text-blue-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">Preferences</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Preferences</h2>
+          <p className="text-sm text-gray-500">Account-wide settings for PlantPlotter</p>
+        </div>
       </div>
 
-      {/* Status Message */}
-      {message.text && (
-        <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
-          message.type === 'success' 
-            ? 'bg-green-50 text-green-800 border border-green-200' 
-            : 'bg-red-50 text-red-800 border border-red-200'
-        }`}>
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span className="text-sm">{message.text}</span>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-medium text-amber-900">
+            Account-level preferences are coming soon.
+          </p>
+          <p className="text-sm text-amber-800 mt-1">
+            We removed toggles that didn&apos;t change anything yet so the app stops claiming changes
+            were saved when they weren&apos;t. Today the planner and garden forms hold the controls
+            that actually affect the app.
+          </p>
         </div>
-      )}
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* General Settings */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Globe className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-800">General</h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Language
-              </label>
-              <select
-                value={preferences.language}
-                onChange={(e) => updatePreference('language', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                disabled={isSubmitting}
-              >
-                <option value="en">English</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
-                <option value="de">Deutsch</option>
-              </select>
-            </div>
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">Where settings live today</h3>
+        <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-gray-50">
+          {inAppToday.map((item) => (
+            <li key={item.label} className="flex justify-between gap-4 px-4 py-3 text-sm">
+              <span className="font-medium text-gray-800">{item.label}</span>
+              <span className="text-gray-500">{item.where}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Theme
-              </label>
-              <select
-                value={preferences.theme}
-                onChange={(e) => updatePreference('theme', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                disabled={isSubmitting}
-              >
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-                <option value="system">System</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Notification Settings */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Notifications</h3>
-          </div>
-          
-          <div className="space-y-3">
-            <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <span className="font-medium text-gray-800">Email Notifications</span>
-                <p className="text-sm text-gray-500">Receive updates via email</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={preferences.notifications?.email || false}
-                onChange={(e) => updatePreference('notifications.email', e.target.checked)}
-                className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                disabled={isSubmitting}
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <span className="font-medium text-gray-800">Garden Reminders</span>
-                <p className="text-sm text-gray-500">Reminders for watering, fertilizing, etc.</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={preferences.notifications?.gardenReminders || false}
-                onChange={(e) => updatePreference('notifications.gardenReminders', e.target.checked)}
-                className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                disabled={isSubmitting}
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <span className="font-medium text-gray-800">Weather Alerts</span>
-                <p className="text-sm text-gray-500">Get notified about weather conditions</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={preferences.notifications?.weatherAlerts || false}
-                onChange={(e) => updatePreference('notifications.weatherAlerts', e.target.checked)}
-                className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                disabled={isSubmitting}
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* Garden Settings */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Palette className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Garden Settings</h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Default Units
-              </label>
-              <select
-                value={preferences.garden?.defaultUnits || 'metric'}
-                onChange={(e) => updatePreference('garden.defaultUnits', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                disabled={isSubmitting}
-              >
-                <option value="metric">Metric (cm, m)</option>
-                <option value="imperial">Imperial (in, ft)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Grid Size
-              </label>
-              <select
-                value={preferences.garden?.gridSize || 40}
-                onChange={(e) => updatePreference('garden.gridSize', parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                disabled={isSubmitting}
-              >
-                <option value={20}>Small (20px)</option>
-                <option value={30}>Medium (30px)</option>
-                <option value={40}>Large (40px)</option>
-                <option value={50}>Extra Large (50px)</option>
-              </select>
-            </div>
-          </div>
-
-          <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <span className="font-medium text-gray-800">Auto-save</span>
-              <p className="text-sm text-gray-500">Automatically save garden changes</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={preferences.garden?.autoSave || false}
-              onChange={(e) => updatePreference('garden.autoSave', e.target.checked)}
-              className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-              disabled={isSubmitting}
-            />
-          </label>
-        </div>
-
-        {/* Privacy Settings */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Privacy</h3>
-          </div>
-          
-          <div className="space-y-3">
-            <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <span className="font-medium text-gray-800">Public Profile</span>
-                <p className="text-sm text-gray-500">Make your profile visible to other users</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={preferences.privacy?.profileVisible || false}
-                onChange={(e) => updatePreference('privacy.profileVisible', e.target.checked)}
-                className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                disabled={isSubmitting}
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <span className="font-medium text-gray-800">Share Gardens</span>
-                <p className="text-sm text-gray-500">Allow others to view your garden designs</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={preferences.privacy?.shareGardens || false}
-                onChange={(e) => updatePreference('privacy.shareGardens', e.target.checked)}
-                className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                disabled={isSubmitting}
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <div className="flex gap-3 pt-4 border-t border-gray-200">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                Save Preferences
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">Planned for a future release</h3>
+        <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+          {upcomingSettings.map((item) => (
+            <li key={item.name} className="px-4 py-3 text-sm">
+              <div className="font-medium text-gray-800">{item.name}</div>
+              <div className="text-gray-500 mt-0.5">{item.note}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

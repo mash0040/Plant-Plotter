@@ -76,11 +76,11 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-            
+
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
         let errorData = null;
-        
+
         try {
           errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
@@ -92,10 +92,20 @@ class ApiClient {
             // Use default error message
           }
         }
-        
+
+        // /auth/login and /auth/register can return 401 for "Invalid credentials".
+        // Those are user input errors, NOT session expirations — keep the server message
+        // and don't trigger the session-expired flow.
+        const isAuthEntryEndpoint = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/register');
+
         // Handle specific status codes
         switch (response.status) {
           case 401:
+            if (isAuthEntryEndpoint) {
+              const credError = new Error(errorMessage || 'Invalid credentials');
+              credError.status = 401;
+              throw credError;
+            }
             const authError = new Error('Your session expired. Please sign in again.');
             authError.status = 401;
             authError.code = errorData?.error || errorData?.code || 'UNAUTHORIZED';
@@ -720,6 +730,19 @@ class ApiClient {
       return response;
     } catch (error) {
       console.error('Failed to update profile:', error);
+      throw error;
+    }
+  }
+
+  async deleteAccount() {
+    try {
+      const response = await this.request('/users/account', {
+        method: 'DELETE',
+      });
+      this.clearUserSessionStorage();
+      return response;
+    } catch (error) {
+      console.error('Failed to delete account:', error);
       throw error;
     }
   }

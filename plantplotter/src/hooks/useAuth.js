@@ -1,16 +1,22 @@
 // hooks/useAuth.js
 'use client';
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api';
 
 const AuthContext = createContext(null);
+
+export const SESSION_EXPIRED_FLAG = 'plantplotter:session-expired';
 
 export const AuthProvider = ({ children }) => {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Tracks whether the user was authenticated during this tab's lifetime.
+  // We only show "Your session expired" if a real, established session was lost —
+  // not on initial token validation against a stale localStorage value.
+  const hadActiveSessionRef = useRef(false);
 
   // Function to fetch fresh user profile from API
   const fetchUserProfile = async (skipLoading = false) => {
@@ -93,16 +99,39 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const handleAuthExpired = (event) => {
+    const handleAuthExpired = () => {
+      const wasAuthenticated = hadActiveSessionRef.current;
+      hadActiveSessionRef.current = false;
       setUser(null);
-      setError(event.detail?.message || 'Your session expired. Please sign in again.');
+      setError(null);
       setLoading(false);
-      router.push('/login');
+
+      // Only flag "session expired" if the user actually had a live session.
+      // A 401 during initial token validation (stale localStorage on cold load)
+      // should NOT surface a session-expired banner.
+      if (wasAuthenticated && typeof window !== 'undefined') {
+        try {
+          window.sessionStorage.setItem(SESSION_EXPIRED_FLAG, '1');
+        } catch (storageError) {
+          // sessionStorage may be unavailable; fall through silently
+        }
+      }
+
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        router.push('/login');
+      }
     };
 
     window.addEventListener('plantplotter:auth-expired', handleAuthExpired);
     return () => window.removeEventListener('plantplotter:auth-expired', handleAuthExpired);
   }, [router]);
+
+  // Mark the session as active once we have a real user.
+  useEffect(() => {
+    if (user) {
+      hadActiveSessionRef.current = true;
+    }
+  }, [user]);
 
   const login = async (email, password) => {
     try {
@@ -192,15 +221,50 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const response = await apiClient.deleteAccount();
+      apiClient.logout();
+      hadActiveSessionRef.current = false;
+      setUser(null);
+      if (typeof window !== 'undefined') {
+        try {
+          window.sessionStorage.removeItem(SESSION_EXPIRED_FLAG);
+        } catch (storageError) {
+          // ignore
+        }
+      }
+      router.push('/');
+      return response;
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     try {
       apiClient.logout();
+      hadActiveSessionRef.current = false;
       setUser(null);
       setError(null);
+      if (typeof window !== 'undefined') {
+        try {
+          window.sessionStorage.removeItem(SESSION_EXPIRED_FLAG);
+        } catch (storageError) {
+          // ignore
+        }
+      }
     } catch (err) {
       console.error('Logout error:', err);
     }
   };
+
+  const clearError = () => setError(null);
 
   const value = {
     user,
@@ -208,9 +272,11 @@ export const AuthProvider = ({ children }) => {
     register,
     updateProfile,
     updatePreferences,
+    deleteAccount,
     logout,
     loading,
     error,
+    clearError,
     isAuthenticated: !!user,
     refreshProfile: fetchUserProfile
   };

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
+const { validateEmail } = require('../utils/emailValidation');
 
 // GET /api/users/profile - Get user profile with preferences
 router.get('/profile', verifyToken, async (req, res) => {
@@ -38,34 +39,28 @@ router.put('/profile', verifyToken, async (req, res) => {
   try {
     const { username, email } = req.body;
     const db = require('../config/db');
+    const trimmedUsername = typeof username === 'string' ? username.trim() : '';
+    const trimmedEmail = typeof email === 'string' ? email.trim() : '';
 
-    if (!username) {
+    if (!trimmedUsername) {
       return res.status(400).json({ message: 'Username is required' });
     }
 
-    if (!email) {
+    if (!trimmedEmail) {
       return res.status(400).json({ message: 'Email is required' });
     }
 
-    // Email validation
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      return res.status(400).json({ message: 'Please enter a valid email' });
+    const emailError = validateEmail(trimmedEmail);
+    if (emailError) {
+      return res.status(400).json({ message: emailError });
     }
 
-    // Check if username is already taken by another user
-    const [existingUsername] = await db.execute(
-      'SELECT id FROM users WHERE username = ? AND id != ?',
-      [username, req.user.id]
-    );
-
-    if (existingUsername.length > 0) {
-      return res.status(409).json({ message: 'Username already taken' });
-    }
-
+    // Display name (username column) is NOT unique — duplicates are allowed.
+    // Only email needs to be unique because it is the login identifier.
     // Check if email is already taken by another user
     const [existingEmail] = await db.execute(
       'SELECT id FROM users WHERE email = ? AND id != ?',
-      [email, req.user.id]
+      [trimmedEmail, req.user.id]
     );
 
     if (existingEmail.length > 0) {
@@ -75,7 +70,7 @@ router.put('/profile', verifyToken, async (req, res) => {
     // Update both username and email
     await db.execute(
       'UPDATE users SET username = ?, email = ?, updated_at = NOW() WHERE id = ?',
-      [username, email, req.user.id]
+      [trimmedUsername, trimmedEmail, req.user.id]
     );
 
     // Return updated user with preferences
@@ -102,6 +97,40 @@ router.put('/profile', verifyToken, async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// DELETE /api/users/account - Delete the authenticated user's own account
+router.delete('/account', verifyToken, async (req, res) => {
+  const db = require('../config/db');
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [user] = await connection.execute(
+      'SELECT id FROM users WHERE id = ?',
+      [req.user.id]
+    );
+
+    if (user.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await connection.execute(
+      'DELETE FROM users WHERE id = ?',
+      [req.user.id]
+    );
+
+    await connection.commit();
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Account deletion error:', error);
+    res.status(500).json({ message: 'Failed to delete account' });
+  } finally {
+    connection.release();
   }
 });
 

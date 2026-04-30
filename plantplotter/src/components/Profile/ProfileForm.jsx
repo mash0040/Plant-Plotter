@@ -1,10 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { User, Mail, Save, AlertCircle } from 'lucide-react';
+import { User, Mail, Save, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { validateEmail } from '@/lib/emailValidation';
 
 export default function ProfileForm() {
-  const { user, updateProfile, loading } = useAuth();
+  const { user, updateProfile, deleteAccount, loading } = useAuth();
   
   const [formData, setFormData] = useState({
     username: '',
@@ -13,8 +14,12 @@ export default function ProfileForm() {
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [errors, setErrors] = useState({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   // Update form data when user data changes
   useEffect(() => {
@@ -29,17 +34,16 @@ export default function ProfileForm() {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
+      newErrors.username = 'Display name is required';
     } else if (formData.username.length < 2) {
-      newErrors.username = 'Username must be at least 2 characters';
+      newErrors.username = 'Display name must be at least 2 characters';
     }
     
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      newErrors.email = emailError;
     }
     
     setErrors(newErrors);
@@ -58,7 +62,11 @@ export default function ProfileForm() {
     setIsSubmitting(true);
     
     try {
-      await updateProfile(formData);
+      await updateProfile({
+        ...formData,
+        username: formData.username.trim(),
+        email: formData.email.trim()
+      });
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
       
       // Clear success message after 3 seconds
@@ -77,6 +85,24 @@ export default function ProfileForm() {
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteError('');
+    setMessage({ type: '', text: '' });
+
+    if (deleteConfirmation !== 'DELETE') {
+      setDeleteError('Type DELETE to confirm account deletion.');
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount();
+    } catch (error) {
+      setDeleteError(error.message || 'Failed to delete account. Please try again.');
+      setIsDeletingAccount(false);
     }
   };
 
@@ -114,29 +140,34 @@ export default function ProfileForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Username Field */}
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        {/* Display Name Field */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Username
+          <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="profile-display-name">
+            Display Name
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <User className="h-5 w-5 text-gray-400" />
             </div>
             <input
+              id="profile-display-name"
               type="text"
               value={formData.username}
               onChange={(e) => handleInputChange('username', e.target.value)}
               className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all ${
-                errors.username 
-                  ? 'border-red-300 bg-red-50' 
+                errors.username
+                  ? 'border-red-300 bg-red-50'
                   : 'border-gray-300 bg-white'
               }`}
-              placeholder="Enter your username"
+              placeholder="How your name appears in PlantPlotter"
+              autoComplete="name"
               disabled={isSubmitting}
             />
           </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Display name is shown in the app. It does not need to be unique - your account is identified by email.
+          </p>
           {errors.username && (
             <p className="mt-1 text-sm text-red-600">{errors.username}</p>
           )}
@@ -144,7 +175,7 @@ export default function ProfileForm() {
 
         {/* Email Field */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="profile-email">
             Email Address
           </label>
           <div className="relative">
@@ -152,18 +183,23 @@ export default function ProfileForm() {
               <Mail className="h-5 w-5 text-gray-400" />
             </div>
             <input
+              id="profile-email"
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all ${
-                errors.email 
-                  ? 'border-red-300 bg-red-50' 
+                errors.email
+                  ? 'border-red-300 bg-red-50'
                   : 'border-gray-300 bg-white'
               }`}
-              placeholder="Enter your email"
+              placeholder="you@example.com"
+              autoComplete="email"
               disabled={isSubmitting}
             />
           </div>
+          <p className="mt-1 text-xs text-gray-500">
+            Email is used to sign in and must be unique.
+          </p>
           {errors.email && (
             <p className="mt-1 text-sm text-red-600">{errors.email}</p>
           )}
@@ -207,6 +243,91 @@ export default function ProfileForm() {
           </button>
         </div>
       </form>
+
+      <div className="mt-8 border-t border-red-100 pt-6">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-full bg-red-100 p-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-900">Danger Zone</h3>
+              <p className="mt-1 text-sm text-red-800">
+                Deleting your account is permanent. Your account, gardens, planted items, tracker activities, and tasks will be removed.
+              </p>
+
+              {!showDeleteConfirm ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteConfirm(true);
+                    setDeleteError('');
+                    setDeleteConfirmation('');
+                  }}
+                  disabled={isSubmitting || isDeletingAccount}
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Account
+                </button>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <label className="block text-sm font-medium text-red-900" htmlFor="delete-account-confirmation">
+                    Type DELETE to permanently delete your account.
+                  </label>
+                  <input
+                    id="delete-account-confirmation"
+                    type="text"
+                    value={deleteConfirmation}
+                    onChange={(event) => {
+                      setDeleteConfirmation(event.target.value);
+                      setDeleteError('');
+                    }}
+                    className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-gray-900 focus:border-red-500 focus:ring-2 focus:ring-red-500"
+                    autoComplete="off"
+                    disabled={isDeletingAccount}
+                  />
+                  {deleteError && (
+                    <p className="text-sm text-red-700">{deleteError}</p>
+                  )}
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setDeleteConfirmation('');
+                        setDeleteError('');
+                      }}
+                      disabled={isDeletingAccount}
+                      className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      disabled={isDeletingAccount || deleteConfirmation !== 'DELETE'}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
+                    >
+                      {isDeletingAccount ? (
+                        <>
+                          <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" />
+                          Permanently Delete Account
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
