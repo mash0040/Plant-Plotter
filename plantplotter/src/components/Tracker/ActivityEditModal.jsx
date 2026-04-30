@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { X, Save, Trash2, Activity, Calendar } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { X, Save, Trash2, Activity } from 'lucide-react';
 
 export default function ActivityEditModal({ 
   isOpen, 
@@ -9,7 +9,8 @@ export default function ActivityEditModal({
   onSave, 
   onDelete, 
   gardens = [],
-  selectedGarden 
+  selectedGarden,
+  selectedDate
 }) {
   const [formData, setFormData] = useState({
     activity_type: '',
@@ -21,26 +22,59 @@ export default function ActivityEditModal({
   
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const errorRef = useRef(null);
+  const formRef = useRef(null);
 
   const activityTypes = [
-    'Watering', 'Fertilizing', 'Pruning', 'Planting', 'Harvesting',
-    'Pest Control', 'Disease Treatment', 'Soil Amendment', 'Mulching',
-    'Transplanting', 'Thinning', 'Staking', 'Weeding', 'Other'
+    { value: 'planted', label: 'Planted' },
+    { value: 'watered', label: 'Watered' },
+    { value: 'fertilized', label: 'Fertilized' },
+    { value: 'harvested', label: 'Harvested' },
+    { value: 'pruned', label: 'Pruned' },
+    { value: 'weeded', label: 'Weeded' }
   ];
+
+  const getDateKey = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value.split('T')[0];
+    const date = new Date(value);
+    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  };
+
+  const getTodayDateKey = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  };
+
+  const getBackendSafeActivityType = (type) => {
+    const normalizedType = String(type || '').toLowerCase().trim();
+    const labelMap = {
+      watering: 'watered',
+      fertilizing: 'fertilized',
+      pruning: 'pruned',
+      planting: 'planted',
+      harvesting: 'harvested',
+      weeding: 'weeded'
+    };
+
+    return labelMap[normalizedType] || normalizedType;
+  };
 
   // Load activity data when modal opens
   useEffect(() => {
     if (isOpen && activity) {
       setFormData({
-        activity_type: activity.activity_type || '',
+        activity_type: getBackendSafeActivityType(activity.activity_type || activity.activity) || '',
         plant_name: activity.plant_name || '',
         notes: activity.notes || '',
         garden_id: activity.garden_id || (selectedGarden ? selectedGarden.id : ''),
-        activity_date: activity.activity_date ? 
-          new Date(activity.activity_date).toISOString().split('T')[0] : 
-          new Date().toISOString().split('T')[0]
+        activity_date: activity.activity_date ? getDateKey(activity.activity_date) : getTodayDateKey()
       });
       setError('');
+      setFieldErrors({});
+      setShowDeleteConfirm(false);
     } else if (isOpen && !activity) {
       // New activity
       setFormData({
@@ -48,39 +82,94 @@ export default function ActivityEditModal({
         plant_name: '',
         notes: '',
         garden_id: selectedGarden ? selectedGarden.id : (gardens.length > 0 ? gardens[0].id : ''),
-        activity_date: new Date().toISOString().split('T')[0]
+        activity_date: selectedDate || getTodayDateKey()
       });
       setError('');
+      setFieldErrors({});
+      setShowDeleteConfirm(false);
     }
-  }, [isOpen, activity, gardens, selectedGarden]);
+  }, [isOpen, activity, gardens, selectedGarden, selectedDate]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (Object.keys(fieldErrors).length === 0 || !formRef.current) return;
+
+    const firstFieldError = formRef.current.querySelector('[data-field-error="true"]');
+    firstFieldError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [fieldErrors]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+    setFieldErrors(prev => ({
+      ...prev,
+      [field]: ''
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const nextFieldErrors = {};
     
     if (!formData.activity_type.trim()) {
-      setError('Activity type is required');
-      return;
+      nextFieldErrors.activity_type = 'Activity type is required.';
     }
 
     if (!formData.garden_id) {
-      setError('Please select a garden');
+      nextFieldErrors.garden_id = 'Garden is required.';
+    }
+
+    const gardenForSelectedActivity = gardens.find(g => String(g.id) === String(formData.garden_id)) || selectedGarden;
+    const validPlantNames = Array.from(
+      new Set((gardenForSelectedActivity?.plantedItems || []).map(item => item.name).filter(Boolean))
+    );
+    const isHistoricalPlant = activity?.id && formData.plant_name && !validPlantNames.includes(formData.plant_name);
+
+    if (validPlantNames.length === 0 && !isHistoricalPlant) {
+      nextFieldErrors.plant_name = 'Add plants to this garden before logging care activity.';
+    }
+
+    if (!validPlantNames.includes(formData.plant_name) && !isHistoricalPlant) {
+      nextFieldErrors.plant_name = 'Select a plant from this garden.';
+    }
+
+    if (!formData.activity_date) {
+      nextFieldErrors.activity_date = 'Date is required.';
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setError('');
       return;
     }
 
     setIsSaving(true);
     setError('');
+    setFieldErrors({});
 
     try {
       const activityData = {
         ...formData,
-        activity_date: formData.activity_date || new Date().toISOString().split('T')[0]
+        activity_type: getBackendSafeActivityType(formData.activity_type),
+        activity_date: formData.activity_date || selectedDate || getTodayDateKey()
       };
 
       await onSave(activity?.id ? { ...activityData, id: activity.id } : activityData);
@@ -94,10 +183,6 @@ export default function ActivityEditModal({
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this activity?')) {
-      return;
-    }
-
     try {
       await onDelete(activity.id);
       onClose();
@@ -109,33 +194,16 @@ export default function ActivityEditModal({
 
   if (!isOpen) return null;
 
-  const gardenForActivity = gardens.find(g => g.id === formData.garden_id) || selectedGarden;
-
-  // Get plants from the selected garden
-  const getPlantOptions = () => {
-    const gardenPlants = [];
-    
-    if (gardenForActivity?.plantedItems && gardenForActivity.plantedItems.length > 0) {
-      gardenForActivity.plantedItems.forEach(item => {
-        if (item.name && !gardenPlants.includes(item.name)) {
-          gardenPlants.push(item.name);
-        }
-      });
-    }
-    
-    // Add fallback plants if no plants are found
-    if (gardenPlants.length === 0) {
-      return ['Tomato', 'Lettuce', 'Basil', 'Pepper', 'Carrot', 'Spinach', 'Cucumber', 'Herbs', 'Flowers'];
-    }
-    
-    return gardenPlants.sort();
-  };
-
-  const plantOptions = getPlantOptions();
+  const gardenForActivity = gardens.find(g => String(g.id) === String(formData.garden_id)) || selectedGarden;
+  const plantOptions = Array.from(
+    new Set((gardenForActivity?.plantedItems || []).map(item => item.name).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+  const showHistoricalPlantOption = activity?.id && formData.plant_name && !plantOptions.includes(formData.plant_name);
+  const isEditingExistingActivity = Boolean(activity?.id);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
           <div className="flex items-center gap-3">
@@ -154,17 +222,15 @@ export default function ActivityEditModal({
           </button>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
-
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+        <form ref={formRef} onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
+          {error && (
+            <div ref={errorRef} className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800">
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
           {/* Garden Selection */}
-          {gardens.length > 1 && (
+          {!isEditingExistingActivity && gardens.length > 1 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Garden *
@@ -182,6 +248,9 @@ export default function ActivityEditModal({
                   </option>
                 ))}
               </select>
+              {fieldErrors.garden_id && (
+                <p data-field-error="true" className="mt-1 text-sm text-red-600">{fieldErrors.garden_id}</p>
+              )}
             </div>
           )}
 
@@ -213,11 +282,14 @@ export default function ActivityEditModal({
             >
               <option value="">Select activity type</option>
               {activityTypes.map(type => (
-                <option key={type} value={type}>
-                  {type}
+                <option key={type.value} value={type.value}>
+                  {type.label}
                 </option>
               ))}
             </select>
+            {fieldErrors.activity_type && (
+              <p data-field-error="true" className="mt-1 text-sm text-red-600">{fieldErrors.activity_type}</p>
+            )}
           </div>
 
           {/* Plant Selection */}
@@ -229,21 +301,35 @@ export default function ActivityEditModal({
               value={formData.plant_name}
               onChange={(e) => handleInputChange('plant_name', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-2"
+              required
+              disabled={plantOptions.length === 0}
             >
               <option value="">Select a plant</option>
+              {showHistoricalPlantOption && (
+                <option value={formData.plant_name}>
+                  {formData.plant_name} (no longer planted)
+                </option>
+              )}
               {plantOptions.map(plant => (
                 <option key={plant} value={plant}>{plant}</option>
               ))}
             </select>
-            
-            {/* Custom plant input */}
-            <input
-              type="text"
-              value={formData.plant_name}
-              onChange={(e) => handleInputChange('plant_name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="Or type plant name..."
-            />
+            {fieldErrors.plant_name && (
+              <p data-field-error="true" className="mb-2 text-sm text-red-600">{fieldErrors.plant_name}</p>
+            )}
+            {plantOptions.length === 0 && !showHistoricalPlantOption && (
+              <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <p>Add plants to this garden before logging care activity.</p>
+                {gardenForActivity?.id && (
+                  <a
+                    href={`/garden?id=${gardenForActivity.id}`}
+                    className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800"
+                  >
+                    Manage Plants
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Activity Date */}
@@ -256,7 +342,11 @@ export default function ActivityEditModal({
               value={formData.activity_date}
               onChange={(e) => handleInputChange('activity_date', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              required
             />
+            {fieldErrors.activity_date && (
+              <p data-field-error="true" className="mt-1 text-sm text-red-600">{fieldErrors.activity_date}</p>
+            )}
           </div>
 
           {/* Notes */}
@@ -278,14 +368,37 @@ export default function ActivityEditModal({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-6 border-t border-gray-200 bg-gray-50">
           <div>
             {activity && onDelete && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Activity
-              </button>
+              showDeleteConfirm ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-red-700">Delete this activity? This cannot be undone.</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Activity
+                </button>
+              )
             )}
           </div>
           
@@ -299,7 +412,7 @@ export default function ActivityEditModal({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSaving}
+              disabled={isSaving || plantOptions.length === 0}
               className="flex items-center justify-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
             >
               {isSaving ? (

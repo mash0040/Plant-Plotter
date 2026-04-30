@@ -69,9 +69,9 @@ router.post('/', verifyToken, async (req, res) => {
       `INSERT INTO garden_tasks (
         user_id, garden_id, title, description, due_date, priority, plant_name, 
         task_type, status, estimated_duration, is_recurring, recurring_pattern,
-        created_at, updated_at
+        created_at
       ) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW(), NOW())`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW())`,
       [
         req.user.id, 
         garden_id, 
@@ -115,32 +115,51 @@ router.put('/:id', verifyToken, async (req, res) => {
       recurring_pattern,
       notes
     } = req.body;
+    const allowedStatuses = ['pending', 'completed', 'cancelled', 'overdue'];
+    const allowedTaskTypes = ['water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'maintenance'];
+
+    if (!title || !due_date) {
+      return res.status(400).json({ error: 'title and due_date are required' });
+    }
+
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid task status' });
+    }
+
+    if (task_type && !allowedTaskTypes.includes(task_type)) {
+      return res.status(400).json({ error: 'Invalid task type' });
+    }
+
+    const [existingTask] = await db.execute(
+      'SELECT id FROM garden_tasks WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.id]
+    );
+
+    if (existingTask.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
     
-    const [result] = await db.execute(
-      `UPDATE garden_tasks 
-       SET title = ?, description = ?, due_date = ?, priority = ?, status = ?, 
-           plant_name = ?, task_type = ?, estimated_duration = ?, is_recurring = ?, 
-           recurring_pattern = ?, updated_at = NOW()
+    await db.execute(
+      `UPDATE garden_tasks
+       SET title = ?, description = ?, due_date = ?, priority = ?, status = ?,
+           plant_name = ?, task_type = ?, estimated_duration = ?, is_recurring = ?,
+           recurring_pattern = ?
        WHERE id = ? AND user_id = ?`,
       [
-        title, 
-        description, 
-        due_date, 
-        priority, 
-        status, 
-        plant_name,
-        task_type,
-        estimated_duration,
-        is_recurring,
-        recurring_pattern,
-        req.params.id, 
+        title,
+        description ?? null,
+        due_date,
+        priority || 'medium',
+        status || 'pending',
+        plant_name ?? null,
+        task_type || 'maintenance',
+        estimated_duration ?? null,
+        is_recurring ?? false,
+        recurring_pattern ?? null,
+        req.params.id,
         req.user.id
       ]
     );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Task not found' });
-    }
 
     const [updatedTask] = await db.execute(
       'SELECT * FROM garden_tasks WHERE id = ? AND user_id = ?',

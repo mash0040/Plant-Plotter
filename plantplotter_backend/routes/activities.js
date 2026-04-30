@@ -86,17 +86,31 @@ router.put('/:id', verifyToken, async (req, res) => {
   try {
     const activityId = req.params.id;
     const { activity_type, plant_name, notes, activity_date } = req.body;
-    
-    const [result] = await db.execute(
-      `UPDATE garden_activities 
-       SET activity_type = ?, plant_name = ?, notes = ?, activity_date = ?, updated_at = NOW()
-       WHERE id = ? AND user_id = ?`,
-      [activity_type, plant_name, notes, activity_date, activityId, req.user.id]
+    const allowedActivityTypes = ['planted', 'watered', 'fertilized', 'harvested', 'pruned', 'weeded'];
+
+    if (!activity_type || !activity_date) {
+      return res.status(400).json({ error: 'activity_type and activity_date are required' });
+    }
+
+    if (!allowedActivityTypes.includes(activity_type)) {
+      return res.status(400).json({ error: 'Invalid activity type' });
+    }
+
+    const [existingActivity] = await db.execute(
+      'SELECT id FROM garden_activities WHERE id = ? AND user_id = ?',
+      [activityId, req.user.id]
     );
 
-    if (result.affectedRows === 0) {
+    if (existingActivity.length === 0) {
       return res.status(404).json({ error: 'Activity not found' });
     }
+    
+    await db.execute(
+      `UPDATE garden_activities 
+       SET activity_type = ?, plant_name = ?, notes = ?, activity_date = ?
+       WHERE id = ? AND user_id = ?`,
+      [activity_type, plant_name || null, notes || null, activity_date, activityId, req.user.id]
+    );
 
     const [updatedActivity] = await db.execute(
       'SELECT * FROM garden_activities WHERE id = ? AND user_id = ?',

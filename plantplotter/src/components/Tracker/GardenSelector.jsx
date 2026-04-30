@@ -36,9 +36,9 @@ const getGardenIcon = (garden) => {
 
 export default function GardenSelector({ gardens, selectedGarden, onGardenSelect }) {
   return (
-    <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
+    <div className="relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
       {/* Decorative elements */}
-      <div className="absolute top-10 left-10 opacity-10">
+      <div className="absolute top-10 left-10 opacity-10 pointer-events-none">
         <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
       </div>
       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -55,7 +55,7 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
             <button
               key={garden.id}
               onClick={() => onGardenSelect(garden)}
-              className={`w-full p-3 rounded-xl text-left transition-all duration-200 flex items-center gap-3 ${
+              className={`relative z-10 w-full p-3 rounded-xl text-left cursor-pointer transition-all duration-200 flex items-center gap-3 ${
                 isSelected
                   ? 'bg-green-100 border-2 border-green-300 shadow-md transform scale-[1.02]'
                   : 'bg-white/80 border border-gray-200 hover:bg-green-50 hover:border-green-200 hover:shadow-sm'

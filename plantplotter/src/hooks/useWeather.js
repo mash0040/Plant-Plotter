@@ -60,7 +60,8 @@ export const useWeather = (latitude = OTTAWA_COORDS.latitude, longitude = OTTAWA
           latitude: data.latitude,
           longitude: data.longitude,
           timezone: data.timezone
-        }
+        },
+        isFallback: false
       };
 
       setWeatherData(transformedData);
@@ -94,7 +95,8 @@ export const useWeather = (latitude = OTTAWA_COORDS.latitude, longitude = OTTAWA
           latitude: OTTAWA_COORDS.latitude,
           longitude: OTTAWA_COORDS.longitude,
           timezone: 'America/Toronto'
-        }
+        },
+        isFallback: true
       });
       
     } finally {

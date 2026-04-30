@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { X, Save, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
 
 export default function TaskEditModal({ 
@@ -8,7 +8,8 @@ export default function TaskEditModal({
   task, 
   onSave, 
   onDelete, 
-  gardens = [] 
+  gardens = [],
+  selectedGarden: currentGarden
 }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -17,6 +18,7 @@ export default function TaskEditModal({
     due_date: '',
     priority: 'medium',
     plant_name: '',
+    task_type: 'water',
     status: 'pending',
     estimated_duration: '',
     recurring_pattern: 'none',
@@ -25,6 +27,8 @@ export default function TaskEditModal({
   
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const errorRef = useRef(null);
 
   const priorityOptions = [
     { value: 'low', label: 'Low', color: 'text-green-600 bg-green-50' },
@@ -34,9 +38,16 @@ export default function TaskEditModal({
 
   const statusOptions = [
     { value: 'pending', label: 'Pending' },
-    { value: 'in_progress', label: 'In Progress' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' }
+  ];
+
+  const taskTypeOptions = [
+    { value: 'water', label: 'Water', titleVerb: 'Water' },
+    { value: 'fertilize', label: 'Fertilize', titleVerb: 'Fertilize' },
+    { value: 'prune', label: 'Prune', titleVerb: 'Prune' },
+    { value: 'weed', label: 'Weed', titleVerb: 'Weed' },
+    { value: 'harvest', label: 'Harvest', titleVerb: 'Harvest' }
   ];
 
   const recurringOptions = [
@@ -46,6 +57,29 @@ export default function TaskEditModal({
     { value: 'monthly', label: 'Monthly' }
   ];
 
+  const getDateKey = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value.split('T')[0];
+    const date = new Date(value);
+    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  };
+
+  const getTodayDateKey = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  };
+
+  const getBackendSafeStatus = (status) => {
+    if (status === 'in_progress' || status === 'overdue') return 'pending';
+    return status;
+  };
+
+  const getGeneratedTitle = (taskType, plantName) => {
+    const taskTypeOption = taskTypeOptions.find(option => option.value === taskType);
+    if (!taskTypeOption || !plantName) return '';
+    return `${taskTypeOption.titleVerb} ${plantName}`;
+  };
+
   // Load task data when modal opens
   useEffect(() => {
     if (isOpen && task) {
@@ -53,32 +87,53 @@ export default function TaskEditModal({
         title: task.title || '',
         description: task.description || '',
         garden_id: task.garden_id || (gardens.length > 0 ? gardens[0].id : ''),
-        due_date: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '',
+        due_date: task.due_date ? getDateKey(task.due_date) : '',
         priority: task.priority || 'medium',
         plant_name: task.plant_name || '',
-        status: task.status || 'pending',
+        task_type: task.task_type || 'water',
+        status: getBackendSafeStatus(task.status) || 'pending',
         estimated_duration: task.estimated_duration || '',
         recurring_pattern: task.recurring_pattern || 'none',
         notes: task.notes || ''
       });
       setError('');
+      setShowDeleteConfirm(false);
     } else if (isOpen && !task) {
       // New task
       setFormData({
         title: '',
         description: '',
-        garden_id: gardens.length > 0 ? gardens[0].id : '',
-        due_date: new Date().toISOString().split('T')[0],
+        garden_id: currentGarden?.id || (gardens.length > 0 ? gardens[0].id : ''),
+        due_date: getTodayDateKey(),
         priority: 'medium',
         plant_name: '',
+        task_type: 'water',
         status: 'pending',
         estimated_duration: '',
         recurring_pattern: 'none',
         notes: ''
       });
       setError('');
+      setShowDeleteConfirm(false);
     }
-  }, [isOpen, task, gardens]);
+  }, [isOpen, task, gardens, currentGarden]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [error]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -89,14 +144,40 @@ export default function TaskEditModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.title.trim()) {
-      setError('Task title is required');
+
+    const selectedGardenForTask = gardens.find(g => String(g.id) === String(formData.garden_id)) || currentGarden;
+    const plantOptions = Array.from(
+      new Set((selectedGardenForTask?.plantedItems || []).map(item => item.name).filter(Boolean))
+    );
+    const generatedTitle = getGeneratedTitle(formData.task_type, formData.plant_name);
+
+    if (!task && plantOptions.length === 0) {
+      setError('Add plants to this garden before creating care tasks.');
       return;
     }
 
     if (!formData.garden_id) {
       setError('Please select a garden');
+      return;
+    }
+
+    if (!formData.plant_name || !plantOptions.includes(formData.plant_name)) {
+      setError('Select a plant from this garden.');
+      return;
+    }
+
+    if (!formData.task_type) {
+      setError('Select a task type');
+      return;
+    }
+
+    if (!formData.due_date) {
+      setError('Due date is required');
+      return;
+    }
+
+    if (!task && formData.due_date < getTodayDateKey()) {
+      setError('New tasks cannot be due in the past. Log an activity instead if this work was already done.');
       return;
     }
 
@@ -106,9 +187,11 @@ export default function TaskEditModal({
     try {
       const taskData = {
         ...formData,
+        title: generatedTitle,
         // Ensure proper field names for API
         due_date: formData.due_date || null,
-        estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration) : null
+        estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration) : null,
+        status: task ? formData.status : 'pending'
       };
 
       await onSave(task?.id ? { ...taskData, id: task.id } : taskData);
@@ -122,10 +205,6 @@ export default function TaskEditModal({
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this task?')) {
-      return;
-    }
-
     try {
       await onDelete(task.id);
       onClose();
@@ -137,11 +216,15 @@ export default function TaskEditModal({
 
   if (!isOpen) return null;
 
-  const selectedGarden = gardens.find(g => g.id === formData.garden_id);
+  const selectedGarden = gardens.find(g => String(g.id) === String(formData.garden_id)) || currentGarden;
+  const plantOptions = Array.from(
+    new Set((selectedGarden?.plantedItems || []).map(item => item.name).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+  const generatedTitle = getGeneratedTitle(formData.task_type, formData.plant_name);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-green-50">
           <div className="flex items-center gap-3">
@@ -160,30 +243,55 @@ export default function TaskEditModal({
           </button>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
-
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6">
+          {error && (
+            <div ref={errorRef} className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+          {!task && plantOptions.length === 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <p>Add plants to this garden before creating care tasks.</p>
+              {selectedGarden?.id && (
+                <a
+                  href={`/garden?id=${selectedGarden.id}`}
+                  className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800"
+                >
+                  Manage Plants
+                </a>
+              )}
+            </div>
+          )}
+
           {/* Title and Description */}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Task Title *
+                Task
               </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+              <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900">
+                {generatedTitle || 'Select a task type and plant'}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Task Type *
+              </label>
+              <select
+                value={formData.task_type}
+                onChange={(e) => handleInputChange('task_type', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Water tomatoes"
                 required
-              />
+              >
+                {taskTypeOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -223,15 +331,22 @@ export default function TaskEditModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Plant (Optional)
+                Plant *
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.plant_name}
                 onChange={(e) => handleInputChange('plant_name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Specific plant name"
-              />
+                required
+                disabled={plantOptions.length === 0}
+              >
+                <option value="">Select a plant</option>
+                {plantOptions.map(plantName => (
+                  <option key={plantName} value={plantName}>
+                    {plantName}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -295,7 +410,8 @@ export default function TaskEditModal({
               </div>
             </div>
 
-            <div>
+            {task && (
+              <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Status
               </label>
@@ -311,6 +427,7 @@ export default function TaskEditModal({
                 ))}
               </select>
             </div>
+            )}
           </div>
 
           {/* Recurring Pattern */}
@@ -365,14 +482,37 @@ export default function TaskEditModal({
         <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
           <div>
             {task && onDelete && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Task
-              </button>
+              showDeleteConfirm ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-red-700">Delete this task? This cannot be undone.</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Task
+                </button>
+              )
             )}
           </div>
           

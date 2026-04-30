@@ -6,6 +6,7 @@ export default function TrackingCalendar({
   selectedDate, 
   onDateSelect, 
   calendarData = {}, 
+  taskData = {},
   onActivityEdit, 
   onActivityDelete 
 }) {
@@ -34,21 +35,33 @@ export default function TrackingCalendar({
     return `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
   };
 
+  const formatDateKeyForDisplay = (dateKey) => {
+    const [year, month, day] = dateKey.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   const goToPreviousMonth = () => {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() - 1);
     setCurrentDate(newDate);
+    onDateSelect(formatDateString(newDate.getFullYear(), newDate.getMonth(), 1));
   };
 
   const goToNextMonth = () => {
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + 1);
     setCurrentDate(newDate);
+    onDateSelect(formatDateString(newDate.getFullYear(), newDate.getMonth(), 1));
   };
 
   const handleMonthYearSelect = () => {
     const newDate = new Date(tempYear, tempMonth, 1);
     setCurrentDate(newDate);
+    onDateSelect(formatDateString(tempYear, tempMonth, 1));
     setShowMonthYearPicker(false);
   };
 
@@ -75,6 +88,17 @@ export default function TrackingCalendar({
       case 'fertilized': return '🌿';
       case 'harvested': return '🌾';
       default: return '📝';
+    }
+  };
+
+  const getTaskIcon = (taskType) => {
+    switch (taskType) {
+      case 'water': return 'W';
+      case 'fertilize': return 'F';
+      case 'harvest': return 'H';
+      case 'prune': return 'P';
+      case 'weed': return '!';
+      default: return 'T';
     }
   };
 
@@ -116,6 +140,8 @@ export default function TrackingCalendar({
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = formatDateString(currentYear, currentDate.getMonth(), day);
       const activities = calendarData[dateStr] || [];
+      const tasks = taskData[dateStr] || [];
+      const calendarItemsCount = activities.length + tasks.length;
       const isSelected = selectedDate === dateStr;
       const today = new Date();
       const isToday = day === today.getDate() && 
@@ -134,21 +160,24 @@ export default function TrackingCalendar({
             {day}
           </div>
           
-          {activities.length > 0 && (
+          {calendarItemsCount > 0 && (
             <div className="space-y-1">
               {activities.slice(0, 2).map((activity, idx) => {
                 const plantName = activity.plant || activity.plant_name || 'Unknown';
                 const activityType = activity.activity || activity.activity_type || 'activity';
+                const plantLabel = activity.plant_no_longer_planted
+                  ? `${plantName} (no longer planted)`
+                  : plantName;
                 
                 return (
                   <div
                     key={activity.id || `${dateStr}-${idx}`}
                     className={`text-xs px-1.5 py-0.5 rounded-md flex items-center gap-1 ${getActivityColorClass(activityType)} truncate group relative`}
-                    title={`${activityType} ${plantName} at ${activity.time || 'unknown time'}`}
+                    title={`${activityType} ${plantLabel} at ${activity.time || 'unknown time'}`}
                   >
                     <span className="text-xs flex-shrink-0">{getActivityIcon(activityType)}</span>
                     <span className="truncate font-medium min-w-0">
-                      {truncatePlantName(plantName, 10)}
+                      {truncatePlantName(plantLabel, 10)}
                     </span>
                     
                     {activity.id && onActivityEdit && onActivityDelete && (
@@ -172,16 +201,29 @@ export default function TrackingCalendar({
                   </div>
                 );
               })}
+
+              {tasks.slice(0, Math.max(0, 2 - activities.slice(0, 2).length)).map((task) => (
+                <div
+                  key={`task-${task.id}`}
+                  className="text-xs px-1.5 py-0.5 rounded-md flex items-center gap-1 bg-indigo-100 text-indigo-800 truncate"
+                  title={`${task.title || task.task} due ${task.dueDate}`}
+                >
+                  <span className="text-xs flex-shrink-0">{getTaskIcon(task.task_type || task.taskType)}</span>
+                  <span className="truncate font-medium min-w-0">
+                    {truncatePlantName(task.title || task.task || 'Task', 10)}
+                  </span>
+                </div>
+              ))}
               
-              {activities.length > 2 && (
+              {calendarItemsCount > 2 && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-md text-center">
-                  +{activities.length - 2} more
+                  +{calendarItemsCount - 2} more
                 </div>
               )}
             </div>
           )}
           
-          {activities.length > 3 && (
+          {calendarItemsCount > 3 && (
             <div className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></div>
           )}
         </div>
@@ -192,6 +234,7 @@ export default function TrackingCalendar({
   };
 
   const selectedDateActivities = calendarData[selectedDate] || [];
+  const selectedDateTasks = taskData[selectedDate] || [];
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
@@ -310,6 +353,11 @@ export default function TrackingCalendar({
           </div>
         </div>
 
+        <div className="flex items-center gap-1 mb-4 text-xs">
+          <span className="rounded bg-indigo-100 px-1 text-indigo-800">T</span>
+          <span className="text-gray-600 dark:text-gray-400">Pending Task</span>
+        </div>
+
         <div className="grid grid-cols-7 gap-1 mb-4">
           {renderCalendar()}
         </div>
@@ -318,11 +366,7 @@ export default function TrackingCalendar({
           <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <span>📅</span>
-              Activities for {new Date(selectedDate).toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                month: 'long', 
-                day: 'numeric' 
-              })}:
+              Activities for {formatDateKeyForDisplay(selectedDate)}:
             </h4>
             <div className="space-y-2">
               {selectedDateActivities.map((activity, idx) => (
@@ -331,6 +375,11 @@ export default function TrackingCalendar({
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 dark:text-white">
                       <span className="capitalize">{activity.activity || activity.activity_type}</span> {activity.plant || activity.plant_name}
+                      {activity.plant_no_longer_planted && (
+                        <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-300">
+                          (no longer planted)
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-300">
                       {activity.time}
@@ -360,6 +409,32 @@ export default function TrackingCalendar({
                       </button>
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {selectedDateTasks.length > 0 && (
+          <div className="mt-4 p-4 bg-indigo-50 dark:bg-gray-700 rounded-lg">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <span>T</span>
+              Tasks for {formatDateKeyForDisplay(selectedDate)}:
+            </h4>
+            <div className="space-y-2">
+              {selectedDateTasks.map((task) => (
+                <div key={task.id} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-600 rounded">
+                  <span className="text-sm text-indigo-700">{getTaskIcon(task.task_type || task.taskType)}</span>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {task.title || task.task}
+                    </div>
+                    {task.description && (
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                        {task.description}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

@@ -387,6 +387,11 @@ export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
           </div>
 
           {/* Weather Data Source */}
+          {weatherData.isFallback ? (
+            <div className="text-xs text-amber-700 dark:text-amber-300 text-center pt-4 border-t border-gray-200 dark:border-gray-700">
+              Fallback demo weather is shown because live weather could not be loaded.
+            </div>
+          ) : (
           <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Clock className="w-3 h-3" />
@@ -396,6 +401,7 @@ export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
               Weather models: NOAA GFS, Environment Canada, ECMWF
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

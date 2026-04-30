@@ -150,9 +150,14 @@ export default function WeatherWidget() {
             <Clock className="w-3 h-3" />
             <span>Updated {formatLastUpdated(lastUpdated)}</span>
           </div>
-          {error && (
+          {error && !weatherData.isFallback && (
             <span className="text-yellow-600" title={error}>
               ⚠️ Using cached data
+            </span>
+          )}
+          {error && weatherData.isFallback && (
+            <span className="text-yellow-600" title={error}>
+              Using fallback demo weather
             </span>
           )}
         </div>
