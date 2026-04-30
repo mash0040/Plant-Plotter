@@ -148,7 +148,9 @@ function TrackingPageContent() {
       
       // Transform activities to calendar format
       const calendarActivities = {};
-      const currentPlantNames = new Set((selectedGarden.plantedItems || []).map(plant => plant.name).filter(Boolean));
+      const currentPlantNames = new Set((selectedGarden.plantedItems || []).map(plant => (
+        plant?.name || plant?.plant_name || plant?.plantName || ''
+      )).filter(Boolean));
       activities.forEach(activity => {
         const dateKey = getDateKey(activity.activity_date || activity.created_at);
         const plantName = activity.plant_name || 'Unknown Plant';
@@ -209,11 +211,11 @@ function TrackingPageContent() {
       
       // Return icon based on most common category
       switch (mostCommon) {
-        case 'vegetables': return '🥕';
-        case 'fruits': return '🍎';
-        case 'herbs': return '🌿';
-        case 'flowers': return '🌸';
-        default: return '🌱';
+        case 'vegetables': return 'Veg';
+        case 'fruits': return 'Fruit';
+        case 'herbs': return 'Herb';
+        case 'flowers': return 'Flower';
+        default: return 'Garden';
       }
     }
     
@@ -221,12 +223,12 @@ function TrackingPageContent() {
     const name = garden.name?.toLowerCase() || '';
     const location = garden.location?.toLowerCase() || '';
     
-    if (name.includes('herb') || location.includes('herb')) return '🌿';
-    if (name.includes('vegetable') || location.includes('vegetable')) return '🥕';
-    if (name.includes('fruit') || location.includes('fruit')) return '🍎';
-    if (name.includes('flower') || location.includes('flower')) return '🌸';
+    if (name.includes('herb') || location.includes('herb')) return 'Herb';
+    if (name.includes('vegetable') || location.includes('vegetable')) return 'Veg';
+    if (name.includes('fruit') || location.includes('fruit')) return 'Fruit';
+    if (name.includes('flower') || location.includes('flower')) return 'Flower';
     
-    return '🌱'; // Default garden icon
+    return 'Garden';
   };
 
   const getDateKey = (value) => {
@@ -241,8 +243,9 @@ function TrackingPageContent() {
   };
 
   const isFutureDateKey = (dateKey) => dateKey > getTodayDateKey();
+  const getPlantedItemName = (plant) => plant?.name || plant?.plant_name || plant?.plantName || '';
   const selectedGardenPlants = selectedGarden?.plantedItems || [];
-  const hasSelectedGardenPlants = selectedGardenPlants.some(plant => plant.name);
+  const hasSelectedGardenPlants = selectedGardenPlants.some(plant => getPlantedItemName(plant));
   const isQuickLogDisabled = isFutureDateKey(selectedDate) || !hasSelectedGardenPlants;
   const quickLogHelperText = isFutureDateKey(selectedDate)
     ? 'Quick Log is for completed care. Select today or a past date, or create a task for future work.'
@@ -362,10 +365,18 @@ function TrackingPageContent() {
     const recurringPattern = taskData.recurring_pattern || 'none';
 
     return {
-      ...taskData,
+      title: taskData.title,
+      description: taskData.description || '',
+      garden_id: taskData.garden_id,
+      due_date: taskData.due_date,
+      priority: taskData.priority || 'medium',
+      status: 'pending',
+      plant_name: taskData.plant_name || null,
       task_type: taskData.task_type || 'maintenance',
+      estimated_duration: taskData.estimated_duration || null,
       is_recurring: recurringPattern !== 'none',
-      recurring_pattern: recurringPattern === 'none' ? null : recurringPattern
+      recurring_pattern: recurringPattern === 'none' ? null : recurringPattern,
+      notes: taskData.notes || ''
     };
   };
 
@@ -547,14 +558,19 @@ function TrackingPageContent() {
         // Update existing task
         await apiClient.updateTask(taskData.id, getTaskUpdatePayload(taskData));
         setTaskSuccess('Task updated.');
+        await loadTasks();
       } else {
         // Create new task
-        await apiClient.createTask(getTaskCreatePayload(taskData));
+        const createPayload = getTaskCreatePayload(taskData);
+        await apiClient.createTask(createPayload);
         setTaskSuccess('Task created.');
+        const targetGarden = gardens.find(garden => String(garden.id) === String(createPayload.garden_id));
+        if (targetGarden && String(targetGarden.id) !== String(selectedGarden?.id)) {
+          setSelectedGarden(targetGarden);
+          return;
+        }
+        await loadTasks();
       }
-      
-      // Reload tasks
-      await loadTasks();
       
     } catch (error) {
       console.error('Failed to save task:', error);

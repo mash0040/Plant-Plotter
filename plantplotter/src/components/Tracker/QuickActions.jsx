@@ -54,7 +54,7 @@ export default function QuickActions({
       <div className="flex flex-col items-left justify-between mb-3">
         <h3 className="font-semibold text-gray-900 dark:text-white">Quick Log</h3>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          for {selectedGarden.icon} {selectedGarden.name}
+          for {selectedGarden.name}
         </div>
       </div>
       <div className="space-y-2">

@@ -23,7 +23,9 @@ export default function ActivityModal({
   if (!isOpen) return null;
 
   const gardenPlantOptions = Array.from(
-    new Set((selectedGarden.plantedItems || []).map(plant => plant.name).filter(Boolean))
+    new Set((selectedGarden.plantedItems || []).map(plant => (
+      plant?.name || plant?.plant_name || plant?.plantName || ''
+    )).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
   const activityLabels = {
     planted: 'Planted',
@@ -54,7 +56,7 @@ export default function ActivityModal({
             Log {activityLabel}
           </h3>
           <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            to {selectedGarden.icon} {selectedGarden.name}
+            to {selectedGarden.name}
           </div>
         </div>
 

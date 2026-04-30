@@ -79,7 +79,7 @@ function getDetailedGardeningAdvice(weatherData) {
   } else if (precipitation > 0) {
     advice.push({
       type: 'good',
-      icon: '💧',
+      icon: 'Water',
       title: 'Light Rain',
       description: 'Natural watering! Skip irrigation today. Perfect for transplanting when rain stops.'
     });
@@ -165,7 +165,7 @@ export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{weather.icon}</span>
+            <span className="text-sm font-semibold text-blue-700">{weather.icon}</span>
             <div>
               <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                 Ottawa Weather Details
@@ -352,7 +352,7 @@ export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
 
           {/* Detailed Gardening Recommendations */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">🌱 Detailed Gardening Advice</h3>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Detailed Gardening Advice</h3>
             
             <div className="space-y-3">
               {getDetailedGardeningAdvice(weatherData).map((advice, index) => (
@@ -363,7 +363,7 @@ export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
                   : 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
                 }`}>
                   <div className="flex items-start gap-2">
-                    <span className="text-lg flex-shrink-0">{advice.icon}</span>
+                    <span className="text-xs font-semibold uppercase flex-shrink-0">{advice.type}</span>
                     <div>
                       <div className={`font-medium text-sm ${
                         advice.type === 'good' ? 'text-green-800 dark:text-green-300' :
@@ -395,7 +395,7 @@ export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
           <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Clock className="w-3 h-3" />
-              <span>Data from Open-Meteo API • Updated every 10 minutes</span>
+              <span>Data from Open-Meteo API - Updated every 10 minutes</span>
             </div>
             <div className="text-xs">
               Weather models: NOAA GFS, Environment Canada, ECMWF

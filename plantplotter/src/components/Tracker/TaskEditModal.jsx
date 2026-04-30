@@ -43,6 +43,7 @@ export default function TaskEditModal({
   ];
 
   const taskTypeOptions = [
+    { value: 'plant', label: 'Plant', titleVerb: 'Plant' },
     { value: 'water', label: 'Water', titleVerb: 'Water' },
     { value: 'fertilize', label: 'Fertilize', titleVerb: 'Fertilize' },
     { value: 'prune', label: 'Prune', titleVerb: 'Prune' },
@@ -80,17 +81,19 @@ export default function TaskEditModal({
     return `${taskTypeOption.titleVerb} ${plantName}`;
   };
 
+  const getPlantedItemName = (item) => item?.name || item?.plant_name || item?.plantName || '';
+
   // Load task data when modal opens
   useEffect(() => {
     if (isOpen && task) {
       setFormData({
         title: task.title || '',
         description: task.description || '',
-        garden_id: task.garden_id || (gardens.length > 0 ? gardens[0].id : ''),
+        garden_id: task.garden_id || task.gardenId || (gardens.length > 0 ? gardens[0].id : ''),
         due_date: task.due_date ? getDateKey(task.due_date) : '',
         priority: task.priority || 'medium',
-        plant_name: task.plant_name || '',
-        task_type: task.task_type || 'water',
+        plant_name: task.plant_name || task.plant || '',
+        task_type: task.task_type || task.taskType || 'water',
         status: getBackendSafeStatus(task.status) || 'pending',
         estimated_duration: task.estimated_duration || '',
         recurring_pattern: task.recurring_pattern || 'none',
@@ -138,7 +141,8 @@ export default function TaskEditModal({
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
+      ...(field === 'garden_id' ? { plant_name: '' } : {})
     }));
   };
 
@@ -147,7 +151,7 @@ export default function TaskEditModal({
 
     const selectedGardenForTask = gardens.find(g => String(g.id) === String(formData.garden_id)) || currentGarden;
     const plantOptions = Array.from(
-      new Set((selectedGardenForTask?.plantedItems || []).map(item => item.name).filter(Boolean))
+      new Set((selectedGardenForTask?.plantedItems || []).map(getPlantedItemName).filter(Boolean))
     );
     const generatedTitle = getGeneratedTitle(formData.task_type, formData.plant_name);
 
@@ -189,6 +193,9 @@ export default function TaskEditModal({
         ...formData,
         title: generatedTitle,
         // Ensure proper field names for API
+        garden_id: formData.garden_id,
+        plant_name: formData.plant_name,
+        task_type: formData.task_type,
         due_date: formData.due_date || null,
         estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration) : null,
         status: task ? formData.status : 'pending'
@@ -218,9 +225,10 @@ export default function TaskEditModal({
 
   const selectedGarden = gardens.find(g => String(g.id) === String(formData.garden_id)) || currentGarden;
   const plantOptions = Array.from(
-    new Set((selectedGarden?.plantedItems || []).map(item => item.name).filter(Boolean))
+    new Set((selectedGarden?.plantedItems || []).map(getPlantedItemName).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
   const generatedTitle = getGeneratedTitle(formData.task_type, formData.plant_name);
+  const isEditingExistingTask = Boolean(task?.id);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -312,8 +320,16 @@ export default function TaskEditModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Garden *
+                {isEditingExistingTask ? 'Garden' : 'Garden *'}
               </label>
+              {isEditingExistingTask ? (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                  <div className="font-medium text-green-800">{selectedGarden?.name || 'Selected garden'}</div>
+                  <div className="text-sm text-green-600">
+                    Task remains tied to this garden.
+                  </div>
+                </div>
+              ) : (
               <select
                 value={formData.garden_id}
                 onChange={(e) => handleInputChange('garden_id', e.target.value)}
@@ -323,10 +339,11 @@ export default function TaskEditModal({
                 <option value="">Select a garden</option>
                 {gardens.map(garden => (
                   <option key={garden.id} value={garden.id}>
-                    {garden.icon || '🌱'} {garden.name}
+                    {garden.name}
                   </option>
                 ))}
               </select>
+              )}
             </div>
 
             <div>
@@ -466,11 +483,10 @@ export default function TaskEditModal({
           {selectedGarden && (
             <div className="p-3 bg-green-50 rounded-lg border border-green-200">
               <div className="flex items-center gap-2">
-                <span className="text-lg">{selectedGarden.icon || '🌱'}</span>
                 <div>
                   <div className="font-medium text-green-800">{selectedGarden.name}</div>
                   <div className="text-sm text-green-600">
-                    {selectedGarden.location} • {selectedGarden.plantCount || 0} plants
+                    {selectedGarden.location} - {selectedGarden.plantCount || 0} plants
                   </div>
                 </div>
               </div>

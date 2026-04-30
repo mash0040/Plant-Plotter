@@ -2,38 +2,6 @@
 import React from 'react';
 import { Leaf } from 'lucide-react';
 
-// Helper function to get appropriate garden icon
-const getGardenIcon = (garden) => {
-  if (!garden) return '🌱';
-  
-  // If garden already has an icon, use it
-  if (garden.icon) return garden.icon;
-  
-  const name = garden.name.toLowerCase();
-  const location = garden.location?.toLowerCase() || '';
-  
-  // Icon mapping based on garden name keywords
-  if (name.includes('vegetable') || name.includes('veggie')) return '🥕';
-  if (name.includes('herb') || name.includes('culinary')) return '🌿';
-  if (name.includes('flower') || name.includes('blossom')) return '🌸';
-  if (name.includes('fruit') || name.includes('orchard')) return '🍎';
-  if (name.includes('berry')) return '🍓';
-  if (name.includes('container') || name.includes('pot')) return '🪴';
-  if (name.includes('indoor') || location.includes('indoor')) return '🏠';
-  if (name.includes('balcony') || location.includes('balcony')) return '🏢';
-  if (name.includes('rooftop') || location.includes('rooftop')) return '🏙️';
-  if (name.includes('greenhouse') || location.includes('greenhouse')) return '🏡';
-  
-  // Location-based icons
-  if (location.includes('backyard') || location.includes('back yard')) return '🏡';
-  if (location.includes('front yard') || location.includes('frontyard')) return '🏠';
-  if (location.includes('kitchen')) return '👩‍🍳';
-  if (location.includes('windowsill') || location.includes('window')) return '🪟';
-  
-  // Default garden icon
-  return '🌱';
-};
-
 export default function GardenSelector({ gardens, selectedGarden, onGardenSelect }) {
   return (
     <div className="relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
@@ -42,14 +10,13 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
         <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
       </div>
       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <span className="text-xl">🏡</span>
+        <Leaf className="w-5 h-5 text-green-600" />
         Gardens
       </h3>
       
       <div className="space-y-3">
         {gardens.map((garden) => {
           const isSelected = selectedGarden?.id === garden.id;
-          const gardenIcon = getGardenIcon(garden);
           
           return (
             <button
@@ -62,10 +29,10 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
               }`}
             >
               {/* Garden Icon */}
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                 isSelected ? 'bg-green-200' : 'bg-gray-100'
               }`}>
-                {gardenIcon}
+                <Leaf className={`w-5 h-5 ${isSelected ? 'text-green-700' : 'text-green-600'}`} />
               </div>
               
               {/* Garden Info */}
@@ -80,7 +47,7 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
                   <p className={`text-xs mt-1 truncate ${
                     isSelected ? 'text-green-600' : 'text-gray-500'
                   }`}>
-                    📍 {garden.location}
+                    Location: {garden.location}
                   </p>
                 )}
                 
@@ -89,7 +56,7 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
                   <p className={`text-xs mt-1 ${
                     isSelected ? 'text-green-600' : 'text-gray-500'
                   }`}>
-                    🌱 {garden.plantCount} plants
+                    {garden.plantCount} plants
                   </p>
                 )}
               </div>
@@ -114,7 +81,7 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
       {gardens.length === 0 && (
         <div className="text-center py-8">
           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <span className="text-xl">🌱</span>
+            <Leaf className="w-6 h-6 text-gray-500" />
           </div>
           <p className="text-gray-500 text-sm">No gardens available</p>
           <a 

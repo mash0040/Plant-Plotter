@@ -62,6 +62,8 @@ export default function ActivityEditModal({
     return labelMap[normalizedType] || normalizedType;
   };
 
+  const getPlantedItemName = (item) => item?.name || item?.plant_name || item?.plantName || '';
+
   // Load activity data when modal opens
   useEffect(() => {
     if (isOpen && activity) {
@@ -139,7 +141,7 @@ export default function ActivityEditModal({
 
     const gardenForSelectedActivity = gardens.find(g => String(g.id) === String(formData.garden_id)) || selectedGarden;
     const validPlantNames = Array.from(
-      new Set((gardenForSelectedActivity?.plantedItems || []).map(item => item.name).filter(Boolean))
+      new Set((gardenForSelectedActivity?.plantedItems || []).map(getPlantedItemName).filter(Boolean))
     );
     const isHistoricalPlant = activity?.id && formData.plant_name && !validPlantNames.includes(formData.plant_name);
 
@@ -196,7 +198,7 @@ export default function ActivityEditModal({
 
   const gardenForActivity = gardens.find(g => String(g.id) === String(formData.garden_id)) || selectedGarden;
   const plantOptions = Array.from(
-    new Set((gardenForActivity?.plantedItems || []).map(item => item.name).filter(Boolean))
+    new Set((gardenForActivity?.plantedItems || []).map(getPlantedItemName).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
   const showHistoricalPlantOption = activity?.id && formData.plant_name && !plantOptions.includes(formData.plant_name);
   const isEditingExistingActivity = Boolean(activity?.id);
@@ -244,7 +246,7 @@ export default function ActivityEditModal({
                 <option value="">Select a garden</option>
                 {gardens.map(garden => (
                   <option key={garden.id} value={garden.id}>
-                    {garden.icon || '🌱'} {garden.name}
+                    {garden.name}
                   </option>
                 ))}
               </select>
@@ -258,11 +260,10 @@ export default function ActivityEditModal({
           {gardenForActivity && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center gap-2">
-                <span className="text-lg">{gardenForActivity.icon || '🌱'}</span>
-                <div>
+                    <div>
                   <div className="font-medium text-green-800">{gardenForActivity.name}</div>
                   <div className="text-sm text-green-600">
-                    {gardenForActivity.location} • {gardenForActivity.plantCount || 0} plants
+                    {gardenForActivity.location} - {gardenForActivity.plantCount || 0} plants
                   </div>
                 </div>
               </div>

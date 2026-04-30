@@ -70,7 +70,9 @@ export default function TrackingCalendar({
       'planted': 'bg-green-100 text-green-800',
       'watered': 'bg-blue-100 text-blue-800', 
       'fertilized': 'bg-yellow-100 text-yellow-800',
-      'harvested': 'bg-orange-100 text-orange-800'
+      'harvested': 'bg-orange-100 text-orange-800',
+      'pruned': 'bg-purple-100 text-purple-800',
+      'weeded': 'bg-emerald-100 text-emerald-800'
     };
     return colorMap[activity] || 'bg-gray-100 text-gray-800';
   };
@@ -78,16 +80,18 @@ export default function TrackingCalendar({
   const truncatePlantName = (name, maxLength = 8) => {
     if (!name) return 'Unknown';
     if (name.length <= maxLength) return name;
-    return name.substring(0, maxLength - 1) + '…';
+    return `${name.substring(0, maxLength - 3)}...`;
   };
 
   const getActivityIcon = (activity) => {
     switch (activity) {
-      case 'planted': return '🌱';
-      case 'watered': return '💧';
-      case 'fertilized': return '🌿';
-      case 'harvested': return '🌾';
-      default: return '📝';
+      case 'planted': return 'Pl';
+      case 'watered': return 'W';
+      case 'fertilized': return 'F';
+      case 'harvested': return 'H';
+      case 'pruned': return 'Pr';
+      case 'weeded': return 'We';
+      default: return 'A';
     }
   };
 
@@ -175,26 +179,26 @@ export default function TrackingCalendar({
                     className={`text-xs px-1.5 py-0.5 rounded-md flex items-center gap-1 ${getActivityColorClass(activityType)} truncate group relative`}
                     title={`${activityType} ${plantLabel} at ${activity.time || 'unknown time'}`}
                   >
-                    <span className="text-xs flex-shrink-0">{getActivityIcon(activityType)}</span>
+                    <span className="text-[10px] font-semibold flex-shrink-0">{getActivityIcon(activityType)}</span>
                     <span className="truncate font-medium min-w-0">
                       {truncatePlantName(plantLabel, 10)}
                     </span>
                     
                     {activity.id && onActivityEdit && onActivityDelete && (
-                      <div className="opacity-0 group-hover:opacity-100 flex gap-1 ml-auto">
+                      <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex gap-1 ml-auto">
                         <button
                           onClick={(e) => handleActivityEdit(activity, e)}
-                          className="w-3 h-3 text-gray-600 hover:text-blue-600 transition-colors"
+                          className="rounded p-0.5 text-gray-600 hover:text-blue-600 transition-colors"
                           title="Edit activity"
                         >
-                          <Edit3 className="w-3 h-3" />
+                          <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={(e) => handleActivityDelete(activity, e)}
-                          className="w-3 h-3 text-gray-600 hover:text-red-600 transition-colors"
+                          className="rounded p-0.5 text-gray-600 hover:text-red-600 transition-colors"
                           title="Delete activity"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
@@ -336,20 +340,28 @@ export default function TrackingCalendar({
       <div className="p-4">
         <div className="mb-4 flex flex-wrap gap-2 text-xs">
           <div className="flex items-center gap-1">
-            <span>🌱</span>
+            <span className="rounded bg-green-100 px-1 text-green-800">Pl</span>
             <span className="text-gray-600 dark:text-gray-400">Planted</span>
           </div>
           <div className="flex items-center gap-1">
-            <span>💧</span>
+            <span className="rounded bg-blue-100 px-1 text-blue-800">W</span>
             <span className="text-gray-600 dark:text-gray-400">Watered</span>
           </div>
           <div className="flex items-center gap-1">
-            <span>🌿</span>
+            <span className="rounded bg-yellow-100 px-1 text-yellow-800">F</span>
             <span className="text-gray-600 dark:text-gray-400">Fertilized</span>
           </div>
           <div className="flex items-center gap-1">
-            <span>🌾</span>
+            <span className="rounded bg-orange-100 px-1 text-orange-800">H</span>
             <span className="text-gray-600 dark:text-gray-400">Harvested</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="rounded bg-purple-100 px-1 text-purple-800">Pr</span>
+            <span className="text-gray-600 dark:text-gray-400">Pruned</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="rounded bg-emerald-100 px-1 text-emerald-800">We</span>
+            <span className="text-gray-600 dark:text-gray-400">Weeded</span>
           </div>
         </div>
 
@@ -365,13 +377,15 @@ export default function TrackingCalendar({
         {selectedDateActivities.length > 0 && (
           <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <span>📅</span>
+              <span>Date</span>
               Activities for {formatDateKeyForDisplay(selectedDate)}:
             </h4>
             <div className="space-y-2">
               {selectedDateActivities.map((activity, idx) => (
                 <div key={idx} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-600 rounded group">
-                  <span className="text-lg">{getActivityIcon(activity.activity || activity.activity_type)}</span>
+                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-semibold text-gray-700">
+                    {getActivityIcon(activity.activity || activity.activity_type)}
+                  </span>
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 dark:text-white">
                       <span className="capitalize">{activity.activity || activity.activity_type}</span> {activity.plant || activity.plant_name}
@@ -392,7 +406,7 @@ export default function TrackingCalendar({
                   </div>
                   
                   {activity.id && onActivityEdit && onActivityDelete && (
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => handleActivityEdit(activity, e)}
                         className="p-1 text-gray-500 hover:text-blue-600 transition-colors rounded"

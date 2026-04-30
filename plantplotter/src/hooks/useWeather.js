@@ -161,9 +161,27 @@ export const getWeatherDescription = (weatherCode, isDay = 1) => {
     99: { description: 'Thunderstorm with heavy hail', icon: '⛈️', condition: 'Thunderstorm' }
   };
 
-  return weatherCodes[weatherCode] || { 
+  const getWeatherIconLabel = (condition) => {
+    if (condition.includes('Clear')) return isDay ? 'Sun' : 'Moon';
+    if (condition.includes('Cloud')) return 'Cloud';
+    if (condition.includes('Fog')) return 'Fog';
+    if (condition.includes('Rain') || condition.includes('Drizzle')) return 'Rain';
+    if (condition.includes('Snow')) return 'Snow';
+    if (condition.includes('Thunderstorm')) return 'Storm';
+    return 'Weather';
+  };
+
+  const weather = weatherCodes[weatherCode];
+  if (weather) {
+    return {
+      ...weather,
+      icon: getWeatherIconLabel(weather.condition)
+    };
+  }
+
+  return { 
     description: 'Unknown', 
-    icon: '❓', 
+    icon: 'Weather', 
     condition: 'Unknown' 
   };
 };
