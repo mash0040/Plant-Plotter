@@ -1,24 +1,34 @@
 # Plant Plotter
 
-Plant Plotter is a full-stack garden planning application for creating garden spaces, managing layouts, browsing plant data, and tracking garden activity. 
+Plant Plotter is a full-stack garden planning and tracking app. Users can create gardens, plan plant placement visually, review companion planting guidance, and track garden care through activity logs and planned tasks.
 
-## Features
+## Project Background
 
-- User authentication with JWT-based sessions
-- Protected frontend routes and expired-session handling
+Plant Plotter began as a client-focused final group project. After the initial delivery, I continued developing it independently to make the application more stable, complete, and portfolio-ready.
+
+My continued work focused on improving authentication, validation, garden management, planner UX, tracker workflows, profile/account settings, documentation, and deployment readiness.
+
+## Current Features
+
+- Public landing page with dedicated login/register flow
+- User registration and login with JWT-protected routes
 - Garden create, edit, delete, and detail views
-- Garden validation for names, descriptions, dimensions, location, soil type, and status
-- Metric and imperial garden dimension entry with backend storage in meters
-- Plant library browsing and plant selection for garden planning
-- Role-based admin protection for plant library create, update, and delete actions
-
+- Visual garden planner with plant placement, footprint validation, row planting, and save flow
+- Plant library with categories and plant details
+- Companion planting guidance based on the app’s plant dataset
+- Garden tracker with activity logs and planned care tasks
+- Today, upcoming, and overdue task organization
+- Weather-based tracker card using Open-Meteo with fixed Ottawa/default weather
+- Profile settings and account deletion
 
 ## Tech Stack
 
 - Frontend: Next.js, React, Tailwind CSS
-- Backend: Express.js
+- Backend: Node.js, Express.js
 - Database: MySQL
 - Authentication: JWT
+- Weather: Open-Meteo API
+- Testing: Node test runner for backend validation tests
 
 ## Project Structure
 
@@ -28,21 +38,21 @@ plantplotter_backend/  Express API
 plantplotter_db/       MySQL schema, seed data, and database notes
 ```
 
-## Prerequisites
+## Local Setup
+
+### Prerequisites
 
 - Node.js and npm
 - MySQL
 - A local MySQL user with permission to create and use the `garden_plotter` database
 
-## Environment Setup
-
-Install dependencies from the repository root:
+### Install dependencies
 
 ```sh
 npm install
 ```
 
-Create local environment files from the safe examples:
+### Create environment files
 
 ```sh
 cp plantplotter/.env.local.example plantplotter/.env.local
@@ -56,26 +66,19 @@ Copy-Item plantplotter/.env.local.example plantplotter/.env.local
 Copy-Item plantplotter_backend/.env.example plantplotter_backend/.env
 ```
 
-Then update the local files with your own values:
+Update the local files with your own values. Do not commit real `.env` or `.env.local` files.
 
-- `plantplotter/.env.local`
-  - `NEXT_PUBLIC_API_URL`, usually `http://localhost:5001/api`
-- `plantplotter_backend/.env`
-  - MySQL credentials
-  - `JWT_SECRET`
-  - `PORT`, usually `5001`
-  - `FRONTEND_URL`, usually `http://localhost:3000`
+Common values include:
 
-Do not commit real `.env` or `.env.local` files.
+- Frontend: `NEXT_PUBLIC_API_URL`
+- Backend: `PORT`, `FRONTEND_URL`, MySQL credentials, and `JWT_SECRET`
 
 ## Database Setup
 
 The active database files are:
 
-- Schema: `plantplotter_db/plantPlotterSchema.sql`
-- Seed data: `plantplotter_db/data_instance.sql`
-
-Legacy SQL files are archived in `plantplotter_db/legacy/` and are not used by the current app.
+- `plantplotter_db/plantPlotterSchema.sql`
+- `plantplotter_db/data_instance.sql`
 
 Run the schema first, then the seed file:
 
@@ -85,17 +88,17 @@ mysql -u <user> -p < plantPlotterSchema.sql
 mysql -u <user> -p < data_instance.sql
 ```
 
-The schema creates and selects the `garden_plotter` database. The seed file also selects `garden_plotter` and includes demo users, sample gardens, plant library data, tasks, and activities.
+The active database name is `garden_plotter`. The seed file is intended for local/demo setup only.
 
 ## Running Locally
 
-Start the frontend and backend together from the repository root:
+Start the frontend and backend together:
 
 ```sh
 npm run dev
 ```
 
-Or start each app separately:
+Or run them separately:
 
 ```sh
 npm run dev:backend
@@ -107,66 +110,26 @@ Default local URLs:
 - Frontend: `http://localhost:3000`
 - Backend API: `http://localhost:5001/api`
 
-## Demo Accounts
-
-When the seed file is loaded locally, it creates demo-only accounts for testing.
-
-| Role | Email | Password |
-|---|---|---|
-| Demo User | demo@plantplotter.com | demo123 |
-| Admin | admin@plantplotter.com | admin123 |
-| User | user@plantplotter.com | user123 |
-
-These accounts are for local/demo use only.
-
-## Scripts
-
-```sh
-npm run dev
-npm run dev:frontend
-npm run dev:backend
-```
-
-## Testing and Checks
-
-Backend validation tests use Node’s built-in test runner:
-
-```sh
-npm test --workspace=plantplotter_backend
-```
-Frontend linting and production build checks:
+## Checks
 
 ```sh
 npm run lint --workspace=plantplotter
 npm run build --workspace=plantplotter
+npm test --workspace=plantplotter_backend
 ```
 
-## Screenshots
+## Demo Data
 
-Screenshots will be added as the portfolio presentation is finalized.
-
-- Login and sign-up
-- Garden list
-- Garden create/edit validation
-- Garden details
-- Garden planner
-- Plant library
-- Tracker
+The database seed file includes demo users, gardens, plants, tasks, and activities for local testing. These are intended for local/demo use only and should not be used for a real deployment.
 
 ## Known Limitations
 
+- Refresh tokens are not implemented yet; expired sessions redirect users to sign in again.
+- Forgot password is marked as coming soon; real reset emails are not implemented yet.
+- Weather currently uses fixed Ottawa/default coordinates instead of user- or garden-specific location.
+- Email reminders, weather alerts, public garden sharing, and public profiles are planned future improvements.
 - Frontend automated tests are not configured yet.
-- Rate limiting is not implemented yet.
-- Google sign-in is not implemented yet.
-- PDF export should be verified before being presented as a supported feature.
-- Seed data is intended for local demos and may need cleanup before rerunning repeatedly against the same database.
 
-## Planned Improvements
+## Status
 
-- Add frontend tests for critical auth and garden form behavior
-- Add rate limiting for authentication and write-heavy API routes
-- Add Google sign-in
-- Verify and polish PDF export
-- Add lightweight caching where it meaningfully improves repeated reads
-- Add finalized portfolio screenshots and demo notes
-- Garden task and activity tracking foundations
+This repository represents my continued-development version of Plant Plotter after the original client-focused group project delivery. The current version focuses on stable full-stack functionality, clean user flows, and deployment readiness.

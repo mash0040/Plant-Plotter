@@ -5,3 +5,10 @@ node_modules
 .env.*
 !.env.example
 !.env.local.example
+
+# Local/private notes and screenshots
+PRIVATE_NOTES.md
+*.local-notes.md
+local-screenshots/
+private-screenshots/
+*.tmp
