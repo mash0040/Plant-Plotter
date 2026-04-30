@@ -56,6 +56,6 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'YOUR-FRONTEND-WEB-APP-NAME'
+          app-name: 'plantplotter-web-ak-gng4fwd3gqh6e5bw.canadacentral-01.azurewebsites.net'
           publish-profile: ${{ secrets.AZURE_FRONTEND_PUBLISH_PROFILE }}
           package: .
