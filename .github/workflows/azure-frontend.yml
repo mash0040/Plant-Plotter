@@ -33,19 +33,9 @@ jobs:
         run: |
           mkdir frontend-deploy
 
-          # Copy entire standalone output
           cp -r plantplotter/.next/standalone/* frontend-deploy/
-
-          # Copy static assets into the correct location
           cp -r plantplotter/.next/static frontend-deploy/plantplotter/.next/static
-
-          # Copy public assets
           cp -r plantplotter/public frontend-deploy/plantplotter/public
-
-          echo "=== Verify frontend-deploy/plantplotter ==="
-          ls -la frontend-deploy/plantplotter/
-          echo "=== Verify .next ==="
-          ls -la frontend-deploy/plantplotter/.next/
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
