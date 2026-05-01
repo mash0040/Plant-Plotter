@@ -33,13 +33,8 @@ jobs:
         run: |
           mkdir -p frontend-deploy
 
-          # Copy standalone output
           cp -r plantplotter/.next/standalone/* frontend-deploy/
-
-          # Use rsync to ensure .next is fully copied
           rsync -a plantplotter/.next/ frontend-deploy/plantplotter/.next/
-
-          # Copy public assets
           cp -r plantplotter/public frontend-deploy/plantplotter/public
 
           echo "=== Verify ==="
@@ -51,6 +46,7 @@ jobs:
         with:
           name: frontend-app
           path: frontend-deploy
+          include-hidden-files: true
 
   deploy:
     runs-on: ubuntu-latest
