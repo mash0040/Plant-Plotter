@@ -33,16 +33,18 @@ jobs:
         run: |
           mkdir -p frontend-deploy
 
-          # Copy entire standalone output
+          # Copy standalone output
           cp -r plantplotter/.next/standalone/* frontend-deploy/
 
-          # Copy full .next contents standalone is missing
-          cp -r plantplotter/.next/server frontend-deploy/plantplotter/.next/server
-          cp -r plantplotter/.next/static frontend-deploy/plantplotter/.next/static
-          cp -r plantplotter/.next/BUILD_ID frontend-deploy/plantplotter/.next/BUILD_ID
+          # Use rsync to ensure .next is fully copied
+          rsync -a plantplotter/.next/ frontend-deploy/plantplotter/.next/
 
           # Copy public assets
           cp -r plantplotter/public frontend-deploy/plantplotter/public
+
+          echo "=== Verify ==="
+          ls -la frontend-deploy/plantplotter/
+          ls -la frontend-deploy/plantplotter/.next/
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
