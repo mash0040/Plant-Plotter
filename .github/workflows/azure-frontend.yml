@@ -31,10 +31,17 @@ jobs:
 
       - name: Create standalone deployment package
         run: |
-          mkdir frontend-deploy
+          mkdir -p frontend-deploy
 
+          # Copy entire standalone output
           cp -r plantplotter/.next/standalone/* frontend-deploy/
+
+          # Copy full .next contents standalone is missing
+          cp -r plantplotter/.next/server frontend-deploy/plantplotter/.next/server
           cp -r plantplotter/.next/static frontend-deploy/plantplotter/.next/static
+          cp -r plantplotter/.next/BUILD_ID frontend-deploy/plantplotter/.next/BUILD_ID
+
+          # Copy public assets
           cp -r plantplotter/public frontend-deploy/plantplotter/public
 
       - name: Upload artifact for deployment job
@@ -57,8 +64,10 @@ jobs:
         run: |
           echo "=== Current directory ==="
           ls -la
-          echo "=== Any subdirectories ==="
-          find . -maxdepth 2 -type d
+          echo "=== plantplotter ==="
+          ls -la plantplotter/
+          echo "=== plantplotter/.next ==="
+          ls -la plantplotter/.next/ 2>/dev/null || echo "MISSING"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
