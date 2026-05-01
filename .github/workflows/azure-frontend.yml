@@ -63,6 +63,13 @@ jobs:
         with:
           name: frontend-app
 
+      - name: Debug downloaded artifact
+        run: |
+          echo "=== Current directory ==="
+          ls -la
+          echo "=== Any subdirectories ==="
+          find . -maxdepth 2 -type d
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
