@@ -31,10 +31,10 @@ jobs:
 
       - name: Debug build output
         run: |
-          echo "=== .next folder ==="
-          ls -la plantplotter/.next/ 2>/dev/null || echo "MISSING"
           echo "=== standalone folder ==="
-          ls -la plantplotter/.next/standalone/ 2>/dev/null || echo "MISSING"
+          ls -la plantplotter/.next/standalone/
+          echo "=== standalone/plantplotter ==="
+          ls -la plantplotter/.next/standalone/plantplotter/
 
       - name: Create standalone deployment package
         run: |
