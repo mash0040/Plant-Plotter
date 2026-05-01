@@ -29,6 +29,13 @@ jobs:
           NEXT_PUBLIC_API_URL: https://plantplotter-ak-fxabchgjgwesgce4.canadacentral-01.azurewebsites.net/api
         run: npm run build --workspace=plantplotter
 
+      - name: Debug build output
+        run: |
+          echo "=== .next folder ==="
+          ls -la plantplotter/.next/ 2>/dev/null || echo "MISSING"
+          echo "=== standalone folder ==="
+          ls -la plantplotter/.next/standalone/ 2>/dev/null || echo "MISSING"
+
       - name: Create standalone deployment package
         run: |
           mkdir frontend-deploy
