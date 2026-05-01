@@ -37,10 +37,6 @@ jobs:
           rsync -a plantplotter/.next/ frontend-deploy/plantplotter/.next/
           cp -r plantplotter/public frontend-deploy/plantplotter/public
 
-          echo "=== Verify ==="
-          ls -la frontend-deploy/plantplotter/
-          ls -la frontend-deploy/plantplotter/.next/
-
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -57,15 +53,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-app
-
-      - name: Debug downloaded artifact
-        run: |
-          echo "=== Current directory ==="
-          ls -la
-          echo "=== plantplotter ==="
-          ls -la plantplotter/
-          echo "=== plantplotter/.next ==="
-          ls -la plantplotter/.next/ 2>/dev/null || echo "MISSING"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
