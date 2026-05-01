@@ -33,9 +33,8 @@ jobs:
         run: |
           mkdir frontend-deploy
           cp package.json package-lock.json frontend-deploy/
-          cp -r plantplotter frontend-deploy/
-          cd frontend-deploy
-          npm ci --omit=dev --workspace=plantplotter
+          cp -r node_modules frontend-deploy/node_modules
+          cp -r plantplotter frontend-deploy/plantplotter
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
