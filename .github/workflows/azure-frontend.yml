@@ -26,7 +26,7 @@ jobs:
 
       - name: Build frontend
         env:
-          NEXT_PUBLIC_API_URL: https://plantplotter-ak-fxabchgjgwesgce4.canadacentral-01.azurewebsites.net/api
+          NEXT_PUBLIC_API_URL: https://api.plantplotter.me/api
         run: npm run build --workspace=plantplotter
 
       - name: Create standalone deployment package
