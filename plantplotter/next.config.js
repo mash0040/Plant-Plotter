@@ -1,12 +1,15 @@
 module.exports = {
-    webpack: (config, { buildId, isServer, webpack }) => {
+  output: 'standalone',
+
+  webpack: (config, { buildId, isServer, webpack }) => {
     if (isServer) {
-        config.plugins.push(
+      config.plugins.push(
         new webpack.IgnorePlugin({
-            resourceRegExp: /utf-8-validate|bufferutil/,
+          resourceRegExp: /utf-8-validate|bufferutil/,
         })
-        );
+      );
     }
+
     return config;
-    },
+  },
 };

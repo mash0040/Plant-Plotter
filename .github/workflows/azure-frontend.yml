@@ -29,12 +29,19 @@ jobs:
           NEXT_PUBLIC_API_URL: https://plantplotter-ak-fxabchgjgwesgce4.canadacentral-01.azurewebsites.net/api
         run: npm run build --workspace=plantplotter
 
-      - name: Create frontend deployment package
+      - name: Create standalone deployment package
         run: |
           mkdir frontend-deploy
-          cp package.json package-lock.json frontend-deploy/
-          cp -r node_modules frontend-deploy/node_modules
-          cp -r plantplotter frontend-deploy/plantplotter
+
+          # Copy standalone server output
+          cp -r plantplotter/.next/standalone/* frontend-deploy/
+
+          # Copy static assets required by Next
+          mkdir -p frontend-deploy/plantplotter/.next
+          cp -r plantplotter/.next/static frontend-deploy/plantplotter/.next/static
+
+          # Copy public assets
+          cp -r plantplotter/public frontend-deploy/plantplotter/public
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
