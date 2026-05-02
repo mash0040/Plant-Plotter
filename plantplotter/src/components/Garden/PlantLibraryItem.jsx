@@ -218,19 +218,20 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
             </span>
           </div>
 
-          <div className="flex items-center justify-between mt-1">
+          <div className="mt-1 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs sm:text-sm text-gray-600 capitalize font-medium">
               {plant.category}
             </span>
 
-            <div className="flex items-center gap-1 pointer-events-auto opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+            <div className="flex flex-wrap items-center justify-end gap-1 pointer-events-auto opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
               {onPlantRow && (
                 <button
                   className="
-                    w-6 h-6 bg-blue-100 hover:bg-blue-200 active:bg-blue-300
-                    rounded-full flex items-center justify-center transition-all duration-200
+                    min-h-8 px-2 bg-blue-100 hover:bg-blue-200 active:bg-blue-300
+                    rounded-full flex items-center justify-center gap-1 transition-all duration-200
                     cursor-pointer z-10 touch-manipulation
                     hover:scale-110 active:scale-95 flex-shrink-0
+                    sm:min-h-6 sm:w-6 sm:px-0
                   "
                   onClick={handleRowPlantClick}
                   onMouseDown={(e) => e.stopPropagation()}
@@ -239,6 +240,7 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
                   type="button"
                 >
                   <Grid className="w-3 h-3 text-blue-600" />
+                  <span className="text-[11px] font-semibold text-blue-700 sm:hidden">Plant in Row</span>
                 </button>
               )}
 
@@ -262,10 +264,11 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
 
               <button
                 className="
-                  w-6 h-6 bg-gray-100 hover:bg-gray-200 active:bg-gray-300
-                  rounded-full flex items-center justify-center transition-all duration-200
+                  min-h-8 px-2 bg-gray-100 hover:bg-gray-200 active:bg-gray-300
+                  rounded-full flex items-center justify-center gap-1 transition-all duration-200
                   cursor-pointer z-10 touch-manipulation
                   hover:scale-110 active:scale-95 flex-shrink-0
+                  sm:min-h-6 sm:w-6 sm:px-0
                 "
                 onClick={handleInfoClick}
                 onMouseDown={(e) => e.stopPropagation()}
@@ -274,6 +277,7 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
                 type="button"
               >
                 <Info className="w-3 h-3 text-gray-600" />
+                <span className="text-[11px] font-semibold text-gray-700 sm:hidden">Info</span>
               </button>
             </div>
           </div>

@@ -615,6 +615,9 @@ export default function PlantLibrary({
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
             />
           </div>
+          <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-800 lg:hidden">
+            Use Plant in Row to add plants.
+          </p>
         </div>
 
         {placedPlants.length > 0 && (
@@ -780,8 +783,8 @@ export default function PlantLibrary({
         </div>
 
         <div className="lg:hidden p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-          <p className="text-xs text-gray-500 text-center">
-            Drag plants to garden or use row planting
+          <p className="text-xs font-medium text-gray-700 text-center">
+            Use Plant in Row for reliable mobile planting.
           </p>
         </div>
       </div>

@@ -91,14 +91,19 @@ export default function Navbar() {
   // Get navigation items based on authentication status
   const navItems = user ? authenticatedNavItems : publicNavItems;
   const displayName = getDisplayName(user);
+  const isAuthPage = ['/login', '/forgot-password', '/reset-password'].includes(pathname);
+  const isLandingPage = pathname === '/';
+  const showMobileMenuButton = Boolean(user) || (!isAuthPage && !isLandingPage);
+  const publicActionHref = isAuthPage ? '/' : '/login';
+  const publicActionLabel = isAuthPage ? 'Home' : 'Sign In';
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-green-900 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link 
-          href={user ? '/gardens' : '/login'} 
+          href={user ? '/gardens' : '/'} 
           className="text-white text-xl font-bold flex items-center gap-2 hover:text-green-100 transition-colors"
-          title={user ? 'Go to My Gardens' : 'Sign in to access your gardens'}
+          title={user ? 'Go to My Gardens' : 'Go to Home'}
         >
           <Image src="/PlantPlotter.svg" alt="PlantPlotter Logo" width={32} height={32} /> 
           <span>PlantPlotter</span>
@@ -191,26 +196,35 @@ export default function Navbar() {
             </div>
           ) : (
             <Link
-              href="/login"
+              href={publicActionHref}
               className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium rounded-md transition-colors"
             >
-              Sign In
+              {publicActionLabel}
             </Link>
           )}
         </div>
 
         {/* Mobile menu toggle */}
-        <button
-          className="md:hidden text-white"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle menu"
-        >
-          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {showMobileMenuButton ? (
+          <button
+            className="md:hidden text-white"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        ) : (
+          <Link
+            href={publicActionHref}
+            className="md:hidden rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600"
+          >
+            {publicActionLabel}
+          </Link>
+        )}
       </div>
 
       {/* Mobile menu drawer */}
-      {menuOpen && (
+      {menuOpen && showMobileMenuButton && (
         <div className="md:hidden bg-green-800 border-t border-green-700">
           {/* Navigation Links - only show if user is authenticated */}
           {user && (

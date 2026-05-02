@@ -1020,7 +1020,7 @@ function GardenPlannerPageContent() {
           />
 
           {(layoutSaveMessage || layoutSaveError) && (
-            <div className="px-3 sm:px-4 py-2 bg-white border-b border-gray-100">
+            <div role={layoutSaveError ? 'alert' : 'status'} aria-live="polite" className="px-3 sm:px-4 py-2 bg-white border-b border-gray-100">
               <div className={`text-sm font-medium ${layoutSaveError ? 'text-red-700' : 'text-green-700'}`}>
                 {layoutSaveError || layoutSaveMessage}
               </div>
@@ -1036,6 +1036,7 @@ function GardenPlannerPageContent() {
               placedPlants={placedPlants}
               onPlantRemove={handlePlantRemove}
               placementPreview={placementPreview}
+              isPlantLibraryOpen={sidebarOpen}
             />
           </div>
         </div>

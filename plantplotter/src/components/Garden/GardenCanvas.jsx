@@ -9,7 +9,8 @@ export default function GardenCanvas({
   showRuler,
   placedPlants,
   onPlantRemove,
-  placementPreview
+  placementPreview,
+  isPlantLibraryOpen = false
 }) {
   const { setNodeRef } = useDroppable({
     id: 'garden-canvas',
@@ -25,7 +26,7 @@ export default function GardenCanvas({
 
   return (
     <div className="relative h-full min-h-0 overflow-auto bg-white p-2 sm:p-4">
-      <div className="sm:hidden sticky top-2 left-2 z-20 mb-2 inline-flex rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-600 shadow-sm border border-gray-200">
+      <div className={`sm:hidden sticky top-2 left-2 z-20 mb-2 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-600 shadow-sm border border-gray-200 ${isPlantLibraryOpen ? 'hidden' : 'inline-flex'}`}>
         Scroll to pan garden
       </div>
       <div className="inline-block min-w-full">

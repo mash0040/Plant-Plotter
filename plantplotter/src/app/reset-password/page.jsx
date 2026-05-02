@@ -64,18 +64,18 @@ function ResetPasswordContent() {
             <Leaf className="w-8 h-8 text-green-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Create New Password</h1>
-          <p className="text-gray-600">Choose a new password for your account.</p>
+          <p className="text-gray-700">Choose a new password for your account.</p>
         </div>
 
         {successMessage && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+          <div role="status" aria-live="polite" className="mb-6 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
             <p className="text-green-800 text-sm">{successMessage}</p>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+          <div role="alert" aria-live="assertive" className="mb-6 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
             <p className="text-red-600 text-sm">{error}</p>
           </div>
@@ -148,7 +148,7 @@ function ResetPasswordContent() {
                 </button>
               </div>
 
-              <p className="text-xs text-gray-500">{PASSWORD_RULES_HINT}</p>
+              <p className="text-xs text-gray-600">{PASSWORD_RULES_HINT}</p>
             </div>
 
             <button
@@ -169,7 +169,7 @@ function ResetPasswordContent() {
         )}
 
         <div className="text-center mt-6">
-          <Link href="/login" className="text-sm font-medium text-green-600 hover:text-green-700 hover:underline">
+          <Link href="/login" className="text-sm font-medium text-green-700 hover:text-green-800 hover:underline">
             Sign in
           </Link>
         </div>

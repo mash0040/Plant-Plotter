@@ -37,6 +37,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   const heightInputRef = useRef(null);
   const locationInputRef = useRef(null);
   const statusInputRef = useRef(null);
+  const formErrorRef = useRef(null);
 
   // Conversion functions
   const metersToFeet = (meters) => (meters * 3.28084).toFixed(2);
@@ -232,6 +233,15 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
     }
   }, [garden, isOpen]);
 
+  useEffect(() => {
+    if (!formError || !formErrorRef.current) return;
+
+    formErrorRef.current.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }, [formError]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setTouchedFields({
@@ -346,14 +356,14 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4" noValidate>
           {formError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div ref={formErrorRef} role="alert" aria-live="assertive" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
               {formError}
             </div>
           )}
 
           {/* Garden Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-800 mb-2">
               Garden Name *
             </label>
             <input
@@ -373,7 +383,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-800 mb-2">
               Description
             </label>
             <textarea
@@ -392,7 +402,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Soil Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-800 mb-2">
               Soil Type
             </label>
             <select
@@ -415,13 +425,13 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Unit Toggle */}
           <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-800">
               Dimensions *
             </label>
             <button
               type="button"
               onClick={toggleUnit}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-200"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-200"
               title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
             >
               {unit === 'metric' ? 'Metric (m)' : 'Imperial (ft)'}
@@ -431,7 +441,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
           {/* Dimensions */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 Width ({getUnitLabel()}) *
               </label>
               <input
@@ -452,7 +462,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-800 mb-2">
                 Height ({getUnitLabel()}) *
               </label>
               <input
@@ -476,7 +486,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-800 mb-2">
               Location
             </label>
             <input
@@ -495,7 +505,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-800 mb-2">
               Status
             </label>
             <select

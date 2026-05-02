@@ -627,6 +627,17 @@ function GardenDetailPageContent() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">Garden Overview</h3>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="lg:col-span-2 rounded-lg bg-white p-4 border border-gray-100">
+                      <h4 className="font-medium text-gray-800 mb-2">Description</h4>
+                      {garden.description?.trim() ? (
+                        <p className="text-sm leading-6 text-gray-700 whitespace-pre-line">
+                          {garden.description.trim()}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500">No description added.</p>
+                      )}
+                    </div>
+
                     <div className="space-y-4">
                       <div className="bg-green-50 rounded-lg p-4">
                         <h4 className="font-medium text-green-800 mb-2">Basic Information</h4>
