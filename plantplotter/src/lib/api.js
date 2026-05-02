@@ -7,6 +7,7 @@ class ApiClient {
     }
 
     this.baseURL = API_BASE_URL;
+    this.plantLibraryCache = null;
   }
 
   clearUserSessionStorage() {
@@ -276,19 +277,50 @@ class ApiClient {
     }
   }
 
+  // Get lightweight garden summaries without planted item records.
+  async getGardenSummaries() {
+    try {
+      const response = await this.request('/gardens/summary');
+      const gardens = Array.isArray(response) ? response : [];
+
+      return gardens.map(garden => ({
+        id: garden.id,
+        name: garden.name,
+        description: garden.description || '',
+        dimensions: {
+          width: garden.width || garden.dimensions?.width || 10,
+          height: garden.height || garden.dimensions?.height || 10
+        },
+        width: garden.width || garden.dimensions?.width || 10,
+        height: garden.height || garden.dimensions?.height || 10,
+        soilType: garden.soil_type || garden.soilType || 'Loamy',
+        soil_type: garden.soil_type || garden.soilType || 'Loamy',
+        location: garden.location || 'Garden',
+        status: garden.status || 'Active',
+        plantCount: garden.plant_count || garden.plantCount || 0,
+        plant_count: garden.plant_count || garden.plantCount || 0,
+        plantedItems: [],
+        created_at: garden.created_at || garden.createdAt,
+        createdAt: garden.created_at || garden.createdAt,
+        updated_at: garden.updated_at || garden.updatedAt,
+        updatedAt: garden.updated_at || garden.updatedAt
+      }));
+    } catch (error) {
+      console.error('Failed to fetch garden summaries:', error);
+      throw error;
+    }
+  }
+
   // Get single garden with complete plant data
   async getGarden(id) {
     try {      
-      // Fetch garden basic data
       const garden = await this.request(`/gardens/${id}`);
-      
-      // Fetch planted items for this garden
-      let plantedItems = [];
-      try {
+      let plantedItems = Array.isArray(garden.plantedItems) ? garden.plantedItems : [];
+
+      if (!Array.isArray(garden.plantedItems)) {
+        // Fallback for older backend responses that predate embedded plantedItems.
         const plants = await this.request(`/gardens/${id}/plants`);
         plantedItems = Array.isArray(plants) ? plants : [];
-      } catch (plantError) {
-        plantedItems = garden.plantedItems || [];
       }
       
       // Transform planted items to consistent format
@@ -534,14 +566,23 @@ class ApiClient {
   }
 
   // Plant library methods
-  async getPlantLibrary() {
+  async getPlantLibrary(options = {}) {
     try {
+      if (!options.bypassCache && this.plantLibraryCache) {
+        return this.plantLibraryCache;
+      }
+
       const plants = await this.request('/plants');
+      this.plantLibraryCache = plants;
       return plants;
     } catch (error) {
       console.error('Failed to fetch plant library:', error);
       throw error;
     }
+  }
+
+  clearPlantLibraryCache() {
+    this.plantLibraryCache = null;
   }
 
   async updatePlant(plantId, plantData) {
@@ -550,6 +591,7 @@ class ApiClient {
         method: 'PUT',
         body: JSON.stringify(plantData),
       });
+      this.clearPlantLibraryCache();
       return response;
     } catch (error) {
       console.error('Failed to update plant in library:', error);
@@ -563,6 +605,7 @@ class ApiClient {
         method: 'POST',
         body: JSON.stringify(plantData),
       });
+      this.clearPlantLibraryCache();
       return response;
     } catch (error) {
       console.error('Failed to add plant to library:', error);
@@ -575,6 +618,7 @@ class ApiClient {
       const response = await this.request(`/plants/${plantId}`, {
         method: 'DELETE',
       });
+      this.clearPlantLibraryCache();
       return response;
     } catch (error) {
       console.error('Failed to delete plant from library:', error);

@@ -21,7 +21,7 @@ router.get('/', verifyToken, async (req, res) => {
     }
 
     if (date) {
-      query += ' AND DATE(a.activity_date) = ?';
+      query += ' AND a.activity_date = ?';
       params.push(date);
     }
 
