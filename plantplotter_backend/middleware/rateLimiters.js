@@ -55,9 +55,15 @@ const authLimiter = createLimiter({
   max: 10
 });
 
+const passwordResetLimiter = createLimiter({
+  windowMs: FIFTEEN_MINUTES,
+  max: 5
+});
+
 module.exports = {
   generalApiLimiter,
   authLimiter,
+  passwordResetLimiter,
   normalizeIpForRateLimit,
   rateLimitKeyGenerator
 };

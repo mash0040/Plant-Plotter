@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect } from 'react';
+import Link from 'next/link';
 
 export default function ActivityModal({
   isOpen,
@@ -84,12 +85,12 @@ export default function ActivityModal({
               {gardenPlantOptions.length === 0 && (
                 <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                   <p>Add plants to this garden before logging care activity.</p>
-                  <a
+                  <Link
                     href={`/garden?id=${selectedGarden.id}`}
                     className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800"
                   >
                     Manage Plants
-                  </a>
+                  </Link>
                 </div>
               )}
             </div>

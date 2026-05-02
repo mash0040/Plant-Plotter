@@ -1,5 +1,6 @@
 'use client';
 import React, { useRef, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { X, Save, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
 
 export default function TaskEditModal({ 
@@ -263,12 +264,12 @@ export default function TaskEditModal({
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               <p>Add plants to this garden before creating care tasks.</p>
               {selectedGarden?.id && (
-                <a
+                <Link
                   href={`/garden?id=${selectedGarden.id}`}
                   className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800"
                 >
                   Manage Plants
-                </a>
+                </Link>
               )}
             </div>
           )}

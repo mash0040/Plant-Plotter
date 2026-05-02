@@ -4,11 +4,16 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = require('../config/jwtSecret');
 const { validatePassword } = require('../utils/passwordValidation');
 const { validateEmail } = require('../utils/emailValidation');
+const { requestPasswordReset, resetPassword } = require('../utils/passwordResetService');
+
+const normalizeEmail = (email) => (
+  typeof email === 'string' ? email.trim().toLowerCase() : ''
+);
 
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
   const trimmedUsername = typeof username === 'string' ? username.trim() : '';
-  const trimmedEmail = typeof email === 'string' ? email.trim() : '';
+  const trimmedEmail = normalizeEmail(email);
 
   // Check for missing fields
   if (!trimmedUsername || !trimmedEmail || !password) {
@@ -77,14 +82,15 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
+  const trimmedEmail = normalizeEmail(email);
 
-  if (!email || !password) {
+  if (!trimmedEmail || !password) {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
   try {
     // Find user in database
-    const [rows] = await db.execute('SELECT * FROM users WHERE email = ? AND is_active = TRUE', [email]);
+    const [rows] = await db.execute('SELECT * FROM users WHERE email = ? AND is_active = TRUE', [trimmedEmail]);
 
     if (rows.length === 0) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -136,7 +142,39 @@ const loginUser = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const result = await requestPasswordReset({
+      db,
+      email: req.body?.email
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const resetUserPassword = async (req, res) => {
+  try {
+    const result = await resetPassword({
+      db,
+      token: req.body?.token,
+      password: req.body?.password,
+      confirmPassword: req.body?.confirmPassword
+    });
+
+    res.status(result.status).json(result.body);
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  forgotPassword,
+  resetUserPassword
 };

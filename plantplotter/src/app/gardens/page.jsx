@@ -120,17 +120,6 @@ function AllGardensContent() {
     }
   };
 
-  const handlePlannerOpen = (garden, e) => {
-    e?.stopPropagation();
-    // Navigate to garden planner with garden ID
-    window.location.href = `/garden?id=${garden.id}`;
-  };
-
-  const handleView = (garden) => {
-    // Navigate to garden detail page
-    window.location.href = `/gardens/${garden.id}`;
-  };
-
   const handleAddNew = () => {
     setSelectedGarden(null);
     setIsFormOpen(true);
@@ -382,11 +371,8 @@ function AllGardensContent() {
         gardens={gardens}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onView={handleView}
         onAddNew={handleAddNew}
         getStatusColor={getStatusColor}
-        handlePlannerOpen={handlePlannerOpen}
-        handleView={handleView}
       />
 
       <GardenForm

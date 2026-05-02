@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import Link from 'next/link';
 import { Droplets, Sprout, Scissors } from 'lucide-react';
 
 export default function QuickActions({
@@ -82,12 +83,12 @@ export default function QuickActions({
         <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
           {helperText}
           {managePlantsHref && (
-            <a
+            <Link
               href={managePlantsHref}
               className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800"
             >
               Manage Plants
-            </a>
+            </Link>
           )}
         </p>
       )}

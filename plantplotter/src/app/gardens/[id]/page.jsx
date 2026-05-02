@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Settings, ChevronDown, Heart, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
@@ -399,12 +400,12 @@ function GardenDetailPageContent() {
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Garden Not Found</h1>
           <p className="text-gray-600 mb-6 text-sm sm:text-base">The garden you're looking for doesn't exist.</p>
-          <button
-            onClick={() => router.push('/gardens')}
+          <Link
+            href="/gardens"
             className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 text-sm sm:text-base"
           >
             Back to Gardens
-          </button>
+          </Link>
         </div>
       </div>
     );
@@ -445,12 +446,12 @@ function GardenDetailPageContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-              <button
-                onClick={() => router.push('/gardens')}
+              <Link
+                href="/gardens"
                 className="p-2 hover:bg-green-50 rounded-lg transition-colors flex-shrink-0"
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-              </button>
+              </Link>
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate">{garden.name}</h1>
                 <div className="flex items-center gap-2 sm:gap-4 mt-1">
@@ -474,13 +475,13 @@ function GardenDetailPageContent() {
                 <Edit className="w-4 h-4" />
                 <span className="hidden md:inline">Edit Info</span>
               </button>
-              <button
-                onClick={handleOpenGardenPlanner}
+              <Link
+                href={`/garden?id=${garden.id}`}
                 className="px-3 sm:px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
               >
                 <Settings className="w-4 h-4" />
                 <span className="hidden md:inline">Garden Planner</span>
-              </button>
+              </Link>
             </div>
 
             {/* Mobile Garden Actions */}
