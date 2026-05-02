@@ -34,6 +34,15 @@ if (useSsl) {
 
 const pool = mysql.createPool(poolConfig);
 
+// Keep connections alive
+setInterval(async () => {
+  try {
+    await pool.execute('SELECT 1');
+  } catch (err) {
+    console.error('Keep-alive ping failed:', err.message);
+  }
+}, 60000);
+
 // Test the connection
 (async () => {
   try {
@@ -44,16 +53,5 @@ const pool = mysql.createPool(poolConfig);
     console.error('Database connection failed:', err);
   }
 })();
-
-const pool = mysql.createPool(poolConfig);
-
-// Keep connections alive
-setInterval(async () => {
-  try {
-    await pool.execute('SELECT 1');
-  } catch (err) {
-    console.error('Keep-alive ping failed:', err.message);
-  }
-}, 60000);
 
 module.exports = pool;
