@@ -1,5 +1,5 @@
 'use client';
-import { Plus, Minus, Grid, Ruler, Save, Menu, ArrowLeft } from 'lucide-react';
+import { Plus, Minus, Grid, Ruler, Save, Sprout, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler, onDimensionChange, onGridSizeChange, onToggleGrid, onToggleRuler, onSave, hasUnsavedChanges, onToggleSidebar, gardenName, onBackClick, backLabel = 'Back to Garden List', saveLabel = 'Save' }) {
@@ -108,8 +108,8 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
   return (
     <div className="bg-white border-b border-gray-200">
       {/* Top Row - Garden Name and Navigation */}
-      <div className="flex items-center justify-between p-3 sm:p-4">
-        <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
+      <div className="flex items-center justify-between gap-3 p-3 sm:p-4">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           {/* Back Button */}
           {onBackClick && (
             <button 
@@ -125,19 +125,22 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             </button>
           )}
           
-          {/* Mobile Menu Button */}
+          {/* Mobile Plant Library Button */}
           {onToggleSidebar && (
             <button 
               onClick={onToggleSidebar}
-              className="lg:hidden min-h-10 min-w-10 p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-              title="Toggle plant library"
+              className="lg:hidden min-h-10 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-800 transition-colors hover:bg-green-100 flex items-center gap-2 flex-shrink-0"
+              title="Open plant library"
+              aria-label="Open plant library"
+              data-menu-button
             >
-              <Menu className="w-5 h-5 text-gray-600" />
+              <Sprout className="w-4 h-4" />
+              <span>Plants</span>
             </button>
           )}
           
           {/* Garden Title */}
-          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-800 truncate">
+          <h1 className="min-w-0 flex-1 basis-full text-lg font-semibold text-gray-800 truncate sm:basis-auto sm:text-xl lg:text-2xl">
             {gardenName ? `${gardenName} - Planner` : 'Garden Planner'}
           </h1>
           
@@ -151,9 +154,9 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
 
       {/* Bottom Row - Controls */}
       <div className="px-3 sm:px-4 pb-3 border-t border-gray-100">
-        <div className="flex items-center justify-start gap-2 sm:gap-3 text-sm flex-wrap">
+        <div className="flex flex-col items-stretch gap-2 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           {/* View Controls Group - Same height as others */}
-          <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200 sm:justify-start">
             <button
               onClick={onToggleGrid}
               className={`min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
@@ -198,7 +201,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           <div className="flex items-center bg-white rounded-lg p-1 shadow-sm border border-gray-200">
             <button
               onClick={toggleUnit}
-              className="min-h-9 px-3 sm:px-2 py-2 sm:py-1.5 rounded text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-700"
+              className="min-h-9 w-full px-3 py-2 rounded text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-800 sm:w-auto sm:px-2 sm:py-1.5"
               title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
             >
               {unit === 'metric' ? 'Metric (m)' : 'Imperial (ft)'}
@@ -206,15 +209,15 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           </div>
 
           {/* Size Controls Group - Same height */}
-          <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+          <div className="flex flex-col gap-2 bg-white rounded-lg p-2 shadow-sm border border-gray-200 md:flex-row md:items-center md:p-1">
             <span className="text-xs font-medium text-gray-600 hidden md:inline px-1">Size:</span>
             
             {/* Width Controls */}
-            <div className="flex items-center gap-0.5">
-              <span className="text-xs font-medium text-gray-600 px-1">Width (X)</span>
+            <div className="flex items-center gap-1">
+              <span className="w-16 text-xs font-medium text-gray-700 md:w-auto md:px-1">Width</span>
               <button 
                 onClick={() => adjustDimension('width', -1)} 
-                className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
+                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Decrease width"
               >
                 <Minus className="w-3 h-3" />
@@ -229,10 +232,10 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
                 step={unit === 'imperial' ? '0.1' : '1'}
                 min="1"
               />
-              <span className="text-xs text-gray-500">{getUnitLabel()}</span>
+              <span className="text-xs text-gray-700">{getUnitLabel()}</span>
               <button 
                 onClick={() => adjustDimension('width', 1)} 
-                className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
+                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Increase width"
               >
                 <Plus className="w-3 h-3" />
@@ -240,11 +243,11 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             </div>
             
             {/* Height Controls */}
-            <div className="flex items-center gap-0.5">
-              <span className="text-xs font-medium text-gray-600 px-1">Height (Y)</span>
+            <div className="flex items-center gap-1">
+              <span className="w-16 text-xs font-medium text-gray-700 md:w-auto md:px-1">Height</span>
               <button 
                 onClick={() => adjustDimension('height', -1)} 
-                className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
+                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Decrease height"
               >
                 <Minus className="w-3 h-3" />
@@ -259,10 +262,10 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
                 step={unit === 'imperial' ? '0.1' : '1'}
                 min="1"
               />
-              <span className="text-xs text-gray-500">{getUnitLabel()}</span>
+              <span className="text-xs text-gray-700">{getUnitLabel()}</span>
               <button 
                 onClick={() => adjustDimension('height', 1)} 
-                className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
+                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Increase height"
               >
                 <Plus className="w-3 h-3" />

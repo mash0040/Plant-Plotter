@@ -225,7 +225,7 @@ export default function AuthForm() {
                   )}
                 </button>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-600">
                 {PASSWORD_RULES_HINT}
               </p>
             </>
@@ -236,7 +236,7 @@ export default function AuthForm() {
           <div className="text-right">
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-green-600 hover:text-green-700 hover:underline"
+              className="text-sm font-medium text-green-700 hover:text-green-800 hover:underline"
             >
               Forgot password?
             </Link>
@@ -259,7 +259,7 @@ export default function AuthForm() {
         </button>
       </form>
 
-      <div className="text-center text-sm text-gray-600">
+      <div className="text-center text-sm text-gray-700">
         <div className="mt-3">
           {mode === 'login' ? (
             <p>
@@ -267,7 +267,7 @@ export default function AuthForm() {
               <button
                 type="button"
                 onClick={() => switchMode('register')}
-                className="text-green-600 hover:text-green-700 font-medium hover:underline"
+                className="text-green-700 hover:text-green-800 font-medium hover:underline"
                 disabled={isSubmitting || loading}
               >
                 Sign up here
@@ -279,7 +279,7 @@ export default function AuthForm() {
               <button
                 type="button"
                 onClick={() => switchMode('login')}
-                className="text-green-600 hover:text-green-700 font-medium hover:underline"
+                className="text-green-700 hover:text-green-800 font-medium hover:underline"
                 disabled={isSubmitting || loading}
               >
                 Sign in here

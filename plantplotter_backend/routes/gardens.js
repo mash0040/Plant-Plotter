@@ -223,6 +223,7 @@ router.get('/summary', verifyToken, async (req, res) => {
       `SELECT
         g.id,
         g.name,
+        g.description,
         g.width,
         g.height,
         g.soil_type,
@@ -237,6 +238,7 @@ router.get('/summary', verifyToken, async (req, res) => {
        GROUP BY
         g.id,
         g.name,
+        g.description,
         g.width,
         g.height,
         g.soil_type,
@@ -251,6 +253,7 @@ router.get('/summary', verifyToken, async (req, res) => {
     res.json(gardens.map(garden => ({
       id: garden.id,
       name: garden.name,
+      description: garden.description || '',
       width: garden.width,
       height: garden.height,
       dimensions: {

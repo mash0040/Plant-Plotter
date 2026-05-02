@@ -1,6 +1,6 @@
 // app/gardens/page.jsx
 'use client';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import apiClient from '@/lib/api';
 import GardenList from '@/components/Gardens/GardenList';
@@ -32,6 +32,7 @@ function AllGardensContent() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [gardenPendingDelete, setGardenPendingDelete] = useState(null);
+  const messageRef = useRef(null);
 
   // Check for success parameters from garden planner
   useEffect(() => {
@@ -55,6 +56,15 @@ function AllGardensContent() {
   useEffect(() => {
     loadGardens();
   }, []);
+
+  useEffect(() => {
+    if ((!showSuccessMessage && !error) || !messageRef.current) return;
+
+    messageRef.current.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }, [showSuccessMessage, error]);
 
   const loadGardens = async () => {
     try {
@@ -328,7 +338,7 @@ function AllGardensContent() {
     <ProtectedRoute>
       {/* Success Message */}
       {showSuccessMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg flex items-center gap-3 animate-slide-in-right">
+        <div ref={messageRef} role="status" aria-live="polite" className="fixed left-4 right-4 top-20 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg flex items-center gap-3 animate-slide-in-right sm:left-auto sm:right-4 sm:max-w-md">
           <CheckCircle className="w-5 h-5 text-green-600" />
           <span className="text-green-800 font-medium">{successMessage}</span>
           <button
@@ -342,7 +352,7 @@ function AllGardensContent() {
 
       {/* Error Message */}
       {error && (
-        <div className="fixed top-4 left-4 z-50 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg flex items-center gap-3">
+        <div ref={messageRef} role="alert" aria-live="assertive" className="fixed left-4 right-4 top-20 z-50 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg flex items-center gap-3 sm:right-auto sm:max-w-md">
           <AlertCircle className="w-5 h-5 text-red-600" />
           <span className="text-red-800 font-medium">{error}</span>
           <button

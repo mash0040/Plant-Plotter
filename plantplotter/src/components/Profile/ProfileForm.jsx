@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User, Mail, Save, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { validateEmail } from '@/lib/emailValidation';
@@ -20,6 +20,7 @@ export default function ProfileForm() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const messageRef = useRef(null);
 
   // Update form data when user data changes
   useEffect(() => {
@@ -31,6 +32,15 @@ export default function ProfileForm() {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!message.text || !messageRef.current) return;
+
+    messageRef.current.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }, [message.text]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -130,7 +140,7 @@ export default function ProfileForm() {
 
       {/* Status Message */}
       {message.text && (
-        <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
+        <div ref={messageRef} role={message.type === 'error' ? 'alert' : 'status'} aria-live="polite" className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
           message.type === 'success' 
             ? 'bg-green-50 text-green-800 border border-green-200' 
             : 'bg-red-50 text-red-800 border border-red-200'
@@ -210,11 +220,11 @@ export default function ProfileForm() {
           <h3 className="font-medium text-gray-800 mb-2">Account Information</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-500">Role:</span>
+              <span className="text-gray-700">Role:</span>
               <span className="ml-2 font-medium capitalize">{user?.role || 'User'}</span>
             </div>
             <div>
-              <span className="text-gray-500">Member since:</span>
+              <span className="text-gray-700">Member since:</span>
               <span className="ml-2 font-medium">
                 {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
               </span>

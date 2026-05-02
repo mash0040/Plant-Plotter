@@ -24,6 +24,11 @@ export default function GardenList({
     onDelete?.(garden);
   };
 
+  const getDescriptionPreview = (garden) => {
+    const description = String(garden.description || '').trim();
+    return description;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 p-6 flex items-center justify-center">
@@ -81,16 +86,22 @@ export default function GardenList({
                 key={garden.id}
                 className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <Link href={`/gardens/${garden.id}`} className="text-xl font-semibold text-gray-800 hover:text-green-700">
+                <div className="flex justify-between items-start gap-3 mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800 break-words">
                     {garden.name}
-                  </Link>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(garden.status)}`}>
+                  </h2>
+                  <span className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(garden.status)}`}>
                     {garden.status}
                   </span>
                 </div>
 
                 <div className="space-y-3 mb-6">
+                  {getDescriptionPreview(garden) && (
+                    <p className="line-clamp-2 text-sm leading-6 text-gray-700">
+                      {getDescriptionPreview(garden)}
+                    </p>
+                  )}
+
                   <div className="flex items-center gap-3 text-gray-700">
                     <MapPin className="w-4 h-4 text-green-600" />
                     <span className="text-sm">{garden.location}</span>
@@ -134,17 +145,17 @@ export default function GardenList({
                   )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-4 sm:grid-cols-4">
                   <Link
                     href={`/gardens/${garden.id}`}
-                    className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center gap-1"
+                    className="min-h-10 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center gap-1"
                   >
                     <Eye className="w-4 h-4" />
                     View
                   </Link>
                   <Link
                     href={`/garden?id=${garden.id}`}
-                    className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors duration-200 flex items-center justify-center gap-1"
+                    className="min-h-10 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors duration-200 flex items-center justify-center gap-1"
                   >
                     <Leaf className="w-4 h-4" />
                     Plan
@@ -154,16 +165,18 @@ export default function GardenList({
                       e.stopPropagation();
                       onEdit?.(garden);
                     }}
-                    className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-1"
+                    className="min-h-10 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-1"
                   >
                     <Edit className="w-4 h-4" />
                     Edit
                   </button>
                   <button
                     onClick={(e) => handleDelete(garden, e)}
-                    className="px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center"
+                    className="min-h-10 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center gap-1"
+                    aria-label={`Delete ${garden.name}`}
                   >
                     <Trash2 className="w-4 h-4" />
+                    <span className="sm:hidden lg:inline">Delete</span>
                   </button>
                 </div>
               </div>
