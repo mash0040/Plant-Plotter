@@ -214,6 +214,68 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
+// GET /api/gardens/summary - Fetch lightweight garden cards/selectors for authenticated user
+router.get('/summary', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const [gardens] = await db.execute(
+      `SELECT
+        g.id,
+        g.name,
+        g.width,
+        g.height,
+        g.soil_type,
+        g.location,
+        g.status,
+        g.created_at,
+        g.updated_at,
+        COUNT(pi.id) AS plant_count
+       FROM gardens g
+       LEFT JOIN planted_items pi ON pi.garden_id = g.id
+       WHERE g.user_id = ?
+       GROUP BY
+        g.id,
+        g.name,
+        g.width,
+        g.height,
+        g.soil_type,
+        g.location,
+        g.status,
+        g.created_at,
+        g.updated_at
+       ORDER BY g.updated_at DESC`,
+      [userId]
+    );
+
+    res.json(gardens.map(garden => ({
+      id: garden.id,
+      name: garden.name,
+      width: garden.width,
+      height: garden.height,
+      dimensions: {
+        width: garden.width,
+        height: garden.height
+      },
+      soil_type: garden.soil_type || 'Loamy',
+      soilType: garden.soil_type || 'Loamy',
+      location: garden.location || 'Garden',
+      status: garden.status || 'Active',
+      plant_count: Number(garden.plant_count) || 0,
+      plantCount: Number(garden.plant_count) || 0,
+      created_at: garden.created_at,
+      createdAt: garden.created_at,
+      updated_at: garden.updated_at,
+      updatedAt: garden.updated_at
+    })));
+  } catch (err) {
+    console.error(`Error fetching garden summaries for user ${userId}:`, err);
+    res.status(500).json({
+      message: 'Failed to fetch garden summaries'
+    });
+  }
+});
+
 // GET /api/gardens/:id - Get specific garden with detailed summary
 router.get('/:id', verifyToken, async (req, res) => {
   const userId = req.user.id;

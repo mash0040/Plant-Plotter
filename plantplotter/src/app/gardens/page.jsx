@@ -70,7 +70,7 @@ function AllGardensContent() {
         return;
       }
 
-      const gardens = await apiClient.getGardens();
+      const gardens = await apiClient.getGardenSummaries();
       
       if (!Array.isArray(gardens)) {
         throw new Error('Invalid response format from API');

@@ -74,9 +74,11 @@ function TrackingPageContent() {
 
   // Load tasks and activities when garden changes
   useEffect(() => {
-    if (selectedGarden) {
+    if (selectedGarden?.hasLoadedPlants) {
       loadTasks();
       loadActivities();
+    } else if (selectedGarden) {
+      loadSelectedGardenPlants();
     }
   }, [selectedGarden]);
 
@@ -90,18 +92,22 @@ function TrackingPageContent() {
   const loadGardens = async () => {
     try {
       // Try to load from API first
-      const gardens = await apiClient.getGardens();
+      const gardens = await apiClient.getGardenSummaries();
       
       // Transform gardens for tracker format
-      const trackerGardens = gardens.map(garden => ({
-        id: garden.id,
-        name: garden.name,
-        icon: getGardenIcon(garden),
-        plantCount: garden.plantCount || garden.plantedItems?.length || 0,
-        status: garden.status || 'Active',
-        location: garden.location || 'Unknown',
-        plantedItems: garden.plantedItems || []
-      }));
+      const trackerGardens = gardens.map(garden => {
+        const plantCount = garden.plantCount || garden.plant_count || 0;
+        return {
+          id: garden.id,
+          name: garden.name,
+          icon: getGardenIcon(garden),
+          plantCount,
+          status: garden.status || 'Active',
+          location: garden.location || 'Unknown',
+          plantedItems: [],
+          hasLoadedPlants: plantCount === 0
+        };
+      });
       
       setGardens(trackerGardens);
       if (trackerGardens.length > 0 && !selectedGarden) {
@@ -125,7 +131,8 @@ function TrackingPageContent() {
           plantCount: garden.plantCount || garden.plantedItems?.length || 0,
           status: garden.status || 'Active',
           location: garden.location || 'Unknown',
-          plantedItems: garden.plantedItems || []
+          plantedItems: garden.plantedItems || [],
+          hasLoadedPlants: true
         }));
         
         setGardens(trackerGardens);
@@ -136,6 +143,31 @@ function TrackingPageContent() {
         console.error('Failed to load from localStorage:', localError);
         setGardens([]);
       }
+    }
+  };
+
+  const loadSelectedGardenPlants = async () => {
+    if (!selectedGarden || selectedGarden.hasLoadedPlants) return;
+
+    try {
+      const plantedItems = await apiClient.getGardenPlants(selectedGarden.id);
+      const gardenWithPlants = {
+        ...selectedGarden,
+        plantCount: plantedItems.length,
+        plantedItems,
+        hasLoadedPlants: true
+      };
+
+      setSelectedGarden(gardenWithPlants);
+      setGardens(prevGardens => prevGardens.map(garden => (
+        garden.id === gardenWithPlants.id ? gardenWithPlants : garden
+      )));
+    } catch (error) {
+      console.error('Failed to load selected garden plants:', error);
+      setSelectedGarden(prevGarden => prevGarden
+        ? { ...prevGarden, hasLoadedPlants: true }
+        : prevGarden
+      );
     }
   };
 
