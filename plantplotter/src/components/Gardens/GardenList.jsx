@@ -1,19 +1,15 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Leaf, Plus, Edit, Trash2, Eye, MapPin, Ruler } from 'lucide-react';
 
 export default function GardenList({ 
   gardens = [], 
   onEdit, 
   onDelete, 
-  onView, 
   onAddNew,
   loading = false,
   error = null 
 }) {
-  const router = useRouter();
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'Active': return 'bg-green-100 text-green-800';
@@ -21,15 +17,6 @@ export default function GardenList({
       case 'Dormant': return 'bg-gray-100 text-gray-800';
       default: return 'bg-blue-100 text-blue-800';
     }
-  };
-
-  const handlePlannerOpen = (garden, e) => {
-    e?.stopPropagation();
-    router.push(`/garden?id=${garden.id}`);
-  };
-
-  const handleView = (garden) => {
-    router.push(`/gardens/${garden.id}`);
   };
 
   const handleDelete = async (garden, e) => {
@@ -92,11 +79,12 @@ export default function GardenList({
             {gardens.map((garden) => (
               <div
                 key={garden.id}
-                onClick={() => handleView(garden)}
-                className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+                className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">{garden.name}</h3>
+                  <Link href={`/gardens/${garden.id}`} className="text-xl font-semibold text-gray-800 hover:text-green-700">
+                    {garden.name}
+                  </Link>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(garden.status)}`}>
                     {garden.status}
                   </span>
@@ -147,13 +135,20 @@ export default function GardenList({
                 </div>
 
                 <div className="flex gap-2">
-                  <button
-                    onClick={(e) => handlePlannerOpen(garden, e)}
-                    className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors duration-200 flex items-center justify-center gap-1"
+                  <Link
+                    href={`/gardens/${garden.id}`}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center gap-1"
                   >
                     <Eye className="w-4 h-4" />
+                    View
+                  </Link>
+                  <Link
+                    href={`/garden?id=${garden.id}`}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors duration-200 flex items-center justify-center gap-1"
+                  >
+                    <Leaf className="w-4 h-4" />
                     Plan
-                  </button>
+                  </Link>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

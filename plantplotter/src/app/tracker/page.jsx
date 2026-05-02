@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Sprout } from 'lucide-react';
 import GardenSelector from '@/components/Tracker/GardenSelector';
 import QuickActions from '@/components/Tracker/QuickActions';
@@ -17,6 +18,8 @@ import apiClient from '@/lib/api';
 function TrackingPageContent() {
   const [gardens, setGardens] = useState([]);
   const [selectedGarden, setSelectedGarden] = useState(null);
+  const [isLoadingGardens, setIsLoadingGardens] = useState(true);
+  const [isLoadingSelectedGardenPlants, setIsLoadingSelectedGardenPlants] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
@@ -91,6 +94,7 @@ function TrackingPageContent() {
 
   const loadGardens = async () => {
     try {
+      setIsLoadingGardens(true);
       // Try to load from API first
       const gardens = await apiClient.getGardenSummaries();
       
@@ -143,6 +147,8 @@ function TrackingPageContent() {
         console.error('Failed to load from localStorage:', localError);
         setGardens([]);
       }
+    } finally {
+      setIsLoadingGardens(false);
     }
   };
 
@@ -150,6 +156,7 @@ function TrackingPageContent() {
     if (!selectedGarden || selectedGarden.hasLoadedPlants) return;
 
     try {
+      setIsLoadingSelectedGardenPlants(true);
       const plantedItems = await apiClient.getGardenPlants(selectedGarden.id);
       const gardenWithPlants = {
         ...selectedGarden,
@@ -168,6 +175,8 @@ function TrackingPageContent() {
         ? { ...prevGarden, hasLoadedPlants: true }
         : prevGarden
       );
+    } finally {
+      setIsLoadingSelectedGardenPlants(false);
     }
   };
 
@@ -278,6 +287,7 @@ function TrackingPageContent() {
   const getPlantedItemName = (plant) => plant?.name || plant?.plant_name || plant?.plantName || '';
   const selectedGardenPlants = selectedGarden?.plantedItems || [];
   const hasSelectedGardenPlants = selectedGardenPlants.some(plant => getPlantedItemName(plant));
+  const isSelectedGardenReady = Boolean(selectedGarden?.hasLoadedPlants) && !isLoadingSelectedGardenPlants;
   const isQuickLogDisabled = isFutureDateKey(selectedDate) || !hasSelectedGardenPlants;
   const quickLogHelperText = isFutureDateKey(selectedDate)
     ? 'Quick Log is for completed care. Select today or a past date, or create a task for future work.'
@@ -629,6 +639,17 @@ function TrackingPageContent() {
   // Filter calendar data by selected garden
   const filteredCalendarData = selectedGarden ? calendarData : {};
 
+  if (isLoadingGardens || isLoadingSelectedGardenPlants) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading tracker data...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show empty state if no gardens
   if (gardens.length === 0) {
     return (
@@ -641,13 +662,13 @@ function TrackingPageContent() {
           <p className="text-gray-600 mb-6">
             You need to create at least one garden before you can start tracking activities.
           </p>
-          <a
+          <Link
             href="/gardens"
             className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
           >
             <Sprout className="w-5 h-5" />
             Create Your First Garden
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -740,15 +761,15 @@ function TrackingPageContent() {
                   Create Task
                 </button>
               </div>
-              {!hasSelectedGardenPlants && (
+              {isSelectedGardenReady && !hasSelectedGardenPlants && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                   <p>{taskHelperText}</p>
-                  <a
+                  <Link
                     href={`/garden?id=${selectedGarden.id}`}
                     className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800"
                   >
                     Manage Plants
-                  </a>
+                  </Link>
                 </div>
               )}
             </div>

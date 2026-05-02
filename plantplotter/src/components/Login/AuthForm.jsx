@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, User, Info } from 'lucide-react';
 import { useAuth, SESSION_EXPIRED_FLAG } from '@/hooks/useAuth';
@@ -233,12 +234,12 @@ export default function AuthForm() {
 
         {mode === 'login' && (
           <div className="text-right">
-            <span
-              className="text-sm text-gray-400 italic"
-              title="Password reset is not available yet."
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-green-600 hover:text-green-700 hover:underline"
             >
-              Forgot password? (coming soon)
-            </span>
+              Forgot password?
+            </Link>
           </div>
         )}
 

@@ -60,8 +60,8 @@ export default function Navbar() {
   useEffect(() => {
     if (mounted && !loading && !user) {
       const protectedRoutes = ['/gardens', '/garden', '/tracker', '/profile', '/preferences'];
-      if (protectedRoutes.includes(pathname)) {
-        router.push('/login');
+      if (protectedRoutes.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
+        router.replace('/login');
       }
     }
   }, [mounted, user, pathname, router, loading]);
@@ -70,12 +70,7 @@ export default function Navbar() {
     logout();
     setShowUserMenu(false);
     setMenuOpen(false);
-    router.push('/login');
-  };
-
-  const handleLogin = () => {
-    router.push('/login');
-    setMenuOpen(false);
+    router.replace('/login');
   };
 
   // Don't render anything during loading
@@ -195,12 +190,12 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <button
-              onClick={handleLogin}
+            <Link
+              href="/login"
               className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium rounded-md transition-colors"
             >
               Sign In
-            </button>
+            </Link>
           )}
         </div>
 
@@ -288,12 +283,13 @@ export default function Navbar() {
                 </div>
               </>
             ) : (
-              <button
-                onClick={handleLogin}
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
                 className="w-full px-3 py-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium rounded-md transition-colors"
               >
                 Sign In
-              </button>
+              </Link>
             )}
           </div>
         </div>

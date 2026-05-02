@@ -204,6 +204,30 @@ class ApiClient {
     }
   }
 
+  async forgotPassword(email) {
+    try {
+      return await this.request('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+    } catch (error) {
+      console.error('Forgot password request failed:', error);
+      throw error;
+    }
+  }
+
+  async resetPassword(token, password, confirmPassword) {
+    try {
+      return await this.request('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ token, password, confirmPassword }),
+      });
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      throw error;
+    }
+  }
+
   // Get user profile with preferences
   async getProfile() {
     try {

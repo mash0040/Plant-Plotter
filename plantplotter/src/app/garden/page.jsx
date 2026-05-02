@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, MouseSensor, TouchSensor} from '@dnd-kit/core';
 import { ArrowRight, Plus } from 'lucide-react';
@@ -914,13 +915,12 @@ function GardenPlannerPageContent() {
         <div className="w-full max-w-md bg-white/90 border border-red-100 rounded-2xl shadow-xl p-6 text-center">
           <h1 className="text-xl font-semibold text-gray-900 mb-2">Planner unavailable</h1>
           <p className="text-sm text-gray-600 mb-5">{plannerLoadError}</p>
-          <button
-            type="button"
-            onClick={() => router.push('/gardens')}
+          <Link
+            href="/gardens"
             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium"
           >
             Go to My Gardens
-          </button>
+          </Link>
         </div>
       </div>
     );
@@ -947,14 +947,13 @@ function GardenPlannerPageContent() {
                 <Plus className="w-4 h-4" />
                 Create Garden
               </button>
-              <button
-                type="button"
-                onClick={() => router.push('/gardens')}
+              <Link
+                href="/gardens"
                 className="flex-1 px-4 py-3 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
               >
                 Go to My Gardens
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </Link>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 // hooks/useAuth.js
 'use client';
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api';
 
@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const hadActiveSessionRef = useRef(false);
 
   // Function to fetch fresh user profile from API
-  const fetchUserProfile = async (skipLoading = false) => {
+  const fetchUserProfile = useCallback(async (skipLoading = false) => {
     try {
       if (!skipLoading) {
         setLoading(true);
@@ -63,6 +63,21 @@ export const AuthProvider = ({ children }) => {
       if (error.status === 401 || error.message.includes('Authentication failed') || error.message.includes('Unauthorized')) {
         apiClient.logout();
         setUser(null);
+        hadActiveSessionRef.current = false;
+
+        if (typeof window !== 'undefined') {
+          if (error.code === 'TOKEN_EXPIRED') {
+            try {
+              window.sessionStorage.setItem(SESSION_EXPIRED_FLAG, '1');
+            } catch (storageError) {
+              // sessionStorage may be unavailable; fall through silently
+            }
+          }
+
+          if (window.location.pathname !== '/login') {
+            router.replace('/login');
+          }
+        }
       }
       
       return null;
@@ -71,7 +86,7 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     // Initialize auth on mount
@@ -96,7 +111,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-  }, []);
+  }, [fetchUserProfile]);
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -118,7 +133,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        router.push('/login');
+        router.replace('/login');
       }
     };
 
@@ -236,7 +251,7 @@ export const AuthProvider = ({ children }) => {
           // ignore
         }
       }
-      router.push('/');
+      router.replace('/');
       return response;
     } catch (error) {
       setError(error.message);
