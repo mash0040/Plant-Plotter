@@ -20,15 +20,30 @@ My continued work focused on improving authentication, validation, garden manage
 - Today, upcoming, and overdue task organization
 - Weather-based tracker card using Open-Meteo with fixed Ottawa/default weather
 - Profile settings and account deletion
+- Password Reset
 
 ## Tech Stack
 
-- Frontend: Next.js, React, Tailwind CSS
-- Backend: Node.js, Express.js
-- Database: MySQL
-- Authentication: JWT
-- Weather: Open-Meteo API
-- Testing: Node test runner for backend validation tests
+**Frontend**
+- Next.js 15, React 19, Tailwind CSS
+- Deployed on Vercel with automatic CI/CD
+
+**Backend**
+- Node.js, Express.js
+- Deployed on Azure App Service
+- CI/CD via GitHub Actions
+
+**Database**
+- MySQL 8 hosted on Azure Virtual Machine
+
+**Auth & Security**
+- JWT authentication
+- bcrypt password hashing
+- Rate limiting
+
+**Integrations**
+- Open-Meteo API (weather)
+- Resend (transactional email)
 
 ## Project Structure
 
@@ -118,14 +133,17 @@ npm run build --workspace=plantplotter
 npm test --workspace=plantplotter_backend
 ```
 
-## Demo Data
+## Demo
 
-The database seed file includes demo users, gardens, plants, tasks, and activities for local testing. These are intended for local/demo use only and should not be used for a real deployment.
+Try the app live at https://www.plantplotter.me
+
+**Demo account:**
+- Email: demo@plantplotter.com
+- Password: demo123.
 
 ## Known Limitations
 
 - Refresh tokens are not implemented yet; expired sessions redirect users to sign in again.
-- Forgot password is marked as coming soon; real reset emails are not implemented yet.
 - Weather currently uses fixed Ottawa/default coordinates instead of user- or garden-specific location.
 - Email reminders, weather alerts, public garden sharing, and public profiles are planned future improvements.
 - Frontend automated tests are not configured yet.

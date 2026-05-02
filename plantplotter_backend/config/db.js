@@ -22,7 +22,8 @@ const poolConfig = {
   charset: 'utf8mb4',
   connectionLimit: 10,
   waitForConnections: true,
-  queueLimit: 0
+  queueLimit: 0,
+  connectTimeout: 30000
 };
 
 if (useSsl) {
@@ -43,5 +44,16 @@ const pool = mysql.createPool(poolConfig);
     console.error('Database connection failed:', err);
   }
 })();
+
+const pool = mysql.createPool(poolConfig);
+
+// Keep connections alive
+setInterval(async () => {
+  try {
+    await pool.execute('SELECT 1');
+  } catch (err) {
+    console.error('Keep-alive ping failed:', err.message);
+  }
+}, 60000);
 
 module.exports = pool;

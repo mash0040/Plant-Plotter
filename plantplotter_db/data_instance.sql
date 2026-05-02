@@ -10,32 +10,16 @@ INSERT INTO users (
     email_verified,
     preferences
 ) VALUES 
--- Demo User (password: demo123)
-('Demo User', 
- 'demo@plantplotter.com', 
- '$2b$10$BP0cbU.ETkdycbkSAt/e2ewCknQT9fWG3.hsxGpPsZ1N0HlKfNNQe', 
- 'user', 
- TRUE, 
- TRUE,
- '{"theme": "light", "units": "metric", "notifications": true, "default_garden_size": "small"}'),
-
--- Admin User (password: admin123)
-('Admin User', 
- 'admin@plantplotter.com', 
- '$2b$10$gyD6Egf.nU2Uq/TpES6XeOki3iGDAy8b45DRRlPgmsV8N93Nv8EmC', 
- 'admin', 
- TRUE, 
- TRUE,
- '{"theme": "dark", "units": "imperial", "notifications": true, "admin_dashboard": true}'),
-
--- Regular User (password: user123) 
-('Regular User', 
- 'user@plantplotter.com', 
- '$2b$10$3JRe9c4bJ0vHd1M7vNNoQeWZK8TS8nTDcw0qEq.HkU0b/x97GzQJq', 
- 'user', 
- TRUE, 
- TRUE,
- '{"theme": "light", "units": "metric", "notifications": false, "beginner_mode": true}');
+INSERT INTO users (username, email, password_hash, role, is_active, email_verified, preferences)
+VALUES (
+  'Demo User',
+  'demo@plantplotter.com',
+  '$2b$10$BP0cbU.ETkdycbkSAt/e2ewCknQT9fWG3.hsxGpPsZ1N0HlKfNNQe',
+  'user',
+  TRUE,
+  TRUE,
+  '{"theme": "light", "units": "metric", "notifications": true}'
+);
 
 update users 
 set preferences =  '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenRemainders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
