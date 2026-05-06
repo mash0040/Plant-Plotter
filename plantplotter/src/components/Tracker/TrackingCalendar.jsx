@@ -310,16 +310,16 @@ export default function TrackingCalendar({
               </button>
 
               {showMonthYearPicker && (
-                <div className="absolute right-0 top-full mt-2 z-10 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800 sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
+                <div className="absolute right-0 top-full mt-2 z-10 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-gray-200 bg-white p-4 text-gray-900 shadow-lg sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
                   <div className="flex space-x-4 mb-4">
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Year
                       </label>
                       <select
                         value={tempYear}
                         onChange={(e) => setTempYear(parseInt(e.target.value))}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                        className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       >
                         {Array.from({ length: 10 }, (_, i) => {
                           const year = new Date().getFullYear() - 5 + i;
@@ -332,13 +332,13 @@ export default function TrackingCalendar({
                       </select>
                     </div>
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Month
                       </label>
                       <select
                         value={tempMonth}
                         onChange={(e) => setTempMonth(parseInt(e.target.value))}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                        className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       >
                         {months.map((month, index) => (
                           <option key={index} value={index}>
@@ -357,7 +357,7 @@ export default function TrackingCalendar({
                     </button>
                     <button
                       onClick={() => setShowMonthYearPicker(false)}
-                      className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
                     >
                       Cancel
                     </button>

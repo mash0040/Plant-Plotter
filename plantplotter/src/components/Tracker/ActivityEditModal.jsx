@@ -216,7 +216,7 @@ export default function ActivityEditModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white text-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
           <div className="flex min-w-0 items-center gap-3">
@@ -251,7 +251,7 @@ export default function ActivityEditModal({
               <select
                 value={formData.garden_id}
                 onChange={(e) => handleInputChange('garden_id', e.target.value)}
-                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 required
               >
                 <option value="">Select a garden</option>
@@ -289,7 +289,7 @@ export default function ActivityEditModal({
             <select
               value={formData.activity_type}
               onChange={(e) => handleInputChange('activity_type', e.target.value)}
-              className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               required
             >
               <option value="">Select activity type</option>
@@ -312,7 +312,7 @@ export default function ActivityEditModal({
             <select
               value={formData.plant_name}
               onChange={(e) => handleInputChange('plant_name', e.target.value)}
-              className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-2"
+              className="mb-2 w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               required
               disabled={plantOptions.length === 0}
             >
@@ -353,7 +353,7 @@ export default function ActivityEditModal({
               type="date"
               value={formData.activity_date}
               onChange={(e) => handleInputChange('activity_date', e.target.value)}
-              className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               required
             />
             {fieldErrors.activity_date && (
@@ -369,7 +369,7 @@ export default function ActivityEditModal({
             <textarea
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               rows="3"
               placeholder="Add any additional notes..."
             />

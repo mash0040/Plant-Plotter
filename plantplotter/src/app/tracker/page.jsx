@@ -793,9 +793,9 @@ function TrackingPageContent() {
               <WeatherWidget />
             </div>
 
-            <div className="rounded-lg bg-white p-4 shadow-lg dark:bg-gray-800">
+            <div className="rounded-lg bg-white p-4 text-gray-900 shadow-lg">
               <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Care Tasks</h3>
+                <h3 className="font-semibold text-gray-900">Care Tasks</h3>
                 <button
                   type="button"
                   onClick={handleTaskAdd}

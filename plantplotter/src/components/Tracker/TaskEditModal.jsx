@@ -307,7 +307,7 @@ export default function TaskEditModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white text-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-green-50">
           <div className="flex min-w-0 items-center gap-3">
@@ -366,7 +366,7 @@ export default function TaskEditModal({
               <select
                 value={formData.task_type}
                 onChange={(e) => handleInputChange('task_type', e.target.value)}
-                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 required
               >
                 {taskTypeOptions.map(option => (
@@ -385,7 +385,7 @@ export default function TaskEditModal({
               <textarea
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 rows="3"
                 placeholder={isOtherTask ? 'Describe the task...' : 'Detailed description of the task...'}
               />
@@ -414,7 +414,7 @@ export default function TaskEditModal({
               <select
                 value={formData.garden_id}
                 onChange={(e) => handleInputChange('garden_id', e.target.value)}
-                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 required
               >
                 <option value="">Select a garden</option>
@@ -434,7 +434,7 @@ export default function TaskEditModal({
               <select
                 value={selectedPlantValue}
                 onChange={(e) => handleInputChange('plant_name', e.target.value === GENERAL_GARDEN_TASK_VALUE ? '' : e.target.value)}
-                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 disabled={isNoPlantGardenBlocked || (isPlantingTask ? isPlantLibraryLoading || plantOptions.length === 0 : false)}
               >
                 {isPlantingTask ? (
@@ -473,7 +473,7 @@ export default function TaskEditModal({
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => handleInputChange('due_date', e.target.value)}
-                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               />
             </div>
 
@@ -485,7 +485,7 @@ export default function TaskEditModal({
                 type="number"
                 value={formData.estimated_duration}
                 onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
-                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 placeholder="e.g., 30"
                 min="1"
               />
@@ -501,7 +501,7 @@ export default function TaskEditModal({
               <select
                 value={formData.priority}
                 onChange={(e) => handleInputChange('priority', e.target.value)}
-                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               >
                 {priorityOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -531,7 +531,7 @@ export default function TaskEditModal({
               <select
                 value={formData.status}
                 onChange={(e) => handleInputChange('status', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               >
                 {statusOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -551,7 +551,7 @@ export default function TaskEditModal({
             <select
               value={formData.recurring_pattern}
               onChange={(e) => handleInputChange('recurring_pattern', e.target.value)}
-              className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
             >
               {recurringOptions.map(option => (
                 <option key={option.value} value={option.value}>
@@ -569,7 +569,7 @@ export default function TaskEditModal({
             <textarea
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               rows="2"
               placeholder="Additional notes or reminders..."
             />
