@@ -9,11 +9,11 @@ import { validateEmail } from '@/lib/emailValidation';
 
 const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '' };
 
-export default function AuthForm() {
+export default function AuthForm({ initialMode = 'login' }) {
   const router = useRouter();
   const { login, register, loading, clearError } = useAuth();
 
-  const [mode, setMode] = useState('login'); // 'login' or 'register'
+  const mode = initialMode === 'register' ? 'register' : 'login';
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -38,21 +38,18 @@ export default function AuthForm() {
     if (clearError) clearError();
   }, [clearError]);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setLocalError('');
-    setSessionNotice('');
-  };
-
-  // Reset everything when the user toggles between Sign In and Create Account.
-  // We never want a typed email/password to leak between modes.
-  const switchMode = (nextMode) => {
-    setMode(nextMode);
+  useEffect(() => {
     setFormData(EMPTY_FORM);
     setLocalError('');
     setSessionNotice('');
     setShowPassword(false);
     setShowConfirmPassword(false);
+  }, [mode]);
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setLocalError('');
+    setSessionNotice('');
   };
 
   const handleSubmit = async (e) => {
@@ -263,27 +260,23 @@ export default function AuthForm() {
         <div className="mt-3">
           {mode === 'login' ? (
             <p>
-              New to PlantPlotter?{' '}
-              <button
-                type="button"
-                onClick={() => switchMode('register')}
+              Need an account?{' '}
+              <Link
+                href="/create-account"
                 className="text-green-700 hover:text-green-800 font-medium hover:underline"
-                disabled={isSubmitting || loading}
               >
-                Sign up here
-              </button>
+                Create one
+              </Link>
             </p>
           ) : (
             <p>
               Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => switchMode('login')}
+              <Link
+                href="/login"
                 className="text-green-700 hover:text-green-800 font-medium hover:underline"
-                disabled={isSubmitting || loading}
               >
-                Sign in here
-              </button>
+                Sign in
+              </Link>
             </p>
           )}
         </div>

@@ -4,18 +4,19 @@ import { CSS } from '@dnd-kit/utilities';
 import { Info, Edit3, Grid } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
-export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, showEditButton = true }) {
+export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, showEditButton = true, disableDrag = false }) {
   const [isDragReady, setIsDragReady] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const longPressTimer = useRef(null);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `library-${plant.id}`,
-    data: { ...plant, isFromLibrary: true }
+    data: { ...plant, isFromLibrary: true },
+    disabled: disableDrag
   });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
+    transform: disableDrag ? undefined : CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
   };
 
@@ -46,7 +47,7 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
       }, 200);
     }, 500);
 
-    if (listeners.onTouchStart) {
+    if (!disableDrag && listeners.onTouchStart) {
       listeners.onTouchStart(e);
     }
   };
@@ -59,7 +60,7 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
 
     setIsDragReady(false);
 
-    if (listeners.onTouchEnd) {
+    if (!disableDrag && listeners.onTouchEnd) {
       listeners.onTouchEnd(e);
     }
   };
@@ -70,7 +71,7 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
       longPressTimer.current = null;
     }
 
-    if (listeners.onTouchMove) {
+    if (!disableDrag && listeners.onTouchMove) {
       listeners.onTouchMove(e);
     }
   };
@@ -164,7 +165,7 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
     }
   };
 
-  const enhancedListeners = isTouchDevice ? {
+  const enhancedListeners = disableDrag ? {} : isTouchDevice ? {
     ...listeners,
     onTouchStart: handleTouchStart,
     onTouchEnd: handleTouchEnd,
@@ -178,20 +179,20 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
         style={style}
         className={`
           flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg
-          cursor-grab active:cursor-grabbing
+          ${disableDrag ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}
           ${colors.bg} ${colors.border} border-2
           ${colors.hover} transition-all duration-200 ease-in-out
           hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5
           active:scale-[1.05] sm:active:scale-[1.02]
           ${isDragging ? 'z-50 shadow-xl scale-105' : ''}
-          ${isDragReady ? 'ring-2 ring-green-400 ring-opacity-75' : ''}
-          group select-none touch-manipulation
+          ${!disableDrag && isDragReady ? 'ring-2 ring-green-400 ring-opacity-75' : ''}
+          group select-none ${disableDrag ? 'touch-pan-y' : 'touch-manipulation'}
           min-h-[3rem] sm:min-h-[3.5rem]
         `}
         {...enhancedListeners}
-        {...attributes}
+        {...(!disableDrag ? attributes : {})}
       >
-        {isTouchDevice && isDragReady && (
+        {isTouchDevice && !disableDrag && isDragReady && (
           <div className="absolute inset-0 bg-green-200/30 rounded-lg flex items-center justify-center z-10 pointer-events-none">
             <div className="text-xs font-medium text-green-700 bg-white px-2 py-1 rounded shadow-sm">
               Ready to drag

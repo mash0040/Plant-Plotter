@@ -13,7 +13,8 @@ export default function PlantLibrary({
   placedPlants = [],
   onPlantsLoaded, 
   onEditPlant,
-  onPlantRow  // Add this new prop
+  onPlantRow,  // Add this new prop
+  disableDrag = false
 }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -763,6 +764,7 @@ export default function PlantLibrary({
                     onInfo={setSelectedInfoPlant}
                     showEditButton={isAdmin}
                     isInScrollContainer={true}
+                    disableDrag={disableDrag}
                   />
                 ))}
               </div>

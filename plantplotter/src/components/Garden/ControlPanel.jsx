@@ -1,6 +1,6 @@
 'use client';
 import { Plus, Minus, Grid, Ruler, Save, Sprout, ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler, onDimensionChange, onGridSizeChange, onToggleGrid, onToggleRuler, onSave, hasUnsavedChanges, onToggleSidebar, gardenName, onBackClick, backLabel = 'Back to Garden List', saveLabel = 'Save' }) {
   const [unit, setUnit] = useState('metric');
@@ -17,6 +17,18 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
   const zoomToGridSize = (zoom) => Math.round((zoom / 100) * 40);
 
   const getUnitLabel = () => unit === 'metric' ? 'm' : 'ft';
+
+  useEffect(() => {
+    setInputValues({
+      width: unit === 'imperial' ? metersToFeet(dimensions.width) : dimensions.width.toString(),
+      height: unit === 'imperial' ? metersToFeet(dimensions.height) : dimensions.height.toString(),
+      zoom: gridSizeToZoom(gridSize).toString()
+    });
+  }, [dimensions.width, dimensions.height, gridSize, unit]);
+
+  const getDisplayedDimensionValue = (field) => (
+    unit === 'imperial' ? metersToFeet(dimensions[field]) : dimensions[field].toString()
+  );
 
   // Handle unit toggle
   const toggleUnit = () => {
@@ -47,9 +59,16 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
   // Handle input blur (when user finishes typing)
   const handleInputBlur = (field, value) => {
     const numValue = parseFloat(value);
-    if (isNaN(numValue) || numValue <= 0) return;
 
     if (field === 'width' || field === 'height') {
+      if (isNaN(numValue) || numValue <= 0) {
+        setInputValues(prev => ({
+          ...prev,
+          [field]: getDisplayedDimensionValue(field)
+        }));
+        return;
+      }
+
       const metersValue = unit === 'imperial' ? feetToMeters(numValue) : numValue;
       const clampedValue = Math.max(1, Math.min(50, Math.round(metersValue)));
       const nextDimensions = {
@@ -64,6 +83,14 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
         [field]: unit === 'imperial' ? metersToFeet(displayedValue) : displayedValue.toString()
       }));
     } else if (field === 'zoom') {
+      if (isNaN(numValue) || numValue <= 0) {
+        setInputValues(prev => ({
+          ...prev,
+          zoom: gridSizeToZoom(gridSize).toString()
+        }));
+        return;
+      }
+
       const clampedZoomValue = Math.max(50, Math.min(250, Math.round(numValue)));
       const clampedPixelValue = Math.max(20, Math.min(100, zoomToGridSize(clampedZoomValue)));
       

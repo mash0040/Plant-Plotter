@@ -6,7 +6,7 @@ const features = [
   {
     icon: Leaf,
     title: 'Plan your garden',
-    description: 'Drag-and-drop layout with companion guidance and spacing.'
+    description: 'Layout tools with companion guidance and spacing.'
   },
   {
     icon: Sprout,
@@ -44,7 +44,7 @@ export default function HomePage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href="/login"
+            href="/create-account"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white hover:bg-gray-50 text-green-700 font-semibold rounded-xl transition-colors border border-green-200 shadow-sm"
           >
             Create an account

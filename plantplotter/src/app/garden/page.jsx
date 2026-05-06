@@ -32,6 +32,10 @@ function GardenPlannerPageContent() {
   const [activeId, setActiveId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isTouchPlanner, setIsTouchPlanner] = useState(false);
+  const [plannerGardenSummaries, setPlannerGardenSummaries] = useState([]);
+  const [isLoadingGardenSummaries, setIsLoadingGardenSummaries] = useState(false);
+  const [gardenSummaryError, setGardenSummaryError] = useState('');
   
   // Garden state management
   const [currentGarden, setCurrentGarden] = useState(null);
@@ -325,6 +329,31 @@ function GardenPlannerPageContent() {
     loadGarden();
   }, [gardenId, router]);
 
+  useEffect(() => {
+    const loadGardenSummaries = async () => {
+      if (gardenId) return;
+
+      setIsLoadingGardenSummaries(true);
+      setGardenSummaryError('');
+
+      try {
+        const summaries = await apiClient.getGardenSummaries();
+        setPlannerGardenSummaries(Array.isArray(summaries) ? summaries : []);
+      } catch (error) {
+        console.error('Failed to load garden summaries for planner:', error);
+        if (error.status === 401) {
+          return;
+        }
+        setGardenSummaryError('Could not load your gardens. Please try again.');
+        setPlannerGardenSummaries([]);
+      } finally {
+        setIsLoadingGardenSummaries(false);
+      }
+    };
+
+    loadGardenSummaries();
+  }, [gardenId]);
+
   // Enhanced bounds checking
   const isWithinBoundsFlexible = (plant, dimensions, gridSize, useGrid = true) => {
     const plantSize = getPlantFootprint(plant) * gridSize;
@@ -412,6 +441,8 @@ function GardenPlannerPageContent() {
   };
 
   const handleDragStart = (event) => {
+    if (isTouchPlanner) return;
+
     const { active } = event;
     const draggedData = active.data.current;
 
@@ -533,6 +564,8 @@ function GardenPlannerPageContent() {
   };
 
   const handleDragMove = (event) => {
+    if (isTouchPlanner) return;
+
     const draggedData = event.active.data.current;
 
     if (!draggedData?.isFromLibrary) {
@@ -550,6 +583,8 @@ function GardenPlannerPageContent() {
   };
 
   const handleDragEnd = (event) => {
+    if (isTouchPlanner) return;
+
     const { active, over, delta } = event;
 
     setActiveId(null);
@@ -807,13 +842,13 @@ function GardenPlannerPageContent() {
     if (hasUnsavedChanges) {
       setShowLeaveConfirm(true);
     } else {
-      router.push(gardenId ? `/gardens/${gardenId}` : '/gardens');
+      router.push('/garden');
     }
   };
 
   const handleConfirmLeavePlanner = () => {
     setShowLeaveConfirm(false);
-    router.push(gardenId ? `/gardens/${gardenId}` : '/gardens');
+    router.push('/garden');
   };
 
   const handlePlantRemove = (plantId) => {
@@ -898,6 +933,18 @@ function GardenPlannerPageContent() {
     };
   }, [sidebarOpen]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const mediaQuery = window.matchMedia('(pointer: coarse), (max-width: 767px)');
+    const updateTouchPlanner = () => setIsTouchPlanner(mediaQuery.matches);
+
+    updateTouchPlanner();
+    mediaQuery.addEventListener('change', updateTouchPlanner);
+
+    return () => mediaQuery.removeEventListener('change', updateTouchPlanner);
+  }, []);
+
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-50 items-center justify-center">
@@ -927,35 +974,114 @@ function GardenPlannerPageContent() {
   }
 
   if (!gardenId) {
+    if (isLoadingGardenSummaries) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center px-4">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your gardens...</p>
+          </div>
+        </div>
+      );
+    }
+
+    const hasGardenSummaries = plannerGardenSummaries.length > 0;
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center px-4">
-        <div className="w-full max-w-lg text-center">
-          <div className="bg-white/90 border border-green-100 rounded-2xl shadow-xl p-6 sm:p-8">
-            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <Plus className="w-7 h-7 text-green-700" />
-            </div>
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Choose a garden to start planning</h1>
-            <p className="text-gray-600 mb-6">
-              Create a new garden or select one you already made. Once your garden details are set, you can add plants and arrange your layout.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 px-4 py-8">
+        <div className="mx-auto w-full max-w-5xl">
+          {hasGardenSummaries ? (
+            <div className="space-y-6">
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                  <Plus className="w-7 h-7 text-green-700" />
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">Choose a garden to plan</h1>
+                <p className="mx-auto max-w-2xl text-gray-600">
+                  Select one of your gardens to open its planner. Garden details and saved plants will load after you choose.
+                </p>
+              </div>
+
+              {gardenSummaryError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                  {gardenSummaryError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {plannerGardenSummaries.map((gardenSummary) => (
+                  <div
+                    key={gardenSummary.id}
+                    className="rounded-2xl border border-green-100 bg-white/90 p-5 shadow-lg backdrop-blur-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <h2 className="text-lg font-semibold text-gray-900 break-words">{gardenSummary.name}</h2>
+                      <span className="flex-shrink-0 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                        {gardenSummary.status || 'Planning'}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 space-y-2 text-sm text-gray-700">
+                      <div className="flex justify-between gap-3">
+                        <span>Size</span>
+                        <span className="font-medium text-gray-900">
+                          {gardenSummary.dimensions?.width || gardenSummary.width}m x {gardenSummary.dimensions?.height || gardenSummary.height}m
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span>Plants</span>
+                        <span className="font-medium text-gray-900">
+                          {gardenSummary.plantCount || gardenSummary.plant_count || 0}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/garden?id=${gardenSummary.id}`}
+                      className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+                    >
+                      Plan
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                ))}
+              </div>
+
               <button
                 type="button"
                 onClick={() => setShowCreateGardenForm(true)}
-                className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="mx-auto flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-white px-4 py-3 text-sm font-semibold text-green-800 shadow-sm transition-colors hover:bg-green-50"
               >
                 <Plus className="w-4 h-4" />
-                Create Garden
+                Create Another Garden
               </button>
-              <Link
-                href="/gardens"
-                className="flex-1 px-4 py-3 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
-              >
-                Go to My Gardens
-                <ArrowRight className="w-4 h-4" />
-              </Link>
             </div>
-          </div>
+          ) : (
+            <div className="mx-auto w-full max-w-lg text-center">
+              <div className="bg-white/90 border border-green-100 rounded-2xl shadow-xl p-6 sm:p-8">
+                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                  <Plus className="w-7 h-7 text-green-700" />
+                </div>
+                <h1 className="text-2xl font-semibold text-gray-900 mb-2">No gardens yet</h1>
+                <p className="text-gray-600 mb-6">
+                  Create your first garden space, then you can open the planner and start adding plants.
+                </p>
+                {gardenSummaryError && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {gardenSummaryError}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowCreateGardenForm(true)}
+                  className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Garden
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <GardenForm
@@ -996,6 +1122,7 @@ function GardenPlannerPageContent() {
             onPlantsLoaded={handlePlantsLoaded}
             onEditPlant={handleEditPlant}
             onPlantRow={handlePlantRow}
+            disableDrag={isTouchPlanner}
           />
         </div>
 
@@ -1015,7 +1142,7 @@ function GardenPlannerPageContent() {
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             gardenName={safeGardenName}
             onBackClick={handleBackToGarden}
-            backLabel={gardenId ? 'Back to Garden' : 'Back to Garden List'}
+            backLabel="Choose another garden"
             saveLabel={isSavingLayout ? 'Saving...' : 'Save Changes'}
           />
 
@@ -1037,11 +1164,13 @@ function GardenPlannerPageContent() {
               onPlantRemove={handlePlantRemove}
               placementPreview={placementPreview}
               isPlantLibraryOpen={sidebarOpen}
+              disablePlantDragging={isTouchPlanner}
             />
           </div>
         </div>
 
         {/* DragOverlay with enhanced visibility */}
+        {!isTouchPlanner && (
         <DragOverlay
           dropAnimation={{
             duration: 200,
@@ -1096,6 +1225,7 @@ function GardenPlannerPageContent() {
             </div>
           ) : null}
         </DragOverlay>
+        )}
         
       </DndContext>
 

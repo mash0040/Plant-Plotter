@@ -8,7 +8,8 @@ export default function DraggablePlant({
   gridSize, 
   isPlaced = false, 
   onRemove,
-  isDragging = false 
+  isDragging = false,
+  disableDrag = false
 }) {
   const {
     attributes,
@@ -22,13 +23,14 @@ export default function DraggablePlant({
       ...plant,
       isFromLibrary: !isPlaced,
     },
+    disabled: disableDrag,
   });
 
   const plantFootprint = getPlantFootprint(plant);
   const plantSize = plantFootprint * gridSize;
   
   // Calculate transform for dragging
-  const dragTransform = transform ? {
+  const dragTransform = !disableDrag && transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
@@ -100,17 +102,17 @@ export default function DraggablePlant({
       className={`
         flex flex-col items-center justify-center
         ${colors.bg} ${colors.border} border-2 rounded-xl
-        ${padding} cursor-move select-none relative
+        ${padding} ${disableDrag ? 'cursor-default touch-pan-x touch-pan-y' : 'cursor-move'} select-none relative
         shadow-lg ${colors.shadow}
         hover:shadow-xl hover:scale-105
         transition-all duration-200 ease-in-out
-        ${isCurrentlyDragging ? 'opacity-50 scale-110 rotate-3' : ''}
+        ${!disableDrag && isCurrentlyDragging ? 'opacity-50 scale-110 rotate-3' : ''}
         ${isDragging ? 'opacity-80' : ''}
         backdrop-blur-sm group
       `}
       tabIndex={isPlaced ? 0 : undefined}
-      {...listeners}
-      {...attributes}
+      {...(!disableDrag ? listeners : {})}
+      {...(!disableDrag ? attributes : {})}
     >
       {/* Remove button for placed plants */}
       {isPlaced && onRemove && (

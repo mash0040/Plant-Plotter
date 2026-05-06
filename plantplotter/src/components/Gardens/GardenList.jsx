@@ -56,30 +56,34 @@ export default function GardenList({
     );
   }
 
+  const hasGardens = gardens && gardens.length > 0;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-100">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            {/* Decorative elements */}
-            <div className="absolute top-10 left-10 opacity-10">
-              <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
+        {hasGardens && (
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-100">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              {/* Decorative elements */}
+              <div className="absolute top-10 left-10 opacity-10">
+                <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">My Gardens</h1>
+                <p className="text-gray-600">Manage and track your garden spaces</p>
+              </div>
+              <button
+                onClick={onAddNew}
+                className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Add New Garden
+              </button>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">My Gardens</h1>
-              <p className="text-gray-600">Manage and track your garden spaces</p>
-            </div>
-            <button
-              onClick={onAddNew}
-              className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Add New Garden
-            </button>
           </div>
-        </div>
+        )}
 
-        {gardens && gardens.length > 0 ? (
+        {hasGardens ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {gardens.map((garden) => (
               <div
@@ -183,13 +187,13 @@ export default function GardenList({
             ))}
           </div>
         ) : (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-12 shadow-lg border border-green-100 text-center">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 sm:p-12 shadow-lg border border-green-100 text-center max-w-xl mx-auto mt-8 sm:mt-16">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Plus className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-xl font-semibold text-gray-800 mb-2">No gardens yet</h3>
             <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Start your gardening journey by creating your first garden space.
+              Create your first garden space, then plan plants and track care from one place.
             </p>
             <button
               onClick={onAddNew}
