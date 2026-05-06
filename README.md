@@ -200,3 +200,9 @@ Try the app live at https://www.plantplotter.me
 ## Status
 
 This repository represents my continued development version of Plant Plotter after the original client-focused group project delivery. The current version focuses on stable full-stack functionality, mobile-friendly user flows, secure account features, production performance, and live deployment.
+
+## License
+
+## License
+
+This continued-development version is shared for portfolio and educational purposes. See the [license](./license) file for details.
