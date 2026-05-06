@@ -8,6 +8,36 @@
 
 
 @layer base {
+  :root,
+  html,
+  body {
+    color-scheme: light;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea,
+  option {
+    color-scheme: light;
+    background-color: #ffffff;
+    color: #111827;
+    border-color: #d1d5db;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #6b7280;
+    opacity: 1;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):disabled,
+  select:disabled,
+  textarea:disabled {
+    color: #4b5563;
+    background-color: #f3f4f6;
+    opacity: 1;
+  }
+
   button {
     @apply cursor-pointer;
   }

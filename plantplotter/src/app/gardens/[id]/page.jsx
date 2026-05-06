@@ -740,16 +740,18 @@ function GardenDetailPageContent() {
 
             {activeTab === 'plants' && (
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800">Plants in Garden</h3>
-                  <button
-                    onClick={handleOpenGardenPlanner}
-                    className="min-h-11 justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
-                  >
-                    <Leaf className="w-4 h-4" />
-                    Manage Plants
-                  </button>
-                </div>
+                {sortedPlantedItems.length > 0 && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800">Plants in Garden</h3>
+                    <button
+                      onClick={handleOpenGardenPlanner}
+                      className="min-h-11 justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
+                    >
+                      <Leaf className="w-4 h-4" />
+                      Manage Plants
+                    </button>
+                  </div>
+                )}
                 
                 {sortedPlantedItems.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
