@@ -79,7 +79,7 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-green-900 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="text-white text-xl font-bold flex items-center gap-2">
-            <Image src="/logo.svg" alt="PlantPlotter Logo" width={32} height={32} /> 
+            <Image src="/PlantPlotter.svg" alt="PlantPlotter Logo" width={32} height={32} /> 
             <span>PlantPlotter</span>
           </div>
           <div className="w-8 h-8"></div> {/* Placeholder for loading */}

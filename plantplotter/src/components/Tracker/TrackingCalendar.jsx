@@ -114,6 +114,9 @@ export default function TrackingCalendar({
       case 'harvest': return 'H';
       case 'prune': return 'P';
       case 'weed': return '!';
+      case 'inspect': return 'I';
+      case 'treat': return 'Rx';
+      case 'other': return 'O';
       default: return 'T';
     }
   };

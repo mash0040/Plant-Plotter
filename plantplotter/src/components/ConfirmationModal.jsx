@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
 export default function ConfirmationModal({
   isOpen,
@@ -12,6 +14,15 @@ export default function ConfirmationModal({
   onConfirm,
   onCancel
 }) {
+  const [isConfirming, setIsConfirming] = useState(false);
+  useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsConfirming(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const confirmClasses = variant === 'danger'
@@ -22,9 +33,21 @@ export default function ConfirmationModal({
     ? 'bg-red-100 text-red-600'
     : 'bg-green-100 text-green-600';
 
+  const handleConfirm = async () => {
+    if (isConfirming) return;
+
+    setIsConfirming(true);
+
+    try {
+      await onConfirm?.();
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl border border-gray-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
+      <div className="w-full max-w-md max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-xl bg-white p-5 shadow-xl border border-gray-100">
         <div className="flex items-start gap-3">
           <div className={`mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${iconClasses}`}>
             <AlertTriangle className="h-5 w-5" />
@@ -35,13 +58,14 @@ export default function ConfirmationModal({
               <button
                 type="button"
                 onClick={onCancel}
-                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                disabled={isConfirming}
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
                 aria-label="Close confirmation"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className="mt-2 text-sm leading-6 text-gray-600">{message}</p>
+            <p className="mt-2 text-sm leading-6 text-gray-700">{message}</p>
           </div>
         </div>
 
@@ -49,16 +73,18 @@ export default function ConfirmationModal({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={isConfirming}
+            className="min-h-11 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
-            onClick={onConfirm}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${confirmClasses}`}
+            onClick={handleConfirm}
+            disabled={isConfirming}
+            className={`min-h-11 rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-70 ${confirmClasses}`}
           >
-            {confirmLabel}
+            {isConfirming ? 'Working...' : confirmLabel}
           </button>
         </div>
       </div>

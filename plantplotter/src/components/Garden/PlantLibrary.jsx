@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import PlantLibraryItem from './PlantLibraryItem';
 import apiClient from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
 export default function PlantLibrary({ 
   searchTerm, 
@@ -398,26 +399,28 @@ export default function PlantLibrary({
   ]);
 
   const PlantInfoModal = ({ plant, onClose }) => {
+    useBodyScrollLock(Boolean(plant));
+
     if (!plant) return null;
 
     const companions = formatPlantList(plant.companionPlants || plant.companion_plants);
     const avoidPlants = formatPlantList(plant.avoidPlants || plant.avoid_plants);
 
     return (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl border border-gray-100">
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
+        <div className="w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl border border-gray-100">
           <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <span className="text-3xl flex-shrink-0">{plant.emoji || 'Plant'}</span>
               <div className="min-w-0">
                 <h2 className="text-lg font-semibold text-gray-900 truncate">{plant.name}</h2>
-                <p className="text-sm text-gray-500 capitalize">{formatPlantValue(plant.category || plant.type)}</p>
+                <p className="text-sm text-gray-700 capitalize">{formatPlantValue(plant.category || plant.type)}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700"
               aria-label="Close plant details"
             >
               <X className="w-5 h-5" />
@@ -428,16 +431,16 @@ export default function PlantLibrary({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {getPlantInfoRows(plant).map(([label, value]) => (
                 <div key={label} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
-                  <p className="mt-1 text-sm font-medium text-gray-800">{formatPlantValue(value)}</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-600">{label}</p>
+                  <p className="mt-1 text-sm font-medium text-gray-900">{formatPlantValue(value)}</p>
                 </div>
               ))}
             </div>
 
             {plant.description && (
               <div className="rounded-lg border border-gray-100 p-3">
-                <h3 className="text-sm font-semibold text-gray-800 mb-1">Description</h3>
-                <p className="text-sm leading-6 text-gray-600">{formatPlantValue(plant.description)}</p>
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">Description</h3>
+                <p className="text-sm leading-6 text-gray-700">{formatPlantValue(plant.description)}</p>
               </div>
             )}
 

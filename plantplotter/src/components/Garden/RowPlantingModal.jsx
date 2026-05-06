@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Grid, ArrowRight, ArrowDown } from 'lucide-react';
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
 export default function RowPlantingModal({ 
   isOpen, 
@@ -19,6 +20,7 @@ export default function RowPlantingModal({
   
   const [previewPositions, setPreviewPositions] = useState([]);
   const [validationMessage, setValidationMessage] = useState('');
+  useBodyScrollLock(isOpen);
 
   const toInteger = (value, fallback = 0) => {
     const parsedValue = parseInt(value, 10);
@@ -164,20 +166,20 @@ export default function RowPlantingModal({
   if (!isOpen || !plant) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg p-6 w-96 max-w-[90vw] max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
+      <div className="bg-white rounded-lg p-4 sm:p-6 w-96 max-w-[90vw] max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{plant.emoji}</span>
-            <h3 className="text-lg font-semibold">Plant Row: {plant.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Plant Row: {plant.name}</h3>
           </div>
-          <button onClick={handleClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={handleClose} className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-700">
             Row planting adds multiple of the same plant.
           </p>
 
@@ -189,7 +191,8 @@ export default function RowPlantingModal({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleConfigChange('count', Math.max(1, normalizedConfig.count - 1))}
-                className="p-1 hover:bg-gray-100 rounded"
+                type="button"
+                className="flex h-10 w-10 items-center justify-center hover:bg-gray-100 rounded"
               >
                 <Minus className="w-4 h-4" />
               </button>
@@ -198,13 +201,14 @@ export default function RowPlantingModal({
                 value={rowConfig.count}
                 onChange={(e) => handleConfigChange('count', e.target.value)}
                 onBlur={() => handleNumberBlur('count', 1, 50)}
-                className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                className="w-20 min-h-10 px-2 py-1 border border-gray-300 rounded text-center text-gray-900"
                 min="1"
                 max="50"
               />
               <button
                 onClick={() => handleConfigChange('count', Math.min(50, normalizedConfig.count + 1))}
-                className="p-1 hover:bg-gray-100 rounded"
+                type="button"
+                className="flex h-10 w-10 items-center justify-center hover:bg-gray-100 rounded"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -219,10 +223,11 @@ export default function RowPlantingModal({
             <div className="flex gap-2">
               <button
                 onClick={() => handleConfigChange('direction', 'horizontal')}
-                className={`flex items-center gap-2 px-3 py-2 rounded border ${
+                type="button"
+                className={`flex min-h-10 items-center gap-2 px-3 py-2 rounded border ${
                   rowConfig.direction === 'horizontal' 
                     ? 'bg-green-100 border-green-300 text-green-700' 
-                    : 'bg-white border-gray-300'
+                    : 'bg-white border-gray-300 text-gray-800'
                 }`}
               >
                 <ArrowRight className="w-4 h-4" />
@@ -230,10 +235,11 @@ export default function RowPlantingModal({
               </button>
               <button
                 onClick={() => handleConfigChange('direction', 'vertical')}
-                className={`flex items-center gap-2 px-3 py-2 rounded border ${
+                type="button"
+                className={`flex min-h-10 items-center gap-2 px-3 py-2 rounded border ${
                   rowConfig.direction === 'vertical' 
                     ? 'bg-green-100 border-green-300 text-green-700' 
-                    : 'bg-white border-gray-300'
+                    : 'bg-white border-gray-300 text-gray-800'
                 }`}
               >
                 <ArrowDown className="w-4 h-4" />
@@ -252,30 +258,33 @@ export default function RowPlantingModal({
             <div className="flex gap-2 mb-2">
               <button
                 onClick={() => handleConfigChange('spacing', 0)}
+                type="button"
                 className={`px-3 py-1 text-xs rounded border ${
                   normalizedConfig.spacing === 0 
                     ? 'bg-green-100 border-green-300 text-green-700' 
-                    : 'bg-white border-gray-300'
+                    : 'bg-white border-gray-300 text-gray-800'
                 }`}
               >
                 No Gap
               </button>
               <button
                 onClick={() => handleConfigChange('spacing', 1)}
+                type="button"
                 className={`px-3 py-1 text-xs rounded border ${
                   normalizedConfig.spacing === 1
                     ? 'bg-green-100 border-green-300 text-green-700' 
-                    : 'bg-white border-gray-300'
+                    : 'bg-white border-gray-300 text-gray-800'
                 }`}
               >
                 Small Gap
               </button>
               <button
                 onClick={() => handleConfigChange('spacing', 2)}
+                type="button"
                 className={`px-3 py-1 text-xs rounded border ${
                   normalizedConfig.spacing === 2
                     ? 'bg-green-100 border-green-300 text-green-700' 
-                    : 'bg-white border-gray-300'
+                    : 'bg-white border-gray-300 text-gray-800'
                 }`}
               >
                 Normal Gap
@@ -285,7 +294,8 @@ export default function RowPlantingModal({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleConfigChange('spacing', Math.max(0, normalizedConfig.spacing - 1))}
-                className="p-1 hover:bg-gray-100 rounded"
+                type="button"
+                className="flex h-10 w-10 items-center justify-center hover:bg-gray-100 rounded"
               >
                 <Minus className="w-4 h-4" />
               </button>
@@ -294,23 +304,24 @@ export default function RowPlantingModal({
                 value={rowConfig.spacing}
                 onChange={(e) => handleConfigChange('spacing', e.target.value)}
                 onBlur={() => handleNumberBlur('spacing', 0, 5)}
-                className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                className="w-20 min-h-10 px-2 py-1 border border-gray-300 rounded text-center text-gray-900"
                 min="0"
                 step="1"
                 max="5"
               />
               <button
                 onClick={() => handleConfigChange('spacing', Math.min(5, normalizedConfig.spacing + 1))}
-                className="p-1 hover:bg-gray-100 rounded"
+                type="button"
+                className="flex h-10 w-10 items-center justify-center hover:bg-gray-100 rounded"
               >
                 <Plus className="w-4 h-4" />
               </button>
-              <span className="text-xs text-gray-500">grid units</span>
+              <span className="text-xs text-gray-600">grid units</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               {normalizedConfig.spacing === 0 ? 'Plants will touch each other' : `${normalizedConfig.spacing} unit${normalizedConfig.spacing !== 1 ? 's' : ''} between plants`}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               Spacing uses full grid units so saved layouts stay aligned to the garden grid.
             </p>
           </div>
@@ -326,22 +337,22 @@ export default function RowPlantingModal({
                 value={rowConfig.startX}
                 onChange={(e) => handleConfigChange('startX', e.target.value)}
                 onBlur={() => handleNumberBlur('startX', 1, dimensions.width)}
-                className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                className="w-16 min-h-10 px-2 py-1 border border-gray-300 rounded text-center text-gray-900"
                 min="1"
                 max={dimensions.width}
               />
-              <span className="text-gray-500">,</span>
+              <span className="text-gray-600">,</span>
               <input
                 type="number"
                 value={rowConfig.startY}
                 onChange={(e) => handleConfigChange('startY', e.target.value)}
                 onBlur={() => handleNumberBlur('startY', 1, dimensions.height)}
-                className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                className="w-16 min-h-10 px-2 py-1 border border-gray-300 rounded text-center text-gray-900"
                 min="1"
                 max={dimensions.height}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               Grid positions start from 1,1 (top-left corner)
             </p>
           </div>
@@ -359,7 +370,7 @@ export default function RowPlantingModal({
               </div>
             )}
             
-            <div className="text-sm text-gray-600 space-y-1">
+            <div className="text-sm text-gray-700 space-y-1">
               <div className="flex items-center gap-2">
                 {getDirectionIcon()}
                 <span>
@@ -389,14 +400,16 @@ export default function RowPlantingModal({
         <div className="flex gap-3 mt-6">
           <button
             onClick={handleClose}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            type="button"
+            className="min-h-11 flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             onClick={handlePlantRow}
             disabled={previewPositions.filter(p => p.withinBounds).length === 0}
-            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            className="min-h-11 flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Plant Row ({normalizedConfig.count})
           </button>

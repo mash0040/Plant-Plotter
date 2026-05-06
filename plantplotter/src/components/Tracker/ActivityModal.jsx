@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 export default function ActivityModal({
@@ -10,6 +10,8 @@ export default function ActivityModal({
   onClose,
   selectedGarden
 }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     if (!isOpen) return undefined;
 
@@ -38,15 +40,21 @@ export default function ActivityModal({
   };
   const activityLabel = activityLabels[formData.activity] || 'Activity';
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!formData.plant || !formData.activity || gardenPlantOptions.length === 0) return;
+    if (isSubmitting || !formData.plant || !formData.activity || gardenPlantOptions.length === 0) return;
 
-    onSubmit({
-      activity: formData.activity,
-      plant: formData.plant,
-      notes: formData.notes
-    });
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit({
+        activity: formData.activity,
+        plant: formData.plant,
+        notes: formData.notes
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -61,7 +69,7 @@ export default function ActivityModal({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
           <div className="space-y-4 overflow-y-auto p-4 sm:p-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -112,14 +120,15 @@ export default function ActivityModal({
           <div className="flex flex-col sm:flex-row gap-3 border-t border-gray-200 bg-gray-50 p-4 sm:p-5">
             <button
               type="submit"
-              disabled={!formData.plant || !formData.activity || gardenPlantOptions.length === 0}
+              disabled={isSubmitting || !formData.plant || !formData.activity || gardenPlantOptions.length === 0}
               className="min-h-11 flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Add Activity
+              {isSubmitting ? 'Adding...' : 'Add Activity'}
             </button>
             <button
               type="button"
               onClick={onClose}
+              disabled={isSubmitting}
               className="min-h-11 flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
             >
               Cancel

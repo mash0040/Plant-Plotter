@@ -2,6 +2,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Save, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+
+const GENERAL_GARDEN_TASK_VALUE = '__whole_garden__';
 
 export default function TaskEditModal({ 
   isOpen, 
@@ -10,7 +13,9 @@ export default function TaskEditModal({
   onSave, 
   onDelete, 
   gardens = [],
-  selectedGarden: currentGarden
+  selectedGarden: currentGarden,
+  plantLibrary = [],
+  isPlantLibraryLoading = false
 }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -27,6 +32,7 @@ export default function TaskEditModal({
   });
   
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const errorRef = useRef(null);
@@ -49,7 +55,10 @@ export default function TaskEditModal({
     { value: 'fertilize', label: 'Fertilize', titleVerb: 'Fertilize' },
     { value: 'prune', label: 'Prune', titleVerb: 'Prune' },
     { value: 'weed', label: 'Weed', titleVerb: 'Weed' },
-    { value: 'harvest', label: 'Harvest', titleVerb: 'Harvest' }
+    { value: 'harvest', label: 'Harvest', titleVerb: 'Harvest' },
+    { value: 'inspect', label: 'Inspect', titleVerb: 'Inspect' },
+    { value: 'treat', label: 'Treat Pest/Disease', titleVerb: 'Treat' },
+    { value: 'other', label: 'Other', titleVerb: 'Plan' }
   ];
 
   const recurringOptions = [
@@ -78,11 +87,28 @@ export default function TaskEditModal({
 
   const getGeneratedTitle = (taskType, plantName) => {
     const taskTypeOption = taskTypeOptions.find(option => option.value === taskType);
-    if (!taskTypeOption || !plantName) return '';
+    const descriptionSummary = formData.description.trim().replace(/\s+/g, ' ').slice(0, 60);
+
+    if (taskType === 'other') {
+      return descriptionSummary ? `Other: ${descriptionSummary}` : 'Other garden task';
+    }
+
+    if (!taskTypeOption) return '';
+
+    if (!plantName) {
+      return taskType === 'plant'
+        ? 'Plant task'
+        : `${taskTypeOption.titleVerb} whole garden`;
+    }
+
     return `${taskTypeOption.titleVerb} ${plantName}`;
   };
 
   const getPlantedItemName = (item) => item?.name || item?.plant_name || item?.plantName || '';
+  const getLibraryPlantName = (item) => item?.name || item?.plant_name || '';
+  const isPlantingTask = formData.task_type === 'plant';
+  const isOtherTask = formData.task_type === 'other';
+  const selectedPlantValue = formData.plant_name || GENERAL_GARDEN_TASK_VALUE;
 
   // Load task data when modal opens
   useEffect(() => {
@@ -122,16 +148,7 @@ export default function TaskEditModal({
     }
   }, [isOpen, task, gardens, currentGarden]);
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     if (error && errorRef.current) {
@@ -143,31 +160,27 @@ export default function TaskEditModal({
     setFormData(prev => ({
       ...prev,
       [field]: value,
-      ...(field === 'garden_id' ? { plant_name: '' } : {})
+      ...(field === 'garden_id' || field === 'task_type' ? { plant_name: '' } : {})
     }));
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSaving || isDeleting) return;
 
     const selectedGardenForTask = gardens.find(g => String(g.id) === String(formData.garden_id)) || currentGarden;
-    const plantOptions = Array.from(
+    const plantedPlantOptions = Array.from(
       new Set((selectedGardenForTask?.plantedItems || []).map(getPlantedItemName).filter(Boolean))
     );
+    const libraryPlantOptions = Array.from(
+      new Set(plantLibrary.map(getLibraryPlantName).filter(Boolean))
+    );
+    const availablePlantOptions = isPlantingTask ? libraryPlantOptions : plantedPlantOptions;
     const generatedTitle = getGeneratedTitle(formData.task_type, formData.plant_name);
-
-    if (!task && plantOptions.length === 0) {
-      setError('Add plants to this garden before creating care tasks.');
-      return;
-    }
 
     if (!formData.garden_id) {
       setError('Please select a garden');
-      return;
-    }
-
-    if (!formData.plant_name || !plantOptions.includes(formData.plant_name)) {
-      setError('Select a plant from this garden.');
       return;
     }
 
@@ -176,8 +189,28 @@ export default function TaskEditModal({
       return;
     }
 
+    if (isPlantingTask && plantLibrary.length === 0) {
+      setError(isPlantLibraryLoading ? 'Plant library is still loading. Please try again in a moment.' : 'Plant library could not be loaded. Please try again.');
+      return;
+    }
+
+    if (isPlantingTask && (!formData.plant_name || !availablePlantOptions.includes(formData.plant_name))) {
+      setError('Select a plant from the plant library.');
+      return;
+    }
+
+    if (!isPlantingTask && !isOtherTask && formData.plant_name && !availablePlantOptions.includes(formData.plant_name)) {
+      setError('Select a plant from this garden, or choose Whole garden / general task.');
+      return;
+    }
+
+    if (isOtherTask && !formData.description.trim()) {
+      setError('Add details for Other tasks so you know what needs to be done.');
+      return;
+    }
+
     if (!formData.due_date) {
-      setError('Due date is required');
+      setError('Due date is required for scheduled tasks.');
       return;
     }
 
@@ -221,23 +254,41 @@ export default function TaskEditModal({
   };
 
   const handleDelete = async () => {
+    if (isDeleting || isSaving) return;
+
+    setIsDeleting(true);
+    setError('');
+
     try {
       await onDelete(task.id);
       onClose();
     } catch (error) {
       console.error('Failed to delete task:', error);
       setError(error.message || 'Failed to delete task');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   if (!isOpen) return null;
 
   const selectedGarden = gardens.find(g => String(g.id) === String(formData.garden_id)) || currentGarden;
-  const plantOptions = Array.from(
+  const plantedPlantOptions = Array.from(
     new Set((selectedGarden?.plantedItems || []).map(getPlantedItemName).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
+  const libraryPlantOptions = Array.from(
+    new Set(plantLibrary.map(getLibraryPlantName).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+  const plantOptions = isPlantingTask ? libraryPlantOptions : plantedPlantOptions;
   const generatedTitle = getGeneratedTitle(formData.task_type, formData.plant_name);
   const isEditingExistingTask = Boolean(task?.id);
+  const showHistoricalPlantOption = formData.plant_name && !plantOptions.includes(formData.plant_name);
+  const plantFieldLabel = isPlantingTask ? 'Plant to Add *' : isOtherTask ? 'Plant' : 'Plant or Area';
+  const plantFieldHelp = isPlantingTask
+    ? 'Choose from the full plant library, even if it is not planted yet.'
+    : isOtherTask
+      ? 'Optional. Leave blank if this task is not plant-specific.'
+      : 'Choose a planted item, or leave as a whole-garden task.';
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
@@ -268,9 +319,9 @@ export default function TaskEditModal({
               <span className="text-sm">{error}</span>
             </div>
           )}
-          {!task && plantOptions.length === 0 && (
+          {!task && !isPlantingTask && !isOtherTask && plantOptions.length === 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              <p>Add plants to this garden before creating care tasks.</p>
+              <p>This garden has no planted items yet. You can still create a whole-garden task.</p>
               {selectedGarden?.id && (
                 <Link
                   href={`/garden?id=${selectedGarden.id}`}
@@ -314,14 +365,20 @@ export default function TaskEditModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description
+                {isOtherTask && <span className="text-red-600"> *</span>}
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 rows="3"
-                placeholder="Detailed description of the task..."
+                placeholder={isOtherTask ? 'Describe the task...' : 'Detailed description of the task...'}
               />
+              {isOtherTask && (
+                <p className="mt-1 text-xs font-medium text-gray-600">
+                  Required for Other tasks.
+                </p>
+              )}
             </div>
           </div>
 
@@ -357,22 +414,37 @@ export default function TaskEditModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Plant *
+                {plantFieldLabel}
               </label>
               <select
-                value={formData.plant_name}
-                onChange={(e) => handleInputChange('plant_name', e.target.value)}
+                value={selectedPlantValue}
+                onChange={(e) => handleInputChange('plant_name', e.target.value === GENERAL_GARDEN_TASK_VALUE ? '' : e.target.value)}
                 className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-                disabled={plantOptions.length === 0}
+                disabled={isPlantingTask ? isPlantLibraryLoading || plantOptions.length === 0 : false}
               >
-                <option value="">Select a plant</option>
+                {isPlantingTask ? (
+                  <option value={GENERAL_GARDEN_TASK_VALUE}>
+                    {isPlantLibraryLoading ? 'Loading plant library...' : 'Select a plant'}
+                  </option>
+                ) : (
+                  <option value={GENERAL_GARDEN_TASK_VALUE}>
+                    {isOtherTask ? 'No specific plant' : 'Whole garden / general task'}
+                  </option>
+                )}
+                {showHistoricalPlantOption && (
+                  <option value={formData.plant_name}>
+                    {formData.plant_name} (saved task value)
+                  </option>
+                )}
                 {plantOptions.map(plantName => (
                   <option key={plantName} value={plantName}>
                     {plantName}
                   </option>
                 ))}
               </select>
+              <p className="mt-1 text-xs font-medium text-gray-600">
+                {plantFieldHelp}
+              </p>
             </div>
           </div>
 
@@ -380,7 +452,7 @@ export default function TaskEditModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Due Date
+                Due Date *
               </label>
               <input
                 type="date"
@@ -521,10 +593,11 @@ export default function TaskEditModal({
                     <button
                       type="button"
                       onClick={handleDelete}
-                      className="flex min-h-11 items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                      disabled={isDeleting}
+                      className="flex min-h-11 items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Delete
+                      {isDeleting ? 'Deleting...' : 'Delete'}
                     </button>
                   </div>
                 </div>
@@ -545,14 +618,15 @@ export default function TaskEditModal({
             <button
               type="button"
               onClick={onClose}
+              disabled={isSaving || isDeleting}
               className="min-h-11 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSaving}
-              className="flex min-h-11 items-center justify-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
+              disabled={isSaving || isDeleting}
+              className="flex min-h-11 items-center justify-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors duration-200"
             >
               {isSaving ? (
                 <>

@@ -11,6 +11,8 @@ export const taskTypes = {
   PRUNE: 'prune',
   WEED: 'weed',
   INSPECT: 'inspect',
+  TREAT: 'treat',
+  OTHER: 'other',
   MAINTENANCE: 'maintenance'
 };
 

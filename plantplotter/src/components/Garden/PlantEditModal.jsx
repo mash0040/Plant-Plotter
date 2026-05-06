@@ -1,6 +1,7 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { X, Save, Trash2, Edit3, AlertCircle, Plus } from 'lucide-react';
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
 export default function PlantEditModal({ 
   isOpen, 
@@ -33,6 +34,8 @@ export default function PlantEditModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [companionPlantsText, setCompanionPlantsText] = useState('');
   const [avoidPlantsText, setAvoidPlantsText] = useState('');
+  const errorRef = useRef(null);
+  useBodyScrollLock(isOpen);
 
   // Categories available for selection
   const categories = [
@@ -121,15 +124,11 @@ export default function PlantEditModal({
     }
   }, [isOpen, plant]);
 
-  // Debug modal state changes
   useEffect(() => {
-    console.log('📊 PlantEditModal state changed:', {
-      isOpen,
-      hasPlant: !!plant,
-      plantName: plant?.name,
-      isNewPlant: isNewPlant
-    });
-  }, [isOpen, plant, isNewPlant]);
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [error]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -214,6 +213,7 @@ export default function PlantEditModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSaving) return;
     
     if (!validateForm()) {
       return;
@@ -273,14 +273,11 @@ export default function PlantEditModal({
   };
 
   // Don't render if not open
-  if (!isOpen) {
-    console.log('Modal not open, not rendering');
-    return null;
-  }
+  if (!isOpen) return null;
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
       style={{ 
         zIndex: 999999,
         position: 'fixed',
@@ -292,13 +289,13 @@ export default function PlantEditModal({
       onClick={handleBackdropClick}
     >
       <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col"
         style={{ zIndex: 1000000 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* FIXED: Header shows correct title */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
               {isNewPlant ? (
                 <Plus className="w-5 h-5 text-green-600" />
@@ -306,7 +303,7 @@ export default function PlantEditModal({
                 <Edit3 className="w-5 h-5 text-green-600" />
               )}
             </div>
-            <h2 className="text-xl font-bold text-gray-800">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800">
               {isNewPlant ? 'Add New Plant' : (isPlaced ? 'Edit Placed Plant' : 'Edit Plant')}
             </h2>
           </div>
@@ -314,7 +311,7 @@ export default function PlantEditModal({
             onClick={() => {
               onClose();
             }}
-            className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 rounded-lg transition-colors"
             type="button"
           >
             <X className="w-5 h-5 text-gray-500" />
@@ -323,14 +320,14 @@ export default function PlantEditModal({
 
         {/* Error Message */}
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
+          <div ref={errorRef} className="mx-4 sm:mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span className="text-sm">{error}</span>
           </div>
         )}
 
         {showDeleteConfirm && (
-          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mx-4 sm:mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-sm font-medium text-red-800">
               {isPlaced ? 'Remove this plant from the garden?' : 'Delete this plant?'}
             </p>
@@ -357,7 +354,7 @@ export default function PlantEditModal({
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 space-y-6" noValidate>
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -623,13 +620,13 @@ export default function PlantEditModal({
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex flex-col gap-3 border-t border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             {(onDelete && !isPlaced && !isNewPlant) && (
               <button
                 type="button"
                 onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="flex min-h-11 items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Plant
@@ -639,7 +636,7 @@ export default function PlantEditModal({
               <button
                 type="button"
                 onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="flex min-h-11 items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
                 Remove from Garden
@@ -647,18 +644,18 @@ export default function PlantEditModal({
             )}
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="min-h-11 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
+              className="flex min-h-11 items-center justify-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg transition-colors duration-200"
             >
               {isSaving ? (
                 <>
