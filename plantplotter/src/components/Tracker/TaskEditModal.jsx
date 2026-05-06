@@ -106,6 +106,14 @@ export default function TaskEditModal({
 
   const getPlantedItemName = (item) => item?.name || item?.plant_name || item?.plantName || '';
   const getLibraryPlantName = (item) => item?.name || item?.plant_name || '';
+  const getGardenPlantCount = (garden) => {
+    const explicitPlantCount = garden?.plantCount ?? garden?.plant_count;
+    if (explicitPlantCount !== undefined && explicitPlantCount !== null) {
+      return Number(explicitPlantCount) || 0;
+    }
+
+    return garden?.plantedItems?.length || 0;
+  };
   const isPlantingTask = formData.task_type === 'plant';
   const isOtherTask = formData.task_type === 'other';
   const selectedPlantValue = formData.plant_name || GENERAL_GARDEN_TASK_VALUE;
@@ -181,6 +189,11 @@ export default function TaskEditModal({
 
     if (!formData.garden_id) {
       setError('Please select a garden');
+      return;
+    }
+
+    if (!task && selectedGardenForTask && getGardenPlantCount(selectedGardenForTask) === 0) {
+      setError('Add plants to this garden before creating care tasks.');
       return;
     }
 
@@ -282,6 +295,8 @@ export default function TaskEditModal({
   const plantOptions = isPlantingTask ? libraryPlantOptions : plantedPlantOptions;
   const generatedTitle = getGeneratedTitle(formData.task_type, formData.plant_name);
   const isEditingExistingTask = Boolean(task?.id);
+  const selectedGardenHasPlants = !selectedGarden || getGardenPlantCount(selectedGarden) > 0;
+  const isNoPlantGardenBlocked = !isEditingExistingTask && selectedGarden && !selectedGardenHasPlants;
   const showHistoricalPlantOption = formData.plant_name && !plantOptions.includes(formData.plant_name);
   const plantFieldLabel = isPlantingTask ? 'Plant to Add *' : isOtherTask ? 'Plant' : 'Plant or Area';
   const plantFieldHelp = isPlantingTask
@@ -319,9 +334,9 @@ export default function TaskEditModal({
               <span className="text-sm">{error}</span>
             </div>
           )}
-          {!task && !isPlantingTask && !isOtherTask && plantOptions.length === 0 && (
+          {isNoPlantGardenBlocked && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              <p>This garden has no planted items yet. You can still create a whole-garden task.</p>
+              <p>Add plants to this garden before creating care tasks.</p>
               {selectedGarden?.id && (
                 <Link
                   href={`/garden?id=${selectedGarden.id}`}
@@ -420,7 +435,7 @@ export default function TaskEditModal({
                 value={selectedPlantValue}
                 onChange={(e) => handleInputChange('plant_name', e.target.value === GENERAL_GARDEN_TASK_VALUE ? '' : e.target.value)}
                 className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={isPlantingTask ? isPlantLibraryLoading || plantOptions.length === 0 : false}
+                disabled={isNoPlantGardenBlocked || (isPlantingTask ? isPlantLibraryLoading || plantOptions.length === 0 : false)}
               >
                 {isPlantingTask ? (
                   <option value={GENERAL_GARDEN_TASK_VALUE}>
@@ -625,7 +640,7 @@ export default function TaskEditModal({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSaving || isDeleting}
+              disabled={isSaving || isDeleting || isNoPlantGardenBlocked}
               className="flex min-h-11 items-center justify-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors duration-200"
             >
               {isSaving ? (
