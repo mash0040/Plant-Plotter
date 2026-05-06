@@ -444,18 +444,19 @@ function GardenDetailPageContent() {
       {/* Header */}
       <div className="bg-white/70 backdrop-blur-sm border-b border-green-100 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <Link
                 href="/gardens"
                 className="p-2 hover:bg-green-50 rounded-lg transition-colors flex-shrink-0"
+                aria-label="Back to gardens"
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
               </Link>
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate">{garden.name}</h1>
-                <div className="flex items-center gap-2 sm:gap-4 mt-1">
-                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
+                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 min-w-0">
                     <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                     <span className="truncate">{garden.location}</span>
                   </div>
@@ -502,7 +503,7 @@ function GardenDetailPageContent() {
                 <div
                   data-garden-actions-menu
                   role="menu"
-                  className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-green-100 bg-white shadow-lg z-40 overflow-hidden"
+                  className="absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-lg border border-green-100 bg-white shadow-lg z-40 overflow-hidden"
                 >
                   <button
                     type="button"
@@ -541,7 +542,7 @@ function GardenDetailPageContent() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-lg border border-white/50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="mb-2 sm:mb-0">
@@ -606,14 +607,14 @@ function GardenDetailPageContent() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    className={`flex min-h-11 items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                       activeTab === tab.id
                         ? 'border-green-500 text-green-600 bg-green-50/50'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span>{tab.label}</span>
                   </button>
                 );
               })}
@@ -630,7 +631,7 @@ function GardenDetailPageContent() {
                     <div className="lg:col-span-2 rounded-lg bg-white p-4 border border-gray-100">
                       <h4 className="font-medium text-gray-800 mb-2">Description</h4>
                       {garden.description?.trim() ? (
-                        <p className="text-sm leading-6 text-gray-700 whitespace-pre-line">
+                        <p className="text-sm leading-6 text-gray-700 whitespace-pre-line break-words">
                           {garden.description.trim()}
                         </p>
                       ) : (
@@ -642,17 +643,17 @@ function GardenDetailPageContent() {
                       <div className="bg-green-50 rounded-lg p-4">
                         <h4 className="font-medium text-green-800 mb-2">Basic Information</h4>
                         <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
+                          <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Location:</span>
-                            <span className="text-gray-800 truncate ml-2">{garden.location}</span>
+                            <span className="min-w-0 text-right text-gray-800 break-words">{garden.location}</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Status:</span>
-                            <span className="text-gray-800">{garden.status}</span>
+                            <span className="text-right text-gray-800">{garden.status}</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Soil Type:</span>
-                            <span className="text-gray-800">{garden.soil_type}</span>
+                            <span className="text-right text-gray-800">{garden.soil_type}</span>
                           </div>
                         </div>
                       </div>
@@ -662,17 +663,17 @@ function GardenDetailPageContent() {
                       <div className="bg-blue-50 rounded-lg p-4">
                         <h4 className="font-medium text-blue-800 mb-2">Dimensions</h4>
                         <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
+                          <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Width:</span>
-                            <span className="text-gray-800">{garden.dimensions?.width || garden.width}m</span>
+                            <span className="text-right text-gray-800">{garden.dimensions?.width || garden.width}m</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Height:</span>
-                            <span className="text-gray-800">{garden.dimensions?.height || garden.height}m</span>
+                            <span className="text-right text-gray-800">{garden.dimensions?.height || garden.height}m</span>
                           </div>
-                          <div className="flex justify-between">
+                          <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Total Garden Area:</span>
-                            <span className="text-gray-800">
+                            <span className="text-right text-gray-800">
                               {((garden.dimensions?.width || garden.width) * (garden.dimensions?.height || garden.height)).toFixed(1)} sq m
                             </span>
                           </div>
@@ -686,25 +687,25 @@ function GardenDetailPageContent() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                           <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Created:</span>
-                            <span className="text-gray-800">
+                            <span className="text-right text-gray-800">
                               {garden.created_at ? new Date(garden.created_at).toLocaleDateString() : 'Unknown'}
                             </span>
                           </div>
                           <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Last Updated:</span>
-                            <span className="text-gray-800">
+                            <span className="text-right text-gray-800">
                               {garden.updated_at ? new Date(garden.updated_at).toLocaleDateString() : 'Unknown'}
                             </span>
                           </div>
                           <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Plant Count:</span>
-                            <span className="text-gray-800">
+                            <span className="text-right text-gray-800">
                               {garden.plantedItems?.length || 0} {(garden.plantedItems?.length || 0) === 1 ? 'plant' : 'plants'}
                             </span>
                           </div>
                           <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Total Garden Area:</span>
-                            <span className="text-gray-800">
+                            <span className="text-right text-gray-800">
                               {((garden.dimensions?.width || garden.width) * (garden.dimensions?.height || garden.height)).toFixed(1)} sq m
                             </span>
                           </div>
@@ -719,7 +720,7 @@ function GardenDetailPageContent() {
                     <h4 className="font-medium text-gray-800 mb-4">Recent Plants Added</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {sortedPlantedItems.slice(0, 6).map((plant, index) => (
-                        <div key={index} className="bg-gray-50 rounded-lg p-4 flex items-center gap-3">
+                        <div key={index} className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 min-w-0">
                           <span className="text-2xl flex-shrink-0">{plant.emoji || '🌱'}</span>
                           <div className="min-w-0">
                             <p className="font-medium text-gray-800 truncate">{plant.name}</p>
@@ -741,7 +742,7 @@ function GardenDetailPageContent() {
                   <h3 className="text-lg font-semibold text-gray-800">Plants in Garden</h3>
                   <button
                     onClick={handleOpenGardenPlanner}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
+                    className="min-h-11 justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
                   >
                     <Leaf className="w-4 h-4" />
                     Manage Plants
@@ -751,7 +752,7 @@ function GardenDetailPageContent() {
                 {sortedPlantedItems.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {sortedPlantedItems.map((plant, index) => (
-                      <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
+                      <div key={index} className="bg-white rounded-lg border border-gray-200 p-4 min-w-0">
                         <div className="flex items-center gap-3 mb-3">
                           <span className="text-3xl flex-shrink-0">{plant.emoji || '🌱'}</span>
                           <div className="min-w-0">
@@ -759,10 +760,10 @@ function GardenDetailPageContent() {
                             <p className="text-sm text-gray-600">{getPlantSizeLabel(plant)}</p>
                           </div>
                         </div>
-                        <div className="space-y-1 text-sm text-gray-600">
+                        <div className="space-y-1 text-sm text-gray-600 break-words">
                           <p>{getPlantPositionLabel(plant)}</p>
                           <p>Planted: {plant.plantedDate ? new Date(plant.plantedDate).toLocaleDateString() : 'Unknown'}</p>
-                          {plant.notes && <p className="truncate">Notes: {plant.notes}</p>}
+                          {plant.notes && <p>Notes: {plant.notes}</p>}
                         </div>
                       </div>
                     ))}
@@ -792,7 +793,7 @@ function GardenDetailPageContent() {
                 {garden.plantedItems && garden.plantedItems.length > 0 ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     {/* Plant Categories */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 min-w-0">
                       <h4 className="font-semibold text-gray-800 mb-4">Plant Categories</h4>
                       <div className="space-y-3">
                         {(() => {
@@ -803,8 +804,8 @@ function GardenDetailPageContent() {
                           }, {});
                           
                           return Object.entries(categories).map(([category, count]) => (
-                            <div key={category} className="flex items-center justify-between">
-                              <span className="text-gray-600 capitalize text-sm">{category}</span>
+                            <div key={category} className="flex items-center justify-between gap-3">
+                              <span className="min-w-0 text-gray-600 capitalize text-sm break-words">{category}</span>
                               <div className="flex items-center gap-2">
                                 <div className="w-16 sm:w-20 bg-gray-200 rounded-full h-2">
                                   <div 
@@ -821,7 +822,7 @@ function GardenDetailPageContent() {
                     </div>
 
                     {/* Space Utilization */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 min-w-0">
                       <h4 className="font-semibold text-gray-800 mb-4">Space Utilization</h4>
                       <div className="space-y-3">
                         {(() => {
@@ -831,7 +832,7 @@ function GardenDetailPageContent() {
                           
                           return (
                             <div>
-                              <div className="flex justify-between items-center mb-2">
+                              <div className="flex justify-between items-center gap-3 mb-2">
                                 <span className="text-gray-600 text-sm">Garden Space Used</span>
                                 <span className="text-sm font-medium text-gray-800">
                                   {utilizationPercent.toFixed(1)}%
@@ -854,16 +855,16 @@ function GardenDetailPageContent() {
 
 
                     {/* Recent Plantings */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 min-w-0">
                       <h4 className="font-semibold text-gray-800 mb-4">Recent Plantings</h4>
                       <div className="space-y-3">
                         {sortedPlantedItems
                           .slice(0, 5)
                           .map((plant, index) => (
-                          <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                          <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 rounded min-w-0">
                             <span className="text-lg">{plant.emoji || '🌱'}</span>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-800">{plant.name}</p>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 break-words">{plant.name}</p>
                               <p className="text-xs text-gray-600">
                                 {plant.plantedDate ? new Date(plant.plantedDate).toLocaleDateString() : 'Unknown date'}
                               </p>
@@ -900,11 +901,11 @@ function GardenDetailPageContent() {
                 {garden.plantedItems && garden.plantedItems.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
                     {companionData.groups.map(({ plantedItem, companions, avoid, hasData }) => (
-                      <div key={plantedItem.id || plantedItem.name} className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                        <div className="flex items-center gap-3 mb-4">
+                      <div key={plantedItem.id || plantedItem.name} className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 min-w-0">
+                        <div className="flex items-center gap-3 mb-4 min-w-0">
                           <span className="text-2xl">{plantedItem.emoji || 'Plant'}</span>
-                          <div>
-                            <h4 className="font-semibold text-gray-800">{plantedItem.name}</h4>
+                          <div className="min-w-0">
+                            <h4 className="font-semibold text-gray-800 break-words">{plantedItem.name}</h4>
                             <p className="text-xs text-gray-500 capitalize">{getPlantCategory(plantedItem)}</p>
                           </div>
                         </div>
@@ -921,10 +922,10 @@ function GardenDetailPageContent() {
                               {companions.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   {companions.map((plant) => (
-                                    <div key={plant.id} className="bg-green-50 rounded-lg p-3 flex items-center gap-2">
+                                    <div key={plant.id} className="bg-green-50 rounded-lg p-3 flex items-center gap-2 min-w-0">
                                       <span className="text-xl">{plant.emoji}</span>
                                       <div className="min-w-0">
-                                        <p className="text-sm font-medium text-gray-800 truncate">{plant.name}</p>
+                                        <p className="text-sm font-medium text-gray-800 break-words">{plant.name}</p>
                                         <p className="text-xs text-gray-600 capitalize">{plant.category || plant.type}</p>
                                       </div>
                                     </div>
@@ -943,10 +944,10 @@ function GardenDetailPageContent() {
                               {avoid.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   {avoid.map((plant) => (
-                                    <div key={plant.id} className="bg-orange-50 rounded-lg p-3 flex items-center gap-2">
+                                    <div key={plant.id} className="bg-orange-50 rounded-lg p-3 flex items-center gap-2 min-w-0">
                                       <span className="text-xl">{plant.emoji}</span>
                                       <div className="min-w-0">
-                                        <p className="text-sm font-medium text-gray-800 truncate">{plant.name}</p>
+                                        <p className="text-sm font-medium text-gray-800 break-words">{plant.name}</p>
                                         <p className="text-xs text-gray-600 capitalize">{plant.category || plant.type}</p>
                                       </div>
                                     </div>

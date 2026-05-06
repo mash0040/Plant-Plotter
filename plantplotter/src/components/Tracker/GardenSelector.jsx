@@ -5,7 +5,7 @@ import { Leaf } from 'lucide-react';
 
 export default function GardenSelector({ gardens, selectedGarden, onGardenSelect }) {
   return (
-    <div className="relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
+    <div className="relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/50">
       {/* Decorative elements */}
       <div className="absolute top-10 left-10 opacity-10 pointer-events-none">
         <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
@@ -23,14 +23,14 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
             <button
               key={garden.id}
               onClick={() => onGardenSelect(garden)}
-              className={`relative z-10 w-full p-3 rounded-xl text-left cursor-pointer transition-all duration-200 flex items-center gap-3 ${
+              className={`relative z-10 flex min-h-16 w-full cursor-pointer items-start gap-3 rounded-xl p-3 text-left transition-all duration-200 ${
                 isSelected
                   ? 'bg-green-100 border-2 border-green-300 shadow-md transform scale-[1.02]'
                   : 'bg-white/80 border border-gray-200 hover:bg-green-50 hover:border-green-200 hover:shadow-sm'
               }`}
             >
               {/* Garden Icon */}
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                 isSelected ? 'bg-green-200' : 'bg-gray-100'
               }`}>
                 <Leaf className={`w-5 h-5 ${isSelected ? 'text-green-700' : 'text-green-600'}`} />
@@ -64,7 +64,7 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
               
               {/* Status indicator */}
               {garden.status && (
-                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                <div className={`mt-0.5 flex-shrink-0 whitespace-nowrap px-2 py-1 rounded-full text-xs font-medium ${
                   garden.status === 'Active' 
                     ? 'bg-green-100 text-green-700'
                     : garden.status === 'Planning'

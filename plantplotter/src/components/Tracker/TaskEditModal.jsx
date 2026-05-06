@@ -240,28 +240,28 @@ export default function TaskEditModal({
   const isEditingExistingTask = Boolean(task?.id);
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-green-50">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-green-50">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
               <Calendar className="w-5 h-5 text-blue-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-800">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800">
               {task ? 'Edit Task' : 'Create New Task'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6" noValidate>
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6" noValidate>
           {error && (
             <div ref={errorRef} className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
@@ -288,7 +288,7 @@ export default function TaskEditModal({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Task
               </label>
-              <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900">
+              <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900 break-words">
                 {generatedTitle || 'Select a task type and plant'}
               </div>
             </div>
@@ -300,7 +300,7 @@ export default function TaskEditModal({
               <select
                 value={formData.task_type}
                 onChange={(e) => handleInputChange('task_type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
                 {taskTypeOptions.map(option => (
@@ -333,8 +333,8 @@ export default function TaskEditModal({
               </label>
               {isEditingExistingTask ? (
                 <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2">
-                  <div className="font-medium text-green-800">{selectedGarden?.name || 'Selected garden'}</div>
-                  <div className="text-sm text-green-600">
+                  <div className="font-medium text-green-800 break-words">{selectedGarden?.name || 'Selected garden'}</div>
+                  <div className="text-sm text-green-700">
                     Task remains tied to this garden.
                   </div>
                 </div>
@@ -342,7 +342,7 @@ export default function TaskEditModal({
               <select
                 value={formData.garden_id}
                 onChange={(e) => handleInputChange('garden_id', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
                 <option value="">Select a garden</option>
@@ -362,7 +362,7 @@ export default function TaskEditModal({
               <select
                 value={formData.plant_name}
                 onChange={(e) => handleInputChange('plant_name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
                 disabled={plantOptions.length === 0}
               >
@@ -386,7 +386,7 @@ export default function TaskEditModal({
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => handleInputChange('due_date', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -398,7 +398,7 @@ export default function TaskEditModal({
                 type="number"
                 value={formData.estimated_duration}
                 onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="e.g., 30"
                 min="1"
               />
@@ -414,7 +414,7 @@ export default function TaskEditModal({
               <select
                 value={formData.priority}
                 onChange={(e) => handleInputChange('priority', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 {priorityOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -464,7 +464,7 @@ export default function TaskEditModal({
             <select
               value={formData.recurring_pattern}
               onChange={(e) => handleInputChange('recurring_pattern', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {recurringOptions.map(option => (
                 <option key={option.value} value={option.value}>
@@ -493,8 +493,8 @@ export default function TaskEditModal({
             <div className="p-3 bg-green-50 rounded-lg border border-green-200">
               <div className="flex items-center gap-2">
                 <div>
-                  <div className="font-medium text-green-800">{selectedGarden.name}</div>
-                  <div className="text-sm text-green-600">
+                  <div className="font-medium text-green-800 break-words">{selectedGarden.name}</div>
+                  <div className="text-sm text-green-700 break-words">
                     {selectedGarden.location} - {selectedGarden.plantCount || 0} plants
                   </div>
                 </div>
@@ -504,24 +504,24 @@ export default function TaskEditModal({
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6 border-t border-gray-200 bg-gray-50">
           <div>
             {task && onDelete && (
               showDeleteConfirm ? (
                 <div className="space-y-2">
                   <p className="text-sm text-red-700">Delete this task? This cannot be undone.</p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <button
                       type="button"
                       onClick={() => setShowDeleteConfirm(false)}
-                      className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="min-h-11 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleDelete}
-                      className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                      className="flex min-h-11 items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                       Delete
@@ -532,7 +532,7 @@ export default function TaskEditModal({
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="flex min-h-11 items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete Task
@@ -541,18 +541,18 @@ export default function TaskEditModal({
             )}
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="min-h-11 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
+              className="flex min-h-11 items-center justify-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
             >
               {isSaving ? (
                 <>

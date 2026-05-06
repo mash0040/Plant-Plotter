@@ -205,28 +205,28 @@ export default function ActivityEditModal({
   const isEditingExistingActivity = Boolean(activity?.id);
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
               <Activity className="w-5 h-5 text-green-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-800">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800">
               {activity ? 'Edit Activity' : 'Add New Activity'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         {/* Form */}
-        <form ref={formRef} onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {error && (
             <div ref={errorRef} className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800">
               <span className="text-sm">{error}</span>
@@ -241,7 +241,7 @@ export default function ActivityEditModal({
               <select
                 value={formData.garden_id}
                 onChange={(e) => handleInputChange('garden_id', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 required
               >
                 <option value="">Select a garden</option>
@@ -262,8 +262,8 @@ export default function ActivityEditModal({
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center gap-2">
                     <div>
-                  <div className="font-medium text-green-800">{gardenForActivity.name}</div>
-                  <div className="text-sm text-green-600">
+                  <div className="font-medium text-green-800 break-words">{gardenForActivity.name}</div>
+                  <div className="text-sm text-green-700 break-words">
                     {gardenForActivity.location} - {gardenForActivity.plantCount || 0} plants
                   </div>
                 </div>
@@ -279,7 +279,7 @@ export default function ActivityEditModal({
             <select
               value={formData.activity_type}
               onChange={(e) => handleInputChange('activity_type', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               required
             >
               <option value="">Select activity type</option>
@@ -302,7 +302,7 @@ export default function ActivityEditModal({
             <select
               value={formData.plant_name}
               onChange={(e) => handleInputChange('plant_name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-2"
+              className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent mb-2"
               required
               disabled={plantOptions.length === 0}
             >
@@ -343,7 +343,7 @@ export default function ActivityEditModal({
               type="date"
               value={formData.activity_date}
               onChange={(e) => handleInputChange('activity_date', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               required
             />
             {fieldErrors.activity_date && (
@@ -367,7 +367,7 @@ export default function ActivityEditModal({
         </form>
 
         {/* Footer */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
           <div>
             {activity && onDelete && (
               showDeleteConfirm ? (
@@ -377,14 +377,14 @@ export default function ActivityEditModal({
                     <button
                       type="button"
                       onClick={() => setShowDeleteConfirm(false)}
-                      className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="min-h-11 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleDelete}
-                      className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                      className="flex min-h-11 items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                       Delete
@@ -395,7 +395,7 @@ export default function ActivityEditModal({
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="flex min-h-11 items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete Activity
@@ -408,14 +408,14 @@ export default function ActivityEditModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="min-h-11 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={isSaving || plantOptions.length === 0}
-              className="flex items-center justify-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
+              className="flex min-h-11 items-center justify-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
             >
               {isSaving ? (
                 <>

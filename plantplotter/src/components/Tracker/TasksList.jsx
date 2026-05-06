@@ -62,27 +62,27 @@ export default function TasksList({
           {showAddButton && onTaskAdd && (
             <button 
               onClick={onTaskAdd}
-              className="p-1 bg-blue-100 hover:bg-blue-200 rounded-full transition-colors"
+              className="flex h-9 w-9 items-center justify-center bg-blue-100 hover:bg-blue-200 rounded-full transition-colors"
               title="Add new task"
             >
-              <Plus className="w-3 h-3 text-blue-600" />
+              <Plus className="w-4 h-4 text-blue-600" />
             </button>
           )}
         </div>
       </div>
       <div className="space-y-3">
         {tasks.map(task => (
-          <div key={task.id} className="group flex items-start space-x-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <div key={task.id} className="group flex items-start space-x-3 p-3 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             {showCheckboxes ? (
               <input 
                 type="checkbox" 
-                className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 mt-0.5" 
+                className="w-6 h-6 rounded border-gray-300 text-green-600 focus:ring-green-500 mt-0.5 flex-shrink-0" 
                 onChange={() => onTaskComplete && onTaskComplete(task.id)}
               />
             ) : (
               <button
                 onClick={() => onTaskComplete && onTaskComplete(task.id)}
-                className="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors border-gray-300 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900 mt-0.5 flex-shrink-0 group"
+                className="w-6 h-6 rounded border-2 flex items-center justify-center transition-colors border-gray-300 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900 mt-0.5 flex-shrink-0 group"
                 title="Complete task"
               >
                 <Check className="w-3 h-3 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -90,17 +90,17 @@ export default function TasksList({
             )}
             
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 dark:text-white text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 dark:text-white text-sm break-words">
                     {task.title || task.task}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 break-words">
                     {[task.plant, task.description].filter(Boolean).join(' - ')}
                   </div>
                   
                   {/* Task metadata */}
-                  <div className="flex items-center space-x-2 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     {task.priority && (
                       <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityColor(task.priority)}`}>
                         {task.priority}
@@ -122,7 +122,7 @@ export default function TasksList({
                   </div>
                   
                   {task.isRecurring && (
-                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 break-words">
                       Recurring ({task.recurringPattern?.replace('-', ' ')})
                     </div>
                   )}
@@ -132,10 +132,10 @@ export default function TasksList({
                   {showEditButtons && onTaskEdit && (
                     <button
                       onClick={() => onTaskEdit(task)}
-                      className="p-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors opacity-0 group-hover:opacity-100"
+                      className="flex h-9 w-9 items-center justify-center bg-gray-100 hover:bg-gray-200 rounded transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                       title="Edit task"
                     >
-                      <Edit3 className="w-3 h-3 text-gray-600" />
+                      <Edit3 className="w-4 h-4 text-gray-600" />
                     </button>
                   )}
                   {task.urgent && (
