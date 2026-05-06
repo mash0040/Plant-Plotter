@@ -19,7 +19,7 @@ export default function LoginPage() {
       src: "/Garden_Planner.png",
       alt: "Garden Planner Interface",
       title: "Design Your Garden",
-      description: "Drag and drop plants to create your perfect garden layout"
+      description: "Plan garden layouts with companion guidance and spacing"
     },
     {
       src: "/My_Garden.png", 
@@ -159,11 +159,11 @@ export default function LoginPage() {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Leaf className="w-8 h-8 text-green-600" />
                 </div>
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome</h2>
-                <p className="text-gray-600">Sign in or create an account to start planning your garden</p>
+                <h2 className="text-3xl font-bold text-gray-800 mb-2">Sign In</h2>
+                <p className="text-gray-600">Welcome back. Sign in to continue planning your garden.</p>
               </div>
 
-              <AuthForm />
+              <AuthForm initialMode="login" />
             </div>
           </div>
         </div>

@@ -91,7 +91,7 @@ export default function Navbar() {
   // Get navigation items based on authentication status
   const navItems = user ? authenticatedNavItems : publicNavItems;
   const displayName = getDisplayName(user);
-  const isAuthPage = ['/login', '/forgot-password', '/reset-password'].includes(pathname);
+  const isAuthPage = ['/login', '/create-account', '/forgot-password', '/reset-password'].includes(pathname);
   const isLandingPage = pathname === '/';
   const showMobileMenuButton = Boolean(user) || (!isAuthPage && !isLandingPage);
   const publicActionHref = isAuthPage ? '/' : '/login';

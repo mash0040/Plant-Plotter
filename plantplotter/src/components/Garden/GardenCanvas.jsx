@@ -10,7 +10,8 @@ export default function GardenCanvas({
   placedPlants,
   onPlantRemove,
   placementPreview,
-  isPlantLibraryOpen = false
+  isPlantLibraryOpen = false,
+  disablePlantDragging = false
 }) {
   const { setNodeRef } = useDroppable({
     id: 'garden-canvas',
@@ -120,6 +121,7 @@ export default function GardenCanvas({
                 gridSize={gridSize}
                 isPlaced={true}
                 onRemove={() => onPlantRemove(plant.id)}
+                disableDrag={disablePlantDragging}
               />
             ))}
 

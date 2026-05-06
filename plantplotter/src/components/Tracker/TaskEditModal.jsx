@@ -186,6 +186,14 @@ export default function TaskEditModal({
       return;
     }
 
+    if (formData.estimated_duration) {
+      const estimatedDuration = Number(formData.estimated_duration);
+      if (!Number.isInteger(estimatedDuration) || estimatedDuration < 1) {
+        setError('Estimated duration must be a whole number of minutes.');
+        return;
+      }
+    }
+
     setIsSaving(true);
     setError('');
 
@@ -198,7 +206,7 @@ export default function TaskEditModal({
         plant_name: formData.plant_name,
         task_type: formData.task_type,
         due_date: formData.due_date || null,
-        estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration) : null,
+        estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration, 10) : null,
         status: task ? formData.status : 'pending'
       };
 
@@ -253,7 +261,7 @@ export default function TaskEditModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6" noValidate>
           {error && (
             <div ref={errorRef} className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
