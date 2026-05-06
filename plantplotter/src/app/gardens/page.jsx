@@ -246,6 +246,8 @@ function AllGardensContent() {
             
             localGardens[gardenIndex] = savedGarden;
             localStorage.setItem('gardens', JSON.stringify(localGardens));
+          } else {
+            throw error;
           }
         }
         

@@ -3,6 +3,8 @@ const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 
+const allowedTaskTypes = ['water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'treat', 'other', 'maintenance'];
+
 // GET /api/tasks
 router.get('/', verifyToken, async (req, res) => {
   try {
@@ -53,6 +55,10 @@ router.post('/', verifyToken, async (req, res) => {
         error: 'title, garden_id, and due_date are required',
         received: { title, garden_id, due_date }
       });
+    }
+
+    if (task_type && !allowedTaskTypes.includes(task_type)) {
+      return res.status(400).json({ error: 'Invalid task type' });
     }
 
     // Verify garden belongs to user
@@ -116,8 +122,6 @@ router.put('/:id', verifyToken, async (req, res) => {
       notes
     } = req.body;
     const allowedStatuses = ['pending', 'completed', 'cancelled', 'overdue'];
-    const allowedTaskTypes = ['water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'maintenance'];
-
     if (!title || !due_date) {
       return res.status(400).json({ error: 'title and due_date are required' });
     }

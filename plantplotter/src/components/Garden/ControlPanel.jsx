@@ -186,7 +186,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           <div className="flex items-center justify-between gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200 sm:justify-start">
             <button
               onClick={onToggleGrid}
-              className={`min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
+              className={`min-h-9 px-3 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center justify-center gap-1 text-xs font-medium transition-colors ${
                 showGrid 
                   ? 'bg-green-100 hover:bg-green-200 text-green-700' 
                   : 'hover:bg-gray-100 text-gray-600'
@@ -220,7 +220,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
               title="Save garden"
             >
               <Save className="w-4 h-4" />
-              <span className="hidden sm:inline">{saveLabel}</span>
+              <span className="whitespace-nowrap">{saveLabel}</span>
             </button>
           </div>
 

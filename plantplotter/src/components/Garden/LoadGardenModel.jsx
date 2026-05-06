@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
 export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const [gardens, setGardens] = useState([]);
@@ -10,6 +11,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const [gardenPendingDelete, setGardenPendingDelete] = useState(null);
   const [deleteError, setDeleteError] = useState('');
   const [loadError, setLoadError] = useState('');
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     if (isOpen) {
@@ -96,11 +98,11 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-4 sm:p-6 w-[600px] max-w-[90vw] max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-white rounded-lg p-4 sm:p-6 w-[600px] max-w-[90vw] max-h-[calc(100vh-1.5rem)] sm:max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Load Garden</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900">Load Garden</h3>
+          <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -136,14 +138,14 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
               <div
                 key={garden.id}
                 onClick={() => handleLoad(garden)}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between transition-colors"
+                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between gap-3 transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-gray-900 truncate">{garden.name}</h4>
-                  <div className="text-sm text-gray-600 mt-1">
+                  <div className="text-sm text-gray-700 mt-1">
                     {garden.dimensions?.width || garden.width}×{garden.dimensions?.height || garden.height} units • {garden.plantedItems?.length || 0} plants
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mt-2">
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {new Date(garden.updatedAt || garden.createdAt).toLocaleDateString()}
@@ -158,7 +160,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
                 </div>
                 <button
                   onClick={(e) => handleDelete(garden.id, e)}
-                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors ml-4"
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

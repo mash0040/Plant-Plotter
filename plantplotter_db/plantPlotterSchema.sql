@@ -107,7 +107,7 @@ CREATE TABLE garden_tasks (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     plant_name VARCHAR(255),
-    task_type ENUM('water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'maintenance') NOT NULL,
+    task_type ENUM('water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'treat', 'other', 'maintenance') NOT NULL,
     status ENUM('pending', 'completed', 'cancelled', 'overdue') DEFAULT 'pending',
     priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
     due_date DATE NOT NULL,

@@ -1143,7 +1143,7 @@ function GardenPlannerPageContent() {
             gardenName={safeGardenName}
             onBackClick={handleBackToGarden}
             backLabel="Choose another garden"
-            saveLabel={isSavingLayout ? 'Saving...' : 'Save Changes'}
+            saveLabel={isSavingLayout ? 'Saving...' : 'Save Layout'}
           />
 
           {(layoutSaveMessage || layoutSaveError) && (

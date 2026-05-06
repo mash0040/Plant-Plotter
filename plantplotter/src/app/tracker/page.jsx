@@ -13,6 +13,7 @@ import TaskEditModal from '@/components/Tracker/TaskEditModal';
 import ActivityEditModal from '@/components/Tracker/ActivityEditModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useWeather } from '@/hooks/useWeather'; 
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 import apiClient from '@/lib/api';
 
 function TrackingPageContent() {
@@ -42,6 +43,8 @@ function TrackingPageContent() {
   const [taskSuccess, setTaskSuccess] = useState('');
   const [activityError, setActivityError] = useState('');
   const [activitySuccess, setActivitySuccess] = useState('');
+  const [taskPlantLibrary, setTaskPlantLibrary] = useState([]);
+  const [isTaskPlantLibraryLoading, setIsTaskPlantLibraryLoading] = useState(false);
   const trackerMessageRef = useRef(null);
   
   // Edit modal states
@@ -50,12 +53,14 @@ function TrackingPageContent() {
   const [editingTask, setEditingTask] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
   const [activityToDelete, setActivityToDelete] = useState(null);
+  const [isDeletingActivity, setIsDeletingActivity] = useState(false);
   
   // Weather modal state
   const [showDetailedWeather, setShowDetailedWeather] = useState(false);
   
   // Get weather data for the detailed modal
   const { weatherData } = useWeather();
+  useBodyScrollLock(Boolean(activityToDelete));
 
   useEffect(() => {
     if (!taskSuccess) return undefined;
@@ -574,16 +579,34 @@ function TrackingPageContent() {
     setActivityToDelete(activity);
   };
 
-  const handleConfirmActivityDelete = async () => {
-    if (!activityToDelete) return;
+  const loadTaskPlantLibrary = async () => {
+    if (taskPlantLibrary.length > 0 || isTaskPlantLibraryLoading) return;
 
     try {
+      setIsTaskPlantLibraryLoading(true);
+      const plants = await apiClient.getPlantLibrary();
+      setTaskPlantLibrary(Array.isArray(plants) ? plants : []);
+    } catch (error) {
+      console.error('Failed to load task plant library:', error);
+      setTaskError('Plant library could not be loaded for planting tasks.');
+    } finally {
+      setIsTaskPlantLibraryLoading(false);
+    }
+  };
+
+  const handleConfirmActivityDelete = async () => {
+    if (!activityToDelete || isDeletingActivity) return;
+
+    try {
+      setIsDeletingActivity(true);
       setActivityError('');
       setActivitySuccess('');
       await handleActivityDelete(activityToDelete);
       setActivityToDelete(null);
     } catch (error) {
       setActivityError('Failed to delete activity. Please try again.');
+    } finally {
+      setIsDeletingActivity(false);
     }
   };
 
@@ -593,6 +616,7 @@ function TrackingPageContent() {
     setTaskSuccess('');
     setEditingTask(task);
     setShowTaskEditModal(true);
+    loadTaskPlantLibrary();
   };
 
   const handleTaskAdd = () => {
@@ -600,6 +624,7 @@ function TrackingPageContent() {
     setTaskSuccess('');
     setEditingTask(null);
     setShowTaskEditModal(true);
+    loadTaskPlantLibrary();
   };
 
   const handleTaskSave = async (taskData) => {
@@ -845,6 +870,8 @@ function TrackingPageContent() {
         onDelete={editingTask?.id ? handleTaskDelete : null}
         gardens={gardens}
         selectedGarden={selectedGarden}
+        plantLibrary={taskPlantLibrary}
+        isPlantLibraryLoading={isTaskPlantLibraryLoading}
       />
 
       {/* Activity Edit Modal */}
@@ -873,6 +900,7 @@ function TrackingPageContent() {
               <button
                 type="button"
                 onClick={() => setActivityToDelete(null)}
+                disabled={isDeletingActivity}
                 className="min-h-11 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Cancel
@@ -880,9 +908,10 @@ function TrackingPageContent() {
               <button
                 type="button"
                 onClick={handleConfirmActivityDelete}
-                className="min-h-11 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                disabled={isDeletingActivity}
+                className="min-h-11 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-lg transition-colors"
               >
-                Delete Activity
+                {isDeletingActivity ? 'Deleting...' : 'Delete Activity'}
               </button>
             </div>
           </div>

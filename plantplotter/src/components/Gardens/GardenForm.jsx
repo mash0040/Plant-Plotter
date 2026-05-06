@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { X, Save, Leaf } from 'lucide-react';
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
 const getDefaultFormData = () => ({
   name: '',
@@ -38,6 +39,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   const locationInputRef = useRef(null);
   const statusInputRef = useRef(null);
   const formErrorRef = useRef(null);
+  useBodyScrollLock(isOpen);
 
   // Conversion functions
   const metersToFeet = (meters) => (meters * 3.28084).toFixed(2);
@@ -244,6 +246,8 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLoading) return;
+
     setTouchedFields({
       name: true,
       description: true,
@@ -333,8 +337,8 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   const dimensionRange = getDimensionRange();
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -550,7 +554,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>

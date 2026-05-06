@@ -2,6 +2,7 @@
 import React from 'react';
 import { X, Thermometer, Droplets, Wind, Cloud, Eye, Gauge, TrendingUp, TrendingDown, MapPin, Clock, Sun, CloudRain } from 'lucide-react';
 import { getWeatherDescription, getWindDirection } from '@/hooks/useWeather';
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
 // Helper function to determine comfort level
 function getComfortLevel(temp, humidity, windSpeed) {
@@ -140,6 +141,8 @@ function getDetailedGardeningAdvice(weatherData) {
 }
 
 export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
+  useBodyScrollLock(isOpen);
+
   if (!isOpen || !weatherData) return null;
 
   const weather = getWeatherDescription(weatherData.current.weatherCode, weatherData.current.isDay);

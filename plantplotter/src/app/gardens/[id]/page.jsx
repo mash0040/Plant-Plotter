@@ -150,6 +150,8 @@ function GardenDetailPageContent() {
         localStorage.setItem('gardens', JSON.stringify(localGardens));
         setGarden(updatedGarden);
         setSuccessMessage('Garden updated successfully.');
+      } else {
+        throw error;
       }
     }
     
