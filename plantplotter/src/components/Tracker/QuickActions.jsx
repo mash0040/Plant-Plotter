@@ -52,7 +52,7 @@ export default function QuickActions({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
-      <div className="flex flex-col items-left justify-between mb-3">
+      <div className="flex flex-col items-start justify-between mb-3">
         <h3 className="font-semibold text-gray-900 dark:text-white">Quick Log</h3>
         <div className="text-xs text-gray-500 dark:text-gray-400">
           for {selectedGarden.name}
@@ -67,7 +67,7 @@ export default function QuickActions({
               key={action.id}
               onClick={() => onQuickAction(action.id)}
               disabled={disabled}
-              className="flex items-center space-x-3 w-full p-2 text-left rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex min-h-11 items-center space-x-3 w-full rounded-lg p-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               {action.isDiv ? (
                 <div className={`w-4 h-4 ${action.color} rounded`}></div>
@@ -80,7 +80,7 @@ export default function QuickActions({
         })}
       </div>
       {disabled && (
-        <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+        <p className="mt-3 text-xs leading-5 text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
           {helperText}
           {managePlantsHref && (
             <Link

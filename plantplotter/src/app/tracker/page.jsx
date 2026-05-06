@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Sprout } from 'lucide-react';
 import GardenSelector from '@/components/Tracker/GardenSelector';
@@ -42,6 +42,7 @@ function TrackingPageContent() {
   const [taskSuccess, setTaskSuccess] = useState('');
   const [activityError, setActivityError] = useState('');
   const [activitySuccess, setActivitySuccess] = useState('');
+  const trackerMessageRef = useRef(null);
   
   // Edit modal states
   const [showTaskEditModal, setShowTaskEditModal] = useState(false);
@@ -69,6 +70,15 @@ function TrackingPageContent() {
     const timeoutId = setTimeout(() => setActivitySuccess(''), 4000);
     return () => clearTimeout(timeoutId);
   }, [activitySuccess]);
+
+  useEffect(() => {
+    if (!taskError && !taskSuccess && !activityError && !activitySuccess) return;
+
+    trackerMessageRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }, [taskError, taskSuccess, activityError, activitySuccess]);
 
   // Load gardens from the API
   useEffect(() => {
@@ -687,11 +697,44 @@ function TrackingPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900">
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-6">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900">
+      <div className="p-3 sm:p-6 max-w-7xl mx-auto">
+        {(taskError || taskSuccess || activityError || activitySuccess) && (
+          <div
+            ref={trackerMessageRef}
+            className="mb-4 grid gap-2"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {taskError && (
+              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 shadow-sm">
+                {taskError}
+              </div>
+            )}
+
+            {taskSuccess && (
+              <div role="status" className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700 shadow-sm">
+                {taskSuccess}
+              </div>
+            )}
+
+            {activityError && (
+              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 shadow-sm">
+                {activityError}
+              </div>
+            )}
+
+            {activitySuccess && (
+              <div role="status" className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700 shadow-sm">
+                {activitySuccess}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {/* Left Sidebar */}
-          <div className="w-full lg:w-64 space-y-6">
+          <div className="w-full lg:w-64 space-y-4 sm:space-y-6">
             <GardenSelector 
               gardens={gardens}
               selectedGarden={selectedGarden}
@@ -719,44 +762,20 @@ function TrackingPageContent() {
           </div>
 
           {/* Right Sidebar */}
-          <div className="w-full lg:w-80 space-y-6">
+          <div className="w-full lg:w-80 space-y-4 sm:space-y-6">
             {/* Weather Widget - Now clickable for detailed view */}
             <div onClick={() => setShowDetailedWeather(true)} className="cursor-pointer">
               <WeatherWidget />
             </div>
 
-            {taskError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 shadow-sm">
-                {taskError}
-              </div>
-            )}
-
-            {taskSuccess && (
-              <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700 shadow-sm">
-                {taskSuccess}
-              </div>
-            )}
-
-            {activityError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 shadow-sm">
-                {activityError}
-              </div>
-            )}
-
-            {activitySuccess && (
-              <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700 shadow-sm">
-                {activitySuccess}
-              </div>
-            )}
-            
             <div className="rounded-lg bg-white p-4 shadow-lg dark:bg-gray-800">
-              <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="font-semibold text-gray-900 dark:text-white">Care Tasks</h3>
                 <button
                   type="button"
                   onClick={handleTaskAdd}
                   disabled={!hasSelectedGardenPlants}
-                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Create Task
                 </button>
@@ -844,8 +863,8 @@ function TrackingPageContent() {
       />
 
       {activityToDelete && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] overflow-y-auto p-5 sm:p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-2">Delete activity?</h2>
             <p className="text-sm text-gray-600 mb-6">
               This will remove the {activityToDelete.activity || activityToDelete.activity_type} log for {activityToDelete.plant || activityToDelete.plant_name || 'this plant'}. This cannot be undone.
@@ -854,14 +873,14 @@ function TrackingPageContent() {
               <button
                 type="button"
                 onClick={() => setActivityToDelete(null)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="min-h-11 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmActivityDelete}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                className="min-h-11 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
               >
                 Delete Activity
               </button>

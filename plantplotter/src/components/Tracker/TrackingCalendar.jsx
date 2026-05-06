@@ -77,6 +77,18 @@ export default function TrackingCalendar({
     return colorMap[activity] || 'bg-gray-100 text-gray-800';
   };
 
+  const getActivityDotColorClass = (activity) => {
+    const colorMap = {
+      'planted': 'bg-green-500',
+      'watered': 'bg-blue-500',
+      'fertilized': 'bg-yellow-500',
+      'harvested': 'bg-orange-500',
+      'pruned': 'bg-purple-500',
+      'weeded': 'bg-emerald-500'
+    };
+    return colorMap[activity] || 'bg-gray-500';
+  };
+
   const truncatePlantName = (name, maxLength = 8) => {
     if (!name) return 'Unknown';
     if (name.length <= maxLength) return name;
@@ -155,7 +167,7 @@ export default function TrackingCalendar({
       days.push(
         <div
           key={day}
-          className={`p-1 min-h-[80px] border border-gray-200 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors relative ${
+          className={`p-1 min-h-[58px] sm:min-h-[80px] border border-gray-200 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors relative ${
             isSelected ? 'bg-green-100 dark:bg-green-900 border-green-300' : ''
           } ${isToday ? 'ring-2 ring-green-500 ring-inset' : ''}`}
           onClick={() => onDateSelect(dateStr)}
@@ -165,7 +177,30 @@ export default function TrackingCalendar({
           </div>
           
           {calendarItemsCount > 0 && (
-            <div className="space-y-1">
+            <div className="mt-1 flex flex-wrap gap-0.5 sm:hidden" aria-label={`${calendarItemsCount} tracker item${calendarItemsCount === 1 ? '' : 's'}`}>
+              {activities.slice(0, 3).map((activity, idx) => {
+                const activityType = activity.activity || activity.activity_type || 'activity';
+                return (
+                  <span
+                    key={activity.id || `${dateStr}-dot-${idx}`}
+                    className={`h-1.5 w-1.5 rounded-full ${getActivityDotColorClass(activityType)}`}
+                  />
+                );
+              })}
+              {tasks.slice(0, Math.max(0, 3 - activities.slice(0, 3).length)).map((task) => (
+                <span
+                  key={`task-dot-${task.id}`}
+                  className="h-1.5 w-1.5 rounded-full bg-indigo-500"
+                />
+              ))}
+              {calendarItemsCount > 3 && (
+                <span className="text-[10px] font-semibold leading-none text-gray-500">+</span>
+              )}
+            </div>
+          )}
+
+          {calendarItemsCount > 0 && (
+            <div className="hidden space-y-1 sm:block">
               {activities.slice(0, 2).map((activity, idx) => {
                 const plantName = activity.plant || activity.plant_name || 'Unknown';
                 const activityType = activity.activity || activity.activity_type || 'activity';
@@ -243,26 +278,27 @@ export default function TrackingCalendar({
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
             Garden Tracking Calendar
           </h2>
-          <div className="flex items-center space-x-2 relative">
+          <div className="relative flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
             <button 
               onClick={goToPreviousMonth}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Previous month"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             
-            <div className="relative">
+            <div className="relative min-w-0 flex-1 sm:flex-none">
               <button
                 onClick={() => {
                   setTempYear(currentYear);
                   setTempMonth(currentDate.getMonth());
                   setShowMonthYearPicker(!showMonthYearPicker);
                 }}
-                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center space-x-1"
+                className="flex min-h-10 w-full items-center justify-center gap-1 rounded px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors sm:w-auto sm:px-4"
               >
                 <span className="font-medium text-gray-900 dark:text-white">
                   {currentMonth} {currentYear}
@@ -271,7 +307,7 @@ export default function TrackingCalendar({
               </button>
 
               {showMonthYearPicker && (
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 min-w-[280px]">
+                <div className="absolute right-0 top-full mt-2 z-10 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800 sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
                   <div className="flex space-x-4 mb-4">
                     <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -329,7 +365,8 @@ export default function TrackingCalendar({
             
             <button 
               onClick={goToNextMonth}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Next month"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -337,7 +374,7 @@ export default function TrackingCalendar({
         </div>
       </div>
       
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         <div className="mb-4 flex flex-wrap gap-2 text-xs">
           <div className="flex items-center gap-1">
             <span className="rounded bg-green-100 px-1 text-green-800">Pl</span>
@@ -375,19 +412,19 @@ export default function TrackingCalendar({
         </div>
         
         {selectedDateActivities.length > 0 && (
-          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-              <span>Date</span>
+          <div className="mt-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex flex-wrap items-center gap-2">
+              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-700">Date</span>
               Activities for {formatDateKeyForDisplay(selectedDate)}:
             </h4>
             <div className="space-y-2">
               {selectedDateActivities.map((activity, idx) => (
-                <div key={idx} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-600 rounded group">
+                <div key={idx} className="flex items-start gap-3 p-3 bg-white dark:bg-gray-600 rounded group">
                   <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-semibold text-gray-700">
                     {getActivityIcon(activity.activity || activity.activity_type)}
                   </span>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 dark:text-white">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 dark:text-white break-words">
                       <span className="capitalize">{activity.activity || activity.activity_type}</span> {activity.plant || activity.plant_name}
                       {activity.plant_no_longer_planted && (
                         <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-300">
@@ -399,7 +436,7 @@ export default function TrackingCalendar({
                       {activity.time}
                     </div>
                     {activity.notes && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 italic">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 italic break-words">
                         "{activity.notes}"
                       </div>
                     )}
@@ -409,14 +446,14 @@ export default function TrackingCalendar({
                     <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => handleActivityEdit(activity, e)}
-                        className="p-1 text-gray-500 hover:text-blue-600 transition-colors rounded"
+                        className="flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-blue-600 transition-colors"
                         title="Edit activity"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={(e) => handleActivityDelete(activity, e)}
-                        className="p-1 text-gray-500 hover:text-red-600 transition-colors rounded"
+                        className="flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-red-600 transition-colors"
                         title="Delete activity"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -430,21 +467,21 @@ export default function TrackingCalendar({
         )}
 
         {selectedDateTasks.length > 0 && (
-          <div className="mt-4 p-4 bg-indigo-50 dark:bg-gray-700 rounded-lg">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+          <div className="mt-4 p-3 sm:p-4 bg-indigo-50 dark:bg-gray-700 rounded-lg">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex flex-wrap items-center gap-2">
               <span>T</span>
               Tasks for {formatDateKeyForDisplay(selectedDate)}:
             </h4>
             <div className="space-y-2">
               {selectedDateTasks.map((task) => (
-                <div key={task.id} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-600 rounded">
+                <div key={task.id} className="flex items-start gap-3 p-3 bg-white dark:bg-gray-600 rounded">
                   <span className="text-sm text-indigo-700">{getTaskIcon(task.task_type || task.taskType)}</span>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 dark:text-white">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 dark:text-white break-words">
                       {task.title || task.task}
                     </div>
                     {task.description && (
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                      <div className="text-sm text-gray-600 dark:text-gray-300 break-words">
                         {task.description}
                       </div>
                     )}
