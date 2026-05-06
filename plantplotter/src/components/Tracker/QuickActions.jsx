@@ -51,10 +51,10 @@ export default function QuickActions({
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
+    <div className="bg-white text-gray-900 rounded-lg p-4 shadow-lg">
       <div className="flex flex-col items-start justify-between mb-3">
-        <h3 className="font-semibold text-gray-900 dark:text-white">Quick Log</h3>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
+        <h3 className="font-semibold text-gray-900">Quick Log</h3>
+        <div className="text-xs text-gray-600">
           for {selectedGarden.name}
         </div>
       </div>
@@ -67,14 +67,14 @@ export default function QuickActions({
               key={action.id}
               onClick={() => onQuickAction(action.id)}
               disabled={disabled}
-              className="flex min-h-11 items-center space-x-3 w-full rounded-lg p-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              className="flex min-h-11 items-center space-x-3 w-full rounded-lg p-3 text-left text-gray-900 hover:bg-gray-100 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:opacity-100 transition-colors"
             >
               {action.isDiv ? (
                 <div className={`w-4 h-4 ${action.color} rounded`}></div>
               ) : (
                 <IconComponent className={`w-4 h-4 ${action.color}`} />
               )}
-              <span className="text-gray-900 dark:text-white">{action.label}</span>
+              <span className="text-gray-900">{action.label}</span>
             </button>
           );
         })}

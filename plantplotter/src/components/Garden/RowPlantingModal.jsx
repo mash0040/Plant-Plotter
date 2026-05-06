@@ -201,7 +201,7 @@ export default function RowPlantingModal({
                 value={rowConfig.count}
                 onChange={(e) => handleConfigChange('count', e.target.value)}
                 onBlur={() => handleNumberBlur('count', 1, 50)}
-                className="w-20 min-h-10 px-2 py-1 border border-gray-300 rounded text-center text-gray-900"
+                className="w-20 min-h-10 rounded border border-gray-300 bg-white px-2 py-1 text-center text-gray-900 disabled:bg-gray-100 disabled:text-gray-500"
                 min="1"
                 max="50"
               />
@@ -304,7 +304,7 @@ export default function RowPlantingModal({
                 value={rowConfig.spacing}
                 onChange={(e) => handleConfigChange('spacing', e.target.value)}
                 onBlur={() => handleNumberBlur('spacing', 0, 5)}
-                className="w-20 min-h-10 px-2 py-1 border border-gray-300 rounded text-center text-gray-900"
+                className="w-20 min-h-10 rounded border border-gray-300 bg-white px-2 py-1 text-center text-gray-900 disabled:bg-gray-100 disabled:text-gray-500"
                 min="0"
                 step="1"
                 max="5"
@@ -337,7 +337,7 @@ export default function RowPlantingModal({
                 value={rowConfig.startX}
                 onChange={(e) => handleConfigChange('startX', e.target.value)}
                 onBlur={() => handleNumberBlur('startX', 1, dimensions.width)}
-                className="w-16 min-h-10 px-2 py-1 border border-gray-300 rounded text-center text-gray-900"
+                className="w-16 min-h-10 rounded border border-gray-300 bg-white px-2 py-1 text-center text-gray-900 disabled:bg-gray-100 disabled:text-gray-500"
                 min="1"
                 max={dimensions.width}
               />
@@ -347,7 +347,7 @@ export default function RowPlantingModal({
                 value={rowConfig.startY}
                 onChange={(e) => handleConfigChange('startY', e.target.value)}
                 onBlur={() => handleNumberBlur('startY', 1, dimensions.height)}
-                className="w-16 min-h-10 px-2 py-1 border border-gray-300 rounded text-center text-gray-900"
+                className="w-16 min-h-10 rounded border border-gray-300 bg-white px-2 py-1 text-center text-gray-900 disabled:bg-gray-100 disabled:text-gray-500"
                 min="1"
                 max={dimensions.height}
               />

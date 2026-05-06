@@ -59,12 +59,12 @@ export default function ActivityModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white text-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-lg font-semibold text-gray-900">
             Log {activityLabel}
           </h3>
-          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <div className="text-sm text-gray-700 mt-1">
             to {selectedGarden.name}
           </div>
         </div>
@@ -72,13 +72,13 @@ export default function ActivityModal({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
           <div className="space-y-4 overflow-y-auto p-4 sm:p-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Plant
               </label>
               <select
                 value={formData.plant}
                 onChange={(event) => onFormDataChange({ ...formData, plant: event.target.value })}
-                className="w-full min-h-11 p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full min-h-11 rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 required
                 disabled={gardenPlantOptions.length === 0}
               >
@@ -104,13 +104,13 @@ export default function ActivityModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Notes (optional)
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(event) => onFormDataChange({ ...formData, notes: event.target.value })}
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 rows="3"
                 placeholder="Add any additional notes..."
               />

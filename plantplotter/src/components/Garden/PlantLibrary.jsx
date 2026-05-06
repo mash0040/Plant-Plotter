@@ -498,7 +498,7 @@ export default function PlantLibrary({
 
   if (loading) {
     return (
-      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white border-r border-gray-200 flex items-center justify-center">
+      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white text-gray-900 border-r border-gray-200 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading plants...</p>
@@ -509,7 +509,7 @@ export default function PlantLibrary({
 
   if (error) {
     return (
-      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white border-r border-gray-200 flex flex-col">
+      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white text-gray-900 border-r border-gray-200 flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -568,7 +568,7 @@ export default function PlantLibrary({
         fixed lg:relative 
         top-0 left-0 
         h-screen overflow-hidden
-        bg-white 
+        bg-white text-gray-900
         border-r border-gray-200 
         transform transition-transform duration-300 ease-in-out
         w-[85vw] max-w-80 lg:w-64 lg:max-w-none
@@ -616,7 +616,7 @@ export default function PlantLibrary({
               placeholder="Search plants..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100 disabled:text-gray-500"
             />
           </div>
           <p className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-800 lg:hidden">
