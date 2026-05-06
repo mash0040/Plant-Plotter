@@ -188,7 +188,7 @@ Try the app live at https://www.plantplotter.me
 
 **Demo account:**
 - Email: demo@plantplotter.com
-- Password: demo123.
+- Password: demo123
 
 ## Known Limitations
 
