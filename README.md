@@ -19,8 +19,8 @@ After the group project delivery, I independently improved and expanded the appl
 - Improving the garden planner with footprint validation, row planting, mobile-safe planning controls, and clearer save/navigation flows.
 - Refactoring tracker workflows for activity logs, scheduled tasks, task status handling, and mobile-friendly modals.
 - Improving production performance by reducing duplicate API calls, adding lightweight garden summary loading, caching plant library data, applying MySQL indexes, and upgrading database VM resources.
-- Deploying the frontend, backend, and database across Vercel, Azure App Service, and an Azure VM-hosted MySQL database.
-- Configuring environment variables, CORS, custom API domain routing, DNS, GitHub Actions deployment, and transactional email.
+- Deploying and operating the application across Vercel, Render, and Aiven MySQL.
+- Configuring environment variables, TLS database connections, CORS, custom API domain routing, DNS, CI with GitHub Actions, and transactional email.
 
 ## Current Features
 
@@ -55,13 +55,13 @@ After the group project delivery, I independently improved and expanded the appl
 - JWT authentication
 - bcrypt password hashing
 - Rate limiting
-- Deployed on Azure App Service
-- CI/CD via GitHub Actions
+- Deployed on Render
+- CI checks via GitHub Actions
 
 ### Database
 
 - MySQL 8
-- Hosted on an Azure Virtual Machine
+- Hosted on Aiven managed MySQL
 - Schema, seed data, and migration scripts included
 
 ### Integrations
@@ -110,9 +110,11 @@ Update the local files with your own values. Do not commit real `.env` or `.env.
 Common values include:
 
 Frontend:
+
 - NEXT_PUBLIC_API_URL
 
 Backend:
+
 - PORT
 - FRONTEND_URL
 - DB_HOST
@@ -174,19 +176,22 @@ npm test --workspace=plantplotter_backend
 ```
 
 ## Deployment
-The live version uses: 
+
+The live version uses:
 
 - Frontend: Vercel
-- Backend API: Azure App Service
-- Database: MySQL 8 on Azure Virtual Machine
+- Backend API: Render
+- Database: Aiven MySQL
 - Email: Resend
-- Domain/DNS: Custom domain with API routing
+- CI: GitHub Actions
+- Domain/DNS: `plantplotter.me` with `api.plantplotter.me` routing to the backend
 
 ## Demo
 
 Try the app live at https://www.plantplotter.me
 
 **Demo account:**
+
 - Email: demo@plantplotter.com
 - Password: demo123
 
@@ -200,8 +205,6 @@ Try the app live at https://www.plantplotter.me
 ## Status
 
 This repository represents my continued development version of Plant Plotter after the original client-focused group project delivery. The current version focuses on stable full-stack functionality, mobile-friendly user flows, secure account features, production performance, and live deployment.
-
-## License
 
 ## License
 
