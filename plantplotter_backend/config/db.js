@@ -1,3 +1,4 @@
+const fs = require('fs');
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
@@ -12,6 +13,7 @@ const parseBooleanEnv = (value, defaultValue = false) => {
 const dbPort = Number.parseInt(process.env.DB_PORT || '3306', 10);
 const useSsl = parseBooleanEnv(process.env.DB_SSL, false);
 const rejectUnauthorized = parseBooleanEnv(process.env.DB_SSL_REJECT_UNAUTHORIZED, true);
+const sslCaPath = process.env.DB_SSL_CA_PATH;
 
 const poolConfig = {
   host: process.env.DB_HOST,
@@ -30,6 +32,10 @@ if (useSsl) {
   poolConfig.ssl = {
     rejectUnauthorized
   };
+
+  if (sslCaPath) {
+    poolConfig.ssl.ca = fs.readFileSync(sslCaPath, 'utf8');
+  }
 }
 
 const pool = mysql.createPool(poolConfig);
