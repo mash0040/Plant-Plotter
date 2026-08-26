@@ -15,6 +15,15 @@ const useSsl = parseBooleanEnv(process.env.DB_SSL, false);
 const rejectUnauthorized = parseBooleanEnv(process.env.DB_SSL_REJECT_UNAUTHORIZED, true);
 const sslCaPath = process.env.DB_SSL_CA_PATH;
 
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!useSsl || !rejectUnauthorized || !sslCaPath)
+) {
+  throw new Error(
+    'Production database connections require verified TLS and a trusted CA certificate.'
+  );
+}
+
 const poolConfig = {
   host: process.env.DB_HOST,
   port: Number.isNaN(dbPort) ? 3306 : dbPort,
