@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
+const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 
 // GET /api/activities
 router.get('/', verifyToken, async (req, res) => {
@@ -31,7 +32,7 @@ router.get('/', verifyToken, async (req, res) => {
     res.json(activities);
   } catch (error) {
     console.error('Error fetching activities:', error);
-    res.status(500).json({ error: 'Failed to fetch activities' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to fetch activities' });
   }
 });
 
@@ -77,7 +78,7 @@ router.post('/', verifyToken, async (req, res) => {
     res.status(201).json(newActivity[0]);
   } catch (error) {
     console.error('Error creating activity:', error);
-    res.status(500).json({ error: 'Failed to create activity' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to create activity' });
   }
 });
 
@@ -120,7 +121,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     res.json(updatedActivity[0]);
   } catch (error) {
     console.error('Error updating activity:', error);
-    res.status(500).json({ error: 'Failed to update activity' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to update activity' });
   }
 });
 
@@ -141,7 +142,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
     res.json({ message: 'Activity deleted successfully' });
   } catch (error) {
     console.error('Error deleting activity:', error);
-    res.status(500).json({ error: 'Failed to delete activity' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to delete activity' });
   }
 });
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { generalApiLimiter } = require('./middleware/rateLimiters');
+const { sendDatabaseAwareErrorResponse } = require('./utils/databaseAvailability');
 require('dotenv').config();
 
 const app = express();
@@ -136,7 +137,7 @@ app.use((err, req, res, next) => {
   console.error('Error:', err);
   console.error('Stack:', err.stack);
 
-  res.status(500).json({ 
+  sendDatabaseAwareErrorResponse(res, err, {
     message: 'Internal server error'
   });
 });

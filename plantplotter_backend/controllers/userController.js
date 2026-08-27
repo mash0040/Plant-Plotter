@@ -5,6 +5,7 @@ const JWT_SECRET = require('../config/jwtSecret');
 const { validatePassword } = require('../utils/passwordValidation');
 const { validateEmail } = require('../utils/emailValidation');
 const { requestPasswordReset, resetPassword } = require('../utils/passwordResetService');
+const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 
 const normalizeEmail = (email) => (
   typeof email === 'string' ? email.trim().toLowerCase() : ''
@@ -76,7 +77,7 @@ const registerUser = async (req, res) => {
     });
   } catch (err) {
     console.error('Registration error:', err);
-    res.status(500).json({ message: 'Server error' });
+    sendDatabaseAwareErrorResponse(res, err, { message: 'Server error' });
   }
 };
 
@@ -138,7 +139,7 @@ const loginUser = async (req, res) => {
 
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ message: 'Server error' });
+    sendDatabaseAwareErrorResponse(res, err, { message: 'Server error' });
   }
 };
 
@@ -152,7 +153,7 @@ const forgotPassword = async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendDatabaseAwareErrorResponse(res, error, { message: 'Server error' });
   }
 };
 
@@ -168,7 +169,7 @@ const resetUserPassword = async (req, res) => {
     res.status(result.status).json(result.body);
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendDatabaseAwareErrorResponse(res, error, { message: 'Server error' });
   }
 };
 

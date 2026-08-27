@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
+const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 
 // GET /api/advice/garden/:gardenId - Get advice for a specific garden
 router.get('/advice/garden/:gardenId', verifyToken, async (req, res) => {
@@ -106,7 +107,7 @@ router.get('/advice/garden/:gardenId', verifyToken, async (req, res) => {
 
   } catch (err) {
     console.error('Error generating advisory:', err);
-    res.status(500).json({
+    sendDatabaseAwareErrorResponse(res, err, {
       error: 'Failed to generate planting advice'
     });
   }
@@ -150,7 +151,7 @@ router.get('/advice/plant/:plantId', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching plant companions:', error);
-    res.status(500).json({ error: 'Failed to fetch companion data' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to fetch companion data' });
   }
 });
 
@@ -221,7 +222,7 @@ router.get('/advice/suggestions/:plantName', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching companion suggestions:', error);
-    res.status(500).json({ error: 'Failed to fetch suggestions' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to fetch suggestions' });
   }
 });
 
