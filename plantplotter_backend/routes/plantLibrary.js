@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
+const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 
 const requireAdmin = (req, res, next) => {
   if (req.user?.role !== 'admin') {
@@ -111,7 +112,7 @@ router.get('/', verifyToken, async (req, res) => {
     res.json(transformedPlants);
   } catch (error) {
     console.error('Error fetching plant library:', error);
-    res.status(500).json({ error: 'Failed to fetch plant library' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to fetch plant library' });
   }
 });
 
@@ -141,7 +142,7 @@ router.get('/:id', verifyToken, async (req, res) => {
     res.json(transformedPlant);
   } catch (error) {
     console.error('Error fetching plant:', error);
-    res.status(500).json({ error: 'Failed to fetch plant' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to fetch plant' });
   }
 });
 
@@ -258,7 +259,7 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
       });
     }
     
-    res.status(500).json({ 
+    sendDatabaseAwareErrorResponse(res, error, {
       error: 'Failed to create plant'
     });
   }
@@ -368,7 +369,7 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
 
   } catch (error) {
     console.error('Error updating plant:', error);
-    res.status(500).json({ 
+    sendDatabaseAwareErrorResponse(res, error, {
       error: 'Failed to update plant'
     });
   }
@@ -426,7 +427,7 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
       });
     }
     
-    res.status(500).json({ 
+    sendDatabaseAwareErrorResponse(res, error, {
       error: 'Failed to delete plant'
     });
   }
@@ -453,7 +454,7 @@ router.get('/search/:query', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error searching plants:', error);
-    res.status(500).json({ error: 'Failed to search plants' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to search plants' });
   }
 });
 

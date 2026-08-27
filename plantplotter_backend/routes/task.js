@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
+const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 
 const allowedTaskTypes = ['water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'treat', 'other', 'maintenance'];
 
@@ -28,7 +29,7 @@ router.get('/', verifyToken, async (req, res) => {
     res.json(tasks);
   } catch (error) {
     console.error('Error fetching tasks:', error);
-    res.status(500).json({ error: 'Failed to fetch tasks' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to fetch tasks' });
   }
 });
 
@@ -101,7 +102,7 @@ router.post('/', verifyToken, async (req, res) => {
     res.status(201).json(newTask[0]);
   } catch (error) {
     console.error('Error creating task:', error);
-    res.status(500).json({ error: 'Failed to create task' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to create task' });
   }
 });
 
@@ -173,7 +174,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     res.json(updatedTask[0]);
   } catch (error) {
     console.error('Error updating task:', error);
-    res.status(500).json({ error: 'Failed to update task' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to update task' });
   }
 });
 
@@ -192,7 +193,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
     console.error('Error deleting task:', error);
-    res.status(500).json({ error: 'Failed to delete task' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to delete task' });
   }
 });
 

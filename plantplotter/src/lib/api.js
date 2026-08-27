@@ -34,6 +34,10 @@ class ApiClient {
     return item.category || item.plant_category || item.type || item.plantType || null;
   }
 
+  isServiceUnavailableError(error) {
+    return error?.status === 503 || error?.code === 'SERVICE_UNAVAILABLE';
+  }
+
   transformPlantedItem(item = {}) {
     return {
       id: item.id,
@@ -119,6 +123,16 @@ class ApiClient {
             throw new Error('Access forbidden. You do not have permission.');
           case 404:
             throw new Error(`Resource not found: ${endpoint}`);
+          case 503:
+            const serviceUnavailableMessage = errorData?.message ||
+              'Service temporarily unavailable. Please try again shortly.';
+            const serviceUnavailableError = new Error(
+              serviceUnavailableMessage
+            );
+            serviceUnavailableError.status = 503;
+            serviceUnavailableError.code = errorData?.code || 'SERVICE_UNAVAILABLE';
+            serviceUnavailableError.retryAfter = response.headers.get('Retry-After');
+            throw serviceUnavailableError;
           case 500:
             throw new Error('Server error. Please try again later.');
           default:
@@ -492,6 +506,10 @@ class ApiClient {
         body: JSON.stringify({ plantedItems }),
       });
     } catch (plantError) {
+      if (this.isServiceUnavailableError(plantError)) {
+        throw plantError;
+      }
+
       await this.clearGardenPlants(gardenId);
 
       const failedPlants = [];
@@ -499,6 +517,10 @@ class ApiClient {
         try {
           await this.addPlantToGarden(gardenId, plant);
         } catch (error) {
+          if (this.isServiceUnavailableError(error)) {
+            throw error;
+          }
+
           console.error(`Failed to add plant ${plant.plant_name}:`, error.message);
           failedPlants.push(plant.plant_name || plant.plant_id || 'plant');
         }
@@ -561,10 +583,18 @@ class ApiClient {
           });          
           
         } catch (plantError) {
+          if (this.isServiceUnavailableError(plantError)) {
+            throw plantError;
+          }
+
           // Fallback: Clear plants first, then add individually
           try {
             await this.clearGardenPlants(garden.id);
           } catch (clearError) {
+            if (this.isServiceUnavailableError(clearError)) {
+              throw clearError;
+            }
+
             // Continue even if clear fails
           }
           
@@ -575,6 +605,10 @@ class ApiClient {
               await this.addPlantToGarden(garden.id, plant);
               addedCount++;
             } catch (error) {
+              if (this.isServiceUnavailableError(error)) {
+                throw error;
+              }
+
               console.error(`Failed to add plant ${plant.plant_name}:`, error.message);
             }
           }          

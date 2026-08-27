@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
 const { validateEmail } = require('../utils/emailValidation');
+const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 
 // GET /api/users/profile - Get user profile with preferences
 router.get('/profile', verifyToken, async (req, res) => {
@@ -30,7 +31,7 @@ router.get('/profile', verifyToken, async (req, res) => {
 
     res.json(userData);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    sendDatabaseAwareErrorResponse(res, error, { message: 'Server error' });
   }
 });
 
@@ -96,16 +97,17 @@ router.put('/profile', verifyToken, async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    sendDatabaseAwareErrorResponse(res, error, { message: 'Server error' });
   }
 });
 
 // DELETE /api/users/account - Delete the authenticated user's own account
 router.delete('/account', verifyToken, async (req, res) => {
   const db = require('../config/db');
-  const connection = await db.getConnection();
+  let connection;
 
   try {
+    connection = await db.getConnection();
     await connection.beginTransaction();
 
     const [user] = await connection.execute(
@@ -126,11 +128,19 @@ router.delete('/account', verifyToken, async (req, res) => {
     await connection.commit();
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
-    await connection.rollback();
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Account deletion rollback error:', rollbackError.message);
+      }
+    }
     console.error('Account deletion error:', error);
-    res.status(500).json({ message: 'Failed to delete account' });
+    sendDatabaseAwareErrorResponse(res, error, { message: 'Failed to delete account' });
   } finally {
-    connection.release();
+    if (connection) {
+      connection.release();
+    }
   }
 });
 
@@ -180,7 +190,7 @@ router.put('/preferences', verifyToken, async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    sendDatabaseAwareErrorResponse(res, error, { message: 'Server error' });
   }
 });
 

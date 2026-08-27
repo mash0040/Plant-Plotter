@@ -3,6 +3,10 @@ const router = express.Router();
 const verifyToken = require("../middleware/verifyToken");
 const db = require("../config/db.js");
 const { validateGardenPayload } = require("../utils/gardenValidation");
+const {
+  isTemporaryDatabaseUnavailableError,
+  sendDatabaseAwareErrorResponse
+} = require("../utils/databaseAvailability");
 
 // Helper function to generate garden summary
 const generateGardenSummary = (garden, plantedItems) => {
@@ -208,7 +212,7 @@ router.get("/", verifyToken, async (req, res) => {
 
   } catch (err) {
     console.error(`Error fetching gardens for user ${userId}:`, err);
-    res.status(500).json({ 
+    sendDatabaseAwareErrorResponse(res, err, {
       message: "Failed to fetch gardens"
     });
   }
@@ -273,7 +277,7 @@ router.get('/summary', verifyToken, async (req, res) => {
     })));
   } catch (err) {
     console.error(`Error fetching garden summaries for user ${userId}:`, err);
-    res.status(500).json({
+    sendDatabaseAwareErrorResponse(res, err, {
       message: 'Failed to fetch garden summaries'
     });
   }
@@ -358,7 +362,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error(`Error fetching garden ${gardenId} for user ${userId}:`, error);
-    res.status(500).json({ 
+    sendDatabaseAwareErrorResponse(res, error, {
       message: 'Failed to fetch garden'
     });
   }
@@ -473,7 +477,7 @@ router.get('/:id/plants', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error(`Error fetching plants for garden ${gardenId}:`, error);
-    res.status(500).json({ error: 'Failed to fetch planted items' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to fetch planted items' });
   }
 });
 
@@ -551,7 +555,7 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
     
-    res.status(500).json({ 
+    sendDatabaseAwareErrorResponse(res, error, {
       message: 'Failed to create garden'
     });
   }
@@ -646,7 +650,7 @@ router.put('/:id', verifyToken, async (req, res) => {
       });
     }
     
-    res.status(500).json({ 
+    sendDatabaseAwareErrorResponse(res, error, {
       message: 'Failed to update garden'
     });
   }
@@ -713,6 +717,10 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
         plantsAdded++;
 
       } catch (plantError) {
+        if (isTemporaryDatabaseUnavailableError(plantError)) {
+          throw plantError;
+        }
+
         console.error(`Failed to add plant ${plant.plant_name}:`, plantError.message);
         // Continue with other plants
       }
@@ -726,7 +734,7 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error('Plant saving failed:', error);
-    res.status(500).json({ 
+    sendDatabaseAwareErrorResponse(res, error, {
       message: 'Failed to save plants'
     });
   }
@@ -761,7 +769,7 @@ router.delete('/:id/plants', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error(`Error clearing plants from garden ${gardenId}:`, error);
-    res.status(500).json({ error: 'Failed to clear plants' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to clear plants' });
   }
 });
 
@@ -803,7 +811,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
 
   } catch (err) {
     console.error(`Error deleting garden ${gardenId} for user ${userId}:`, err);
-    res.status(500).json({ message: "Failed to delete garden" });
+    sendDatabaseAwareErrorResponse(res, err, { message: "Failed to delete garden" });
   }
 });
 
@@ -945,15 +953,8 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
       });
     }
 
-    if (error.code === 'ECONNREFUSED') {
-      console.log('Database connection refused');
-      return res.status(503).json({ 
-        error: 'Service temporarily unavailable'
-      });
-    }
-    
     // Generic error response
-    res.status(500).json({ 
+    sendDatabaseAwareErrorResponse(res, error, {
       error: 'Failed to add plant'
     });
   }
@@ -1012,7 +1013,7 @@ router.put('/:id/plants/:plantId', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error(`Error updating plant ${plantId} for user ${userId}:`, error);
-    res.status(500).json({ error: 'Failed to update plant' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to update plant' });
   }
 });
 
@@ -1046,7 +1047,7 @@ router.delete('/:id/plants/:plantId', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error(`Error removing plant ${plantId} for user ${userId}:`, error);
-    res.status(500).json({ error: 'Failed to remove plant' });
+    sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to remove plant' });
   }
 });
 
