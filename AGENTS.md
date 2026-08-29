@@ -14,7 +14,7 @@ The goal is to make the project stable, functional, clean, and recruiter-ready w
 
 ## Working Rules
 
-- Work on the `dev` branch.
+- Never work on main branch
 - Keep the existing stack unless a change is absolutely necessary.
 - Prefer small, scoped changes.
 - Analyze before editing.

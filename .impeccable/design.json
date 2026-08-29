@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-29T18:08:10.4648891-04:00",
+  "title": "Design System: Plant Plotter",
+  "extensions": {
+    "colorMeta": {
+      "forest-nav": {
+        "role": "primary",
+        "displayName": "Forest Navigation",
+        "canonical": "#14532d",
+        "tonalRamp": ["oklch(15% 0.04 145)", "oklch(25% 0.07 145)", "oklch(35% 0.09 145)", "oklch(45% 0.10 145)", "oklch(58% 0.11 145)", "oklch(70% 0.10 145)", "oklch(84% 0.07 145)", "oklch(95% 0.03 145)"]
+      },
+      "leaf-primary": {
+        "role": "primary",
+        "displayName": "Leaf Primary",
+        "canonical": "#16a34a",
+        "tonalRamp": ["oklch(15% 0.05 145)", "oklch(25% 0.08 145)", "oklch(35% 0.11 145)", "oklch(45% 0.14 145)", "oklch(58% 0.17 145)", "oklch(70% 0.14 145)", "oklch(84% 0.09 145)", "oklch(95% 0.04 145)"]
+      },
+      "garden-wash-emerald": {
+        "role": "neutral",
+        "displayName": "Garden Wash Emerald",
+        "canonical": "#ecfdf5",
+        "tonalRamp": ["oklch(20% 0.03 160)", "oklch(32% 0.05 160)", "oklch(44% 0.06 160)", "oklch(56% 0.06 160)", "oklch(68% 0.05 160)", "oklch(80% 0.04 160)", "oklch(90% 0.03 160)", "oklch(97% 0.02 160)"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#111827", "#374151", "#6b7280", "#9ca3af", "#d1d5db", "#e5e7eb", "#f9fafb", "#ffffff"]
+      },
+      "text-strong": {
+        "role": "neutral",
+        "displayName": "Ink Gray",
+        "canonical": "#111827",
+        "tonalRamp": ["#030712", "#111827", "#1f2937", "#374151", "#4b5563", "#6b7280", "#d1d5db", "#f9fafb"]
+      },
+      "info": {
+        "role": "secondary",
+        "displayName": "Information Blue",
+        "canonical": "#2563eb",
+        "tonalRamp": ["oklch(18% 0.07 265)", "oklch(28% 0.10 265)", "oklch(40% 0.14 265)", "oklch(52% 0.18 265)", "oklch(64% 0.16 265)", "oklch(76% 0.11 265)", "oklch(88% 0.07 265)", "oklch(96% 0.03 265)"]
+      },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Warning Amber",
+        "canonical": "#d97706",
+        "tonalRamp": ["oklch(20% 0.05 70)", "oklch(32% 0.08 70)", "oklch(44% 0.11 70)", "oklch(56% 0.14 70)", "oklch(68% 0.13 70)", "oklch(80% 0.09 70)", "oklch(90% 0.05 70)", "oklch(96% 0.03 70)"]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "Danger Red",
+        "canonical": "#dc2626",
+        "tonalRamp": ["oklch(18% 0.06 25)", "oklch(30% 0.10 25)", "oklch(42% 0.14 25)", "oklch(54% 0.18 25)", "oklch(66% 0.15 25)", "oklch(78% 0.10 25)", "oklch(90% 0.06 25)", "oklch(96% 0.03 25)"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Landing and auth hero statements."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles and major form headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Cards, panels, dialogs, and garden names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Readable interface copy and explanatory text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Forms, buttons, metadata, navigation, and compact controls."
+      }
+    },
+    "shadows": [
+      {
+        "name": "soft-card-lift",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Default card and tracker panel lift."
+      },
+      {
+        "name": "action-lift",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Primary action buttons and hoverable controls."
+      },
+      {
+        "name": "modal-lift",
+        "value": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+        "purpose": "Dialogs over dimmed backdrops."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "200ms ease",
+        "purpose": "Default hover, active, and visibility transitions."
+      },
+      {
+        "name": "loading-spin",
+        "value": "1s linear infinite",
+        "purpose": "Loading indicators and save progress."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main forward action for saves, sign-in, and garden creation.",
+      "html": "<button class=\"ds-btn-primary\">Create Garden</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 0; border-radius: 12px; background: #16a34a; color: #ffffff; padding: 12px 24px; font: 600 14px/1.25 Geist, Arial, sans-serif; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); transition: background-color 200ms ease, box-shadow 200ms ease, transform 200ms ease; } .ds-btn-primary:hover { background: #15803d; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); transform: scale(1.02); } .ds-btn-primary:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet secondary action for navigation, canceling, or alternate routes.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; border: 1px solid #e5e7eb; border-radius: 12px; background: #ffffff; color: #374151; padding: 12px 24px; font: 500 14px/1.25 Geist, Arial, sans-serif; transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease; } .ds-btn-secondary:hover { background: #f9fafb; border-color: #d1d5db; color: #111827; } .ds-btn-secondary:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Default form field for garden details, auth forms, and modal inputs.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Garden Name</span><input class=\"ds-input\" placeholder=\"Enter garden name\" /></label>",
+      "css": ".ds-field { display: grid; gap: 8px; color: #1f2937; font-family: Geist, Arial, sans-serif; } .ds-field-label { font-size: 14px; line-height: 1.25; font-weight: 500; color: #1f2937; } .ds-input { width: 100%; border: 1px solid #d1d5db; border-radius: 12px; background: #ffffff; color: #111827; padding: 12px; font: 400 16px/1.5 Geist, Arial, sans-serif; transition: border-color 200ms ease, box-shadow 200ms ease; } .ds-input::placeholder { color: #6b7280; } .ds-input:focus { border-color: transparent; outline: 0; box-shadow: 0 0 0 2px #22c55e; }"
+    },
+    {
+      "name": "Garden Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Record card for garden list and summary surfaces.",
+      "html": "<article class=\"ds-garden-card\"><div class=\"ds-card-top\"><h3>Backyard Beds</h3><span>Active</span></div><p>Vegetables and herbs for the season.</p><div class=\"ds-card-meta\">12m x 8m</div></article>",
+      "css": ".ds-garden-card { border: 1px solid rgb(255 255 255 / 0.5); border-radius: 16px; background: rgb(255 255 255 / 0.9); padding: 24px; color: #1f2937; font-family: Geist, Arial, sans-serif; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); transition: box-shadow 200ms ease, transform 200ms ease; } .ds-garden-card:hover { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); transform: scale(1.02); } .ds-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; } .ds-card-top h3 { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 600; color: #1f2937; } .ds-card-top span { border-radius: 9999px; background: #dcfce7; color: #166534; padding: 4px 12px; font-size: 12px; font-weight: 500; } .ds-garden-card p { margin: 0 0 16px; color: #374151; font-size: 14px; line-height: 1.5; } .ds-card-meta { border-radius: 8px; background: #f0fdf4; padding: 12px; color: #15803d; font-size: 14px; font-weight: 500; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Compact semantic status label for garden, task, and priority state.",
+      "html": "<span class=\"ds-chip\">Planning</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; border-radius: 9999px; background: #fef9c3; color: #854d0e; padding: 4px 12px; font: 500 12px/1.25 Geist, Arial, sans-serif; } .ds-chip:focus-visible { outline: 2px solid #eab308; outline-offset: 2px; }"
+    },
+    {
+      "name": "Top Navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Fixed forest-green shell navigation with compact rounded active states.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-brand\" href=\"#\">PlantPlotter</a><a class=\"ds-nav-link ds-nav-active\" href=\"#\">My Gardens</a><a class=\"ds-nav-link\" href=\"#\">Tracker</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 24px; min-height: 56px; background: #14532d; color: #ffffff; padding: 12px 24px; font-family: Geist, Arial, sans-serif; box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); } .ds-brand { color: #ffffff; font-size: 20px; font-weight: 700; text-decoration: none; } .ds-nav-link { border-radius: 6px; color: #ffffff; padding: 8px 12px; font-size: 14px; font-weight: 500; text-decoration: none; transition: background-color 200ms ease, color 200ms ease; } .ds-nav-link:hover { background: #166534; color: #dcfce7; } .ds-nav-active { background: #15803d; font-weight: 600; } .ds-nav-link:focus-visible, .ds-brand:focus-visible { outline: 2px solid #bbf7d0; outline-offset: 2px; }"
+    },
+    {
+      "name": "Alert Panel",
+      "kind": "custom",
+      "refersTo": "alert",
+      "description": "Validation, warning, or status message with semantic color and soft border.",
+      "html": "<div class=\"ds-alert\" role=\"alert\">Garden name is required.</div>",
+      "css": ".ds-alert { border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; color: #991b1b; padding: 12px; font: 500 14px/1.5 Geist, Arial, sans-serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Garden Workbench",
+    "overview": "Plant Plotter's current interface is a practical garden workbench: light, approachable, and task-ready. It uses a pale green garden wash behind sturdy white surfaces, with dark forest navigation anchoring the app and bright leaf green reserved for primary actions.\n\nThe system is intentionally friendly rather than ornamental. Cards, dialogs, and planner controls feel like tools laid out on a clean bench: rounded, touchable, softly lifted, and easy to scan while the user moves between planning, editing, saving, and tracking.",
+    "keyCharacteristics": [
+      "Pale emerald, green, and lime page gradients create the garden atmosphere.",
+      "Dark forest navigation provides the strongest brand anchor.",
+      "White and translucent white cards carry almost all working content.",
+      "Rounded controls, circular icon wells, and soft shadows make actions feel tactile.",
+      "Status and task colors are functional accents, not competing brand palettes."
+    ],
+    "rules": [
+      {
+        "name": "The Green Anchor Rule",
+        "body": "Every screen should have one clear green brand anchor, but not every component needs to be green.",
+        "section": "colors"
+      },
+      {
+        "name": "The Signal Color Rule",
+        "body": "Blue, amber, red, yellow, and purple are reserved for meaning: edit/info, warning, danger, planning, and category/status signals.",
+        "section": "colors"
+      },
+      {
+        "name": "The Plain Label Rule",
+        "body": "Labels should be short, literal, and user-facing; avoid internal model or database language.",
+        "section": "typography"
+      },
+      {
+        "name": "The Work Surface Rule",
+        "body": "Use full-width working bands for planner and tracker layouts; use cards for discrete records, forms, dialogs, and repeated items.",
+        "section": "layout"
+      },
+      {
+        "name": "The Soft Lift Rule",
+        "body": "Shadows should make work surfaces feel touchable; avoid harsh contrast, heavy dark panels, or decorative glow as a default.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep main app surfaces readable on the pale garden-gradient background.",
+      "Do use leaf green for primary action and selection, especially when a user is moving forward or saving work.",
+      "Do keep cards and modals softly lifted with rounded corners and subtle borders.",
+      "Do use semantic colors for status, validation, warnings, and destructive actions.",
+      "Do keep planner controls denser and more tool-like than marketing or auth surfaces."
+    ],
+    "donts": [
+      "Don't replace the garden wash with a dark dashboard theme unless the user explicitly asks for a redesign.",
+      "Don't use decorative color where the current system uses color to communicate state or category.",
+      "Don't expose developer, database, or implementation labels in user-facing UI.",
+      "Don't introduce a new UI library or unrelated component language without explicit approval.",
+      "Don't make all green surfaces the same intensity; preserve the range from pale wash to forest anchor to leaf action."
+    ]
+  }
+}
