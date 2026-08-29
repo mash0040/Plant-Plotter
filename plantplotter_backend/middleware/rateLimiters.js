@@ -1,9 +1,12 @@
 const { isIP } = require('node:net');
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const { buildErrorResponse } = require('../utils/apiErrorResponse');
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 const TOO_MANY_REQUESTS_RESPONSE = {
-  message: 'Too many requests. Please try again later.'
+  ...buildErrorResponse('Too many requests. Please try again later.', {
+    code: 'RATE_LIMITED'
+  })
 };
 
 const isTest = process.env.NODE_ENV === 'test';

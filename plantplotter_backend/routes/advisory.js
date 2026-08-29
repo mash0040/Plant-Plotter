@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
+const { sendErrorResponse } = require('../utils/apiErrorResponse');
 
 // GET /api/advice/garden/:gardenId - Get advice for a specific garden
 router.get('/advice/garden/:gardenId', verifyToken, async (req, res) => {
@@ -16,7 +17,9 @@ router.get('/advice/garden/:gardenId', verifyToken, async (req, res) => {
     );
 
     if (garden.length === 0) {
-      return res.status(404).json({ error: 'Garden not found' });
+      return sendErrorResponse(res, 404, 'Garden not found', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     // Get all plants in the garden with their details from plant_library
@@ -128,7 +131,9 @@ router.get('/advice/plant/:plantId', verifyToken, async (req, res) => {
     `, [req.params.plantId]);
 
     if (plant.length === 0) {
-      return res.status(404).json({ error: 'Plant not found' });
+      return sendErrorResponse(res, 404, 'Plant not found', {
+        code: 'PLANT_NOT_FOUND'
+      });
     }
 
     const plantData = plant[0];

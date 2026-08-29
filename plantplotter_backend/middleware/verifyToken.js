@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = require('../config/jwtSecret');
+const { sendErrorResponse } = require('../utils/apiErrorResponse');
 
 const verifyToken = (req, res, next) => {
   try {
@@ -7,9 +8,8 @@ const verifyToken = (req, res, next) => {
     const authHeader = req.header('Authorization');
     
     if (!authHeader) {
-      return res.status(401).json({ 
-        message: 'Access denied. No token provided.',
-        error: 'NO_AUTH_HEADER'
+      return sendErrorResponse(res, 401, 'Access denied. No token provided.', {
+        code: 'NO_AUTH_HEADER'
       });
     }
 
@@ -19,9 +19,8 @@ const verifyToken = (req, res, next) => {
       : authHeader;
 
     if (!token) {
-      return res.status(401).json({ 
-        message: 'Access denied. Invalid token format.',
-        error: 'INVALID_TOKEN_FORMAT'
+      return sendErrorResponse(res, 401, 'Access denied. Invalid token format.', {
+        code: 'INVALID_TOKEN_FORMAT'
       });
     }
 
@@ -29,9 +28,8 @@ const verifyToken = (req, res, next) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     
     if (!decoded.id) {
-      return res.status(401).json({ 
-        message: 'Invalid token. User ID missing.',
-        error: 'MISSING_USER_ID'
+      return sendErrorResponse(res, 401, 'Invalid token. User ID missing.', {
+        code: 'MISSING_USER_ID'
       });
     }
 
@@ -39,9 +37,8 @@ const verifyToken = (req, res, next) => {
     const userId = parseInt(decoded.id);
     
     if (isNaN(userId)) {
-      return res.status(401).json({ 
-        message: 'Invalid token. User ID format invalid.',
-        error: 'INVALID_USER_ID_FORMAT'
+      return sendErrorResponse(res, 401, 'Invalid token. User ID format invalid.', {
+        code: 'INVALID_USER_ID_FORMAT'
       });
     }
 
@@ -59,22 +56,18 @@ const verifyToken = (req, res, next) => {
     console.error('Token verification failed:', error.message);
     
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        message: 'Invalid token.',
-        error: 'INVALID_TOKEN'
+      return sendErrorResponse(res, 401, 'Invalid token.', {
+        code: 'INVALID_TOKEN'
       });
     }
     
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        message: 'Token expired.',
-        error: 'TOKEN_EXPIRED'
+      return sendErrorResponse(res, 401, 'Token expired.', {
+        code: 'TOKEN_EXPIRED'
       });
     }
 
-    return res.status(500).json({ 
-      message: 'Token verification failed.'
-    });
+    return sendErrorResponse(res, 500, 'Token verification failed.');
   }
 };
 

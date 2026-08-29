@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
+const { sendErrorResponse } = require('../utils/apiErrorResponse');
 
 const allowedTaskTypes = ['water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'treat', 'other', 'maintenance'];
 
@@ -52,14 +53,20 @@ router.post('/', verifyToken, async (req, res) => {
     
     // Validate required fields
     if (!title || !garden_id || !due_date) {
-      return res.status(400).json({ 
-        error: 'title, garden_id, and due_date are required',
-        received: { title, garden_id, due_date }
+      return sendErrorResponse(res, 400, 'title, garden_id, and due_date are required', {
+        code: 'VALIDATION_ERROR',
+        errors: {
+          title: !title ? 'title is required' : undefined,
+          garden_id: !garden_id ? 'garden_id is required' : undefined,
+          due_date: !due_date ? 'due_date is required' : undefined
+        }
       });
     }
 
     if (task_type && !allowedTaskTypes.includes(task_type)) {
-      return res.status(400).json({ error: 'Invalid task type' });
+      return sendErrorResponse(res, 400, 'Invalid task type', {
+        code: 'VALIDATION_ERROR'
+      });
     }
 
     // Verify garden belongs to user
@@ -69,7 +76,9 @@ router.post('/', verifyToken, async (req, res) => {
     );
 
     if (garden.length === 0) {
-      return res.status(404).json({ error: 'Garden not found or access denied' });
+      return sendErrorResponse(res, 404, 'Garden not found or access denied', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
     
     const [result] = await db.execute(
@@ -124,15 +133,25 @@ router.put('/:id', verifyToken, async (req, res) => {
     } = req.body;
     const allowedStatuses = ['pending', 'completed', 'cancelled', 'overdue'];
     if (!title || !due_date) {
-      return res.status(400).json({ error: 'title and due_date are required' });
+      return sendErrorResponse(res, 400, 'title and due_date are required', {
+        code: 'VALIDATION_ERROR',
+        errors: {
+          title: !title ? 'title is required' : undefined,
+          due_date: !due_date ? 'due_date is required' : undefined
+        }
+      });
     }
 
     if (status && !allowedStatuses.includes(status)) {
-      return res.status(400).json({ error: 'Invalid task status' });
+      return sendErrorResponse(res, 400, 'Invalid task status', {
+        code: 'VALIDATION_ERROR'
+      });
     }
 
     if (task_type && !allowedTaskTypes.includes(task_type)) {
-      return res.status(400).json({ error: 'Invalid task type' });
+      return sendErrorResponse(res, 400, 'Invalid task type', {
+        code: 'VALIDATION_ERROR'
+      });
     }
 
     const [existingTask] = await db.execute(
@@ -141,7 +160,9 @@ router.put('/:id', verifyToken, async (req, res) => {
     );
 
     if (existingTask.length === 0) {
-      return res.status(404).json({ error: 'Task not found' });
+      return sendErrorResponse(res, 404, 'Task not found', {
+        code: 'TASK_NOT_FOUND'
+      });
     }
     
     await db.execute(
@@ -187,7 +208,9 @@ router.delete('/:id', verifyToken, async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Task not found' });
+      return sendErrorResponse(res, 404, 'Task not found', {
+        code: 'TASK_NOT_FOUND'
+      });
     }
 
     res.json({ message: 'Task deleted successfully' });

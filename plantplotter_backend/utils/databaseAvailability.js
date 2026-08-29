@@ -1,3 +1,5 @@
+const { sendErrorResponse } = require('./apiErrorResponse');
+
 const SERVICE_UNAVAILABLE_MESSAGE = 'Service temporarily unavailable. Please try again shortly.';
 const SERVICE_UNAVAILABLE_CODE = 'SERVICE_UNAVAILABLE';
 const RETRY_AFTER_SECONDS = '60';
@@ -50,8 +52,7 @@ const sendDatabaseUnavailableResponse = (res, error) => {
   }
 
   res.set('Retry-After', RETRY_AFTER_SECONDS);
-  res.status(503).json({
-    message: SERVICE_UNAVAILABLE_MESSAGE,
+  sendErrorResponse(res, 503, SERVICE_UNAVAILABLE_MESSAGE, {
     code: SERVICE_UNAVAILABLE_CODE
   });
 
@@ -67,7 +68,7 @@ const sendDatabaseAwareErrorResponse = (res, error, fallbackBody) => {
     return true;
   }
 
-  res.status(500).json(fallbackBody);
+  sendErrorResponse(res, 500, fallbackBody);
   return true;
 };
 
