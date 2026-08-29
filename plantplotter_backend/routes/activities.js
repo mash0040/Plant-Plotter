@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
+const { sendErrorResponse } = require('../utils/apiErrorResponse');
 
 // GET /api/activities
 router.get('/', verifyToken, async (req, res) => {
@@ -43,9 +44,12 @@ router.post('/', verifyToken, async (req, res) => {
     
     // Validate required fields
     if (!garden_id || !activity_type) {
-      return res.status(400).json({ 
-        error: 'garden_id and activity_type are required',
-        received: { garden_id, activity_type }
+      return sendErrorResponse(res, 400, 'garden_id and activity_type are required', {
+        code: 'VALIDATION_ERROR',
+        errors: {
+          garden_id: !garden_id ? 'garden_id is required' : undefined,
+          activity_type: !activity_type ? 'activity_type is required' : undefined
+        }
       });
     }
 
@@ -56,7 +60,9 @@ router.post('/', verifyToken, async (req, res) => {
     );
 
     if (garden.length === 0) {
-      return res.status(404).json({ error: 'Garden not found or access denied' });
+      return sendErrorResponse(res, 404, 'Garden not found or access denied', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     // Get current date and time
@@ -90,11 +96,19 @@ router.put('/:id', verifyToken, async (req, res) => {
     const allowedActivityTypes = ['planted', 'watered', 'fertilized', 'harvested', 'pruned', 'weeded'];
 
     if (!activity_type || !activity_date) {
-      return res.status(400).json({ error: 'activity_type and activity_date are required' });
+      return sendErrorResponse(res, 400, 'activity_type and activity_date are required', {
+        code: 'VALIDATION_ERROR',
+        errors: {
+          activity_type: !activity_type ? 'activity_type is required' : undefined,
+          activity_date: !activity_date ? 'activity_date is required' : undefined
+        }
+      });
     }
 
     if (!allowedActivityTypes.includes(activity_type)) {
-      return res.status(400).json({ error: 'Invalid activity type' });
+      return sendErrorResponse(res, 400, 'Invalid activity type', {
+        code: 'VALIDATION_ERROR'
+      });
     }
 
     const [existingActivity] = await db.execute(
@@ -103,7 +117,9 @@ router.put('/:id', verifyToken, async (req, res) => {
     );
 
     if (existingActivity.length === 0) {
-      return res.status(404).json({ error: 'Activity not found' });
+      return sendErrorResponse(res, 404, 'Activity not found', {
+        code: 'ACTIVITY_NOT_FOUND'
+      });
     }
     
     await db.execute(
@@ -136,7 +152,9 @@ router.delete('/:id', verifyToken, async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Activity not found' });
+      return sendErrorResponse(res, 404, 'Activity not found', {
+        code: 'ACTIVITY_NOT_FOUND'
+      });
     }
 
     res.json({ message: 'Activity deleted successfully' });

@@ -3,6 +3,7 @@ const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
 const { validateEmail } = require('../utils/emailValidation');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
+const { sendErrorResponse } = require('../utils/apiErrorResponse');
 
 // GET /api/users/profile - Get user profile with preferences
 router.get('/profile', verifyToken, async (req, res) => {
@@ -15,7 +16,9 @@ router.get('/profile', verifyToken, async (req, res) => {
     );
 
     if (user.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return sendErrorResponse(res, 404, 'User not found', {
+        code: 'USER_NOT_FOUND'
+      });
     }
 
     const userData = user[0];
@@ -44,16 +47,22 @@ router.put('/profile', verifyToken, async (req, res) => {
     const trimmedEmail = typeof email === 'string' ? email.trim() : '';
 
     if (!trimmedUsername) {
-      return res.status(400).json({ message: 'Username is required' });
+      return sendErrorResponse(res, 400, 'Username is required', {
+        code: 'VALIDATION_ERROR'
+      });
     }
 
     if (!trimmedEmail) {
-      return res.status(400).json({ message: 'Email is required' });
+      return sendErrorResponse(res, 400, 'Email is required', {
+        code: 'VALIDATION_ERROR'
+      });
     }
 
     const emailError = validateEmail(trimmedEmail);
     if (emailError) {
-      return res.status(400).json({ message: emailError });
+      return sendErrorResponse(res, 400, emailError, {
+        code: 'VALIDATION_ERROR'
+      });
     }
 
     // Display name (username column) is NOT unique — duplicates are allowed.
@@ -65,7 +74,9 @@ router.put('/profile', verifyToken, async (req, res) => {
     );
 
     if (existingEmail.length > 0) {
-      return res.status(409).json({ message: 'Email already taken' });
+      return sendErrorResponse(res, 409, 'Email already taken', {
+        code: 'EMAIL_ALREADY_TAKEN'
+      });
     }
 
     // Update both username and email
@@ -117,7 +128,9 @@ router.delete('/account', verifyToken, async (req, res) => {
 
     if (user.length === 0) {
       await connection.rollback();
-      return res.status(404).json({ message: 'User not found' });
+      return sendErrorResponse(res, 404, 'User not found', {
+        code: 'USER_NOT_FOUND'
+      });
     }
 
     await connection.execute(
@@ -152,7 +165,9 @@ router.put('/preferences', verifyToken, async (req, res) => {
 
     // Validate preferences structure
     if (!preferences || typeof preferences !== 'object') {
-      return res.status(400).json({ message: 'Invalid preferences data' });
+      return sendErrorResponse(res, 400, 'Invalid preferences data', {
+        code: 'VALIDATION_ERROR'
+      });
     }
 
     // Convert preferences to JSON string for storage
@@ -171,7 +186,9 @@ router.put('/preferences', verifyToken, async (req, res) => {
     );
 
     if (updatedUser.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return sendErrorResponse(res, 404, 'User not found', {
+        code: 'USER_NOT_FOUND'
+      });
     }
 
     // Parse preferences for response

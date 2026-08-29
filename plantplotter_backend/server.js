@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { generalApiLimiter } = require('./middleware/rateLimiters');
 const { sendDatabaseAwareErrorResponse } = require('./utils/databaseAvailability');
+const { sendErrorResponse } = require('./utils/apiErrorResponse');
 require('dotenv').config();
 
 const app = express();
@@ -63,7 +64,9 @@ try {
 
 // Public debug endpoints are intentionally disabled for demo safety.
 app.use('/api/debug', (req, res) => {
-  res.status(404).json({ message: 'Route not found' });
+  sendErrorResponse(res, 404, 'Route not found', {
+    code: 'ROUTE_NOT_FOUND'
+  });
 });
 
 // Register main routes with error handling
@@ -144,8 +147,8 @@ app.use((err, req, res, next) => {
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ 
-    message: 'Route not found'
+  sendErrorResponse(res, 404, 'Route not found', {
+    code: 'ROUTE_NOT_FOUND'
   });
 });
 

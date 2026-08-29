@@ -6,6 +6,7 @@ const { validatePassword } = require('../utils/passwordValidation');
 const { validateEmail } = require('../utils/emailValidation');
 const { requestPasswordReset, resetPassword } = require('../utils/passwordResetService');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
+const { sendErrorResponse } = require('../utils/apiErrorResponse');
 
 const normalizeEmail = (email) => (
   typeof email === 'string' ? email.trim().toLowerCase() : ''
@@ -18,25 +19,33 @@ const registerUser = async (req, res) => {
 
   // Check for missing fields
   if (!trimmedUsername || !trimmedEmail || !password) {
-    return res.status(400).json({ message: 'Please fill in all fields' });
+    return sendErrorResponse(res, 400, 'Please fill in all fields', {
+      code: 'VALIDATION_ERROR'
+    });
   }
 
   const emailError = validateEmail(trimmedEmail);
   if (emailError) {
-    return res.status(400).json({ message: emailError });
+    return sendErrorResponse(res, 400, emailError, {
+      code: 'VALIDATION_ERROR'
+    });
   }
 
   // Password strength validation (must match frontend AuthForm rules)
   const passwordError = validatePassword(password);
   if (passwordError) {
-    return res.status(400).json({ message: passwordError });
+    return sendErrorResponse(res, 400, passwordError, {
+      code: 'VALIDATION_ERROR'
+    });
   }
 
   try {
     // Email is the unique login identifier; display name (username column) is NOT unique.
     const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [trimmedEmail]);
     if (existing.length > 0) {
-      return res.status(409).json({ message: 'Email already registered' });
+      return sendErrorResponse(res, 409, 'Email already registered', {
+        code: 'EMAIL_ALREADY_REGISTERED'
+      });
     }
 
     // Hash password
@@ -86,7 +95,9 @@ const loginUser = async (req, res) => {
   const trimmedEmail = normalizeEmail(email);
 
   if (!trimmedEmail || !password) {
-    return res.status(400).json({ message: 'Email and password are required' });
+    return sendErrorResponse(res, 400, 'Email and password are required', {
+      code: 'VALIDATION_ERROR'
+    });
   }
 
   try {
@@ -94,7 +105,9 @@ const loginUser = async (req, res) => {
     const [rows] = await db.execute('SELECT * FROM users WHERE email = ? AND is_active = TRUE', [trimmedEmail]);
 
     if (rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return sendErrorResponse(res, 401, 'Invalid credentials', {
+        code: 'INVALID_CREDENTIALS'
+      });
     }
 
     const user = rows[0];
@@ -104,11 +117,13 @@ const loginUser = async (req, res) => {
       isMatch = await bcrypt.compare(password, user.password_hash);
     } catch (bcryptError) {
       console.error('Bcrypt comparison error:', bcryptError);
-      return res.status(500).json({ message: 'Authentication error' });
+      return sendErrorResponse(res, 500, 'Authentication error');
     }
 
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return sendErrorResponse(res, 401, 'Invalid credentials', {
+        code: 'INVALID_CREDENTIALS'
+      });
     }
 
     // Create a token

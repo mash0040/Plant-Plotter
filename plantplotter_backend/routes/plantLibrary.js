@@ -3,10 +3,13 @@ const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
+const { sendErrorResponse } = require('../utils/apiErrorResponse');
 
 const requireAdmin = (req, res, next) => {
   if (req.user?.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin privileges required' });
+    return sendErrorResponse(res, 403, 'Admin privileges required', {
+      code: 'ADMIN_REQUIRED'
+    });
   }
   next();
 };
@@ -125,7 +128,9 @@ router.get('/:id', verifyToken, async (req, res) => {
     );
 
     if (plant.length === 0) {
-      return res.status(404).json({ error: 'Plant not found' });
+      return sendErrorResponse(res, 404, 'Plant not found', {
+        code: 'PLANT_NOT_FOUND'
+      });
     }
 
     // Transform the single plant data
@@ -169,9 +174,12 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
 
     // Validate required fields
     if (!name || !category) {
-      return res.status(400).json({ 
-        error: 'Plant name and category are required',
-        received: { name, category }
+      return sendErrorResponse(res, 400, 'Plant name and category are required', {
+        code: 'VALIDATION_ERROR',
+        errors: {
+          name: !name ? 'Plant name is required' : undefined,
+          category: !category ? 'Plant category is required' : undefined
+        }
       });
     }
 
@@ -185,9 +193,11 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     );
 
     if (existing.length > 0) {
-      return res.status(409).json({ 
-        error: 'Plant with this ID already exists',
-        existingId: plantId
+      return sendErrorResponse(res, 409, 'Plant with this ID already exists', {
+        code: 'PLANT_ID_EXISTS',
+        errors: {
+          id: 'Plant ID already exists'
+        }
       });
     }
 
@@ -254,8 +264,8 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     console.error('Error creating plant:', error);
     
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ 
-        error: 'Plant with this ID already exists'
+      return sendErrorResponse(res, 409, 'Plant with this ID already exists', {
+        code: 'PLANT_ID_EXISTS'
       });
     }
     
@@ -293,14 +303,19 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ error: 'Plant not found' });
+      return sendErrorResponse(res, 404, 'Plant not found', {
+        code: 'PLANT_NOT_FOUND'
+      });
     }
 
     // Validate required fields
     if (!name || !category) {
-      return res.status(400).json({ 
-        error: 'Plant name and category are required',
-        received: { name, category }
+      return sendErrorResponse(res, 400, 'Plant name and category are required', {
+        code: 'VALIDATION_ERROR',
+        errors: {
+          name: !name ? 'Plant name is required' : undefined,
+          category: !category ? 'Plant category is required' : undefined
+        }
       });
     }
 
@@ -349,7 +364,9 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     ]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Plant not found or no changes made' });
+      return sendErrorResponse(res, 404, 'Plant not found or no changes made', {
+        code: 'PLANT_NOT_FOUND'
+      });
     }
 
     // Fetch the updated plant to return
@@ -387,7 +404,9 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ error: 'Plant not found' });
+      return sendErrorResponse(res, 404, 'Plant not found', {
+        code: 'PLANT_NOT_FOUND'
+      });
     }
 
     const plantName = existing[0].name;
@@ -407,7 +426,9 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Plant not found' });
+      return sendErrorResponse(res, 404, 'Plant not found', {
+        code: 'PLANT_NOT_FOUND'
+      });
     }
 
     res.json({ 
@@ -421,10 +442,14 @@ router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
     console.error('Error deleting plant:', error);
     
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-      return res.status(409).json({ 
-        error: 'Cannot delete plant - it is being used in gardens',
-        message: 'Remove this plant from all gardens before deleting it from the library'
-      });
+      return sendErrorResponse(
+        res,
+        409,
+        'Remove this plant from all gardens before deleting it from the library',
+        {
+          code: 'PLANT_IN_USE'
+        }
+      );
     }
     
     sendDatabaseAwareErrorResponse(res, error, {

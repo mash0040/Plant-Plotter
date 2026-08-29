@@ -105,3 +105,18 @@ test('database-aware error response keeps ordinary unexpected errors as 500', ()
   assert.equal(response.headers['Retry-After'], undefined);
   assert.deepEqual(response.body, fallbackBody);
 });
+
+test('database-aware error response normalizes legacy fallback error bodies', () => {
+  const response = createFakeResponse();
+
+  sendDatabaseAwareErrorResponse(
+    response,
+    new Error('Unexpected failure'),
+    { error: 'Failed to fetch tasks' }
+  );
+
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(response.body, {
+    message: 'Failed to fetch tasks'
+  });
+});

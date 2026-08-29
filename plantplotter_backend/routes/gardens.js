@@ -7,6 +7,7 @@ const {
   isTemporaryDatabaseUnavailableError,
   sendDatabaseAwareErrorResponse
 } = require("../utils/databaseAvailability");
+const { sendErrorResponse } = require("../utils/apiErrorResponse");
 
 // Helper function to generate garden summary
 const generateGardenSummary = (garden, plantedItems) => {
@@ -308,7 +309,9 @@ router.get('/:id', verifyToken, async (req, res) => {
     );
 
     if (gardens.length === 0) {
-      return res.status(404).json({ error: 'Garden not found or access denied' });
+      return sendErrorResponse(res, 404, 'Garden not found or access denied', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     const garden = gardens[0];
@@ -434,7 +437,9 @@ router.get('/:id/plants', verifyToken, async (req, res) => {
     );
 
     if (gardenCheck.length === 0) {
-      return res.status(404).json({ error: 'Garden not found or access denied' });
+      return sendErrorResponse(res, 404, 'Garden not found or access denied', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     const [plantedItems] = await db.execute(
@@ -490,8 +495,8 @@ router.post('/', verifyToken, async (req, res) => {
     const validation = validateGardenPayload(rawData);
 
     if (!validation.isValid) {
-      return res.status(400).json({ 
-        message: 'Invalid garden data',
+      return sendErrorResponse(res, 400, 'Invalid garden data', {
+        code: 'VALIDATION_ERROR',
         errors: validation.errors
       });
     }
@@ -550,8 +555,8 @@ router.post('/', verifyToken, async (req, res) => {
     console.error('Error creating garden:', error);
     
     if (error.code === 'ER_DATA_TOO_LONG') {
-      return res.status(400).json({ 
-        message: 'One or more garden fields are too long'
+      return sendErrorResponse(res, 400, 'One or more garden fields are too long', {
+        code: 'VALIDATION_ERROR'
       });
     }
     
@@ -571,8 +576,8 @@ router.put('/:id', verifyToken, async (req, res) => {
     const validation = validateGardenPayload(rawData);
 
     if (!validation.isValid) {
-      return res.status(400).json({ 
-        message: 'Invalid garden data',
+      return sendErrorResponse(res, 400, 'Invalid garden data', {
+        code: 'VALIDATION_ERROR',
         errors: validation.errors
       });
     }
@@ -586,7 +591,9 @@ router.put('/:id', verifyToken, async (req, res) => {
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ message: 'Garden not found' });
+      return sendErrorResponse(res, 404, 'Garden not found', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     // Update with sanitized data
@@ -645,8 +652,8 @@ router.put('/:id', verifyToken, async (req, res) => {
     
     // Handle specific database errors
     if (error.code === 'ER_DATA_TOO_LONG') {
-      return res.status(400).json({ 
-        message: 'One or more garden fields are too long'
+      return sendErrorResponse(res, 400, 'One or more garden fields are too long', {
+        code: 'VALIDATION_ERROR'
       });
     }
     
@@ -670,7 +677,9 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
     );
 
     if (garden.length === 0) {
-      return res.status(404).json({ message: 'Garden not found' });
+      return sendErrorResponse(res, 404, 'Garden not found', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     // Clear existing plants first
@@ -753,7 +762,9 @@ router.delete('/:id/plants', verifyToken, async (req, res) => {
     );
 
     if (garden.length === 0) {
-      return res.status(404).json({ error: 'Garden not found or access denied' });
+      return sendErrorResponse(res, 404, 'Garden not found or access denied', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     // Delete all planted items for this garden
@@ -786,7 +797,9 @@ router.delete("/:id", verifyToken, async (req, res) => {
     );
 
     if (owned.length === 0) {
-      return res.status(404).json({ message: "Garden not found or unauthorized" });
+      return sendErrorResponse(res, 404, "Garden not found or unauthorized", {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     // Ownership confirmed — safe to delete planted items
@@ -801,7 +814,9 @@ router.delete("/:id", verifyToken, async (req, res) => {
     );
 
     if (gardenDeleteResult.affectedRows === 0) {
-      return res.status(404).json({ message: "Garden not found or unauthorized" });
+      return sendErrorResponse(res, 404, "Garden not found or unauthorized", {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     res.json({
@@ -824,10 +839,11 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
   try {   
     // Step 1: Validate required fields
     if (!plant_name) {
-      return res.status(400).json({ 
-        error: 'Plant name is required',
-        field: 'plant_name',
-        received: plant_name
+      return sendErrorResponse(res, 400, 'Plant name is required', {
+        code: 'VALIDATION_ERROR',
+        errors: {
+          plant_name: 'Plant name is required'
+        }
       });
     }
 
@@ -838,8 +854,8 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     );
 
     if (garden.length === 0) {
-      return res.status(404).json({ 
-        error: 'Garden not found or access denied'
+      return sendErrorResponse(res, 404, 'Garden not found or access denied', {
+        code: 'GARDEN_NOT_FOUND'
       });
     }
 
@@ -887,9 +903,7 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     );
 
     if (newPlant.length === 0) {
-      return res.status(500).json({ 
-        error: 'Plant created but could not be retrieved'
-      });
+      return sendErrorResponse(res, 500, 'Plant created but could not be retrieved');
     }
 
     // Step 6: Transform for frontend
@@ -927,29 +941,27 @@ router.post('/:id/plants', verifyToken, async (req, res) => {
     // Handle specific database errors
     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
       console.log('Foreign key constraint failed');
-      return res.status(400).json({ 
-        error: 'Invalid garden or plant reference'
+      return sendErrorResponse(res, 400, 'Invalid garden or plant reference', {
+        code: 'VALIDATION_ERROR'
       });
     }
     
     if (error.code === 'ER_BAD_FIELD_ERROR') {
       console.log('Bad field error - column does not exist');
-      return res.status(500).json({ 
-        error: 'Failed to add plant'
-      });
+      return sendErrorResponse(res, 500, 'Failed to add plant');
     }
     
     if (error.code === 'ER_DATA_TOO_LONG') {
       console.log('Data too long for field');
-      return res.status(400).json({ 
-        error: 'One or more plant fields are too long'
+      return sendErrorResponse(res, 400, 'One or more plant fields are too long', {
+        code: 'VALIDATION_ERROR'
       });
     }
 
     if (error.code === 'ER_BAD_NULL_ERROR') {
       console.log('Required field is null');
-      return res.status(400).json({ 
-        error: 'Required field is missing'
+      return sendErrorResponse(res, 400, 'Required field is missing', {
+        code: 'VALIDATION_ERROR'
       });
     }
 
@@ -975,7 +987,9 @@ router.put('/:id/plants/:plantId', verifyToken, async (req, res) => {
     );
 
     if (garden.length === 0) {
-      return res.status(404).json({ error: 'Garden not found or access denied' });
+      return sendErrorResponse(res, 404, 'Garden not found or access denied', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     const [result] = await db.execute(
@@ -986,7 +1000,9 @@ router.put('/:id/plants/:plantId', verifyToken, async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Plant not found in this garden' });
+      return sendErrorResponse(res, 404, 'Plant not found in this garden', {
+        code: 'PLANT_NOT_FOUND'
+      });
     }
 
     const [updatedPlant] = await db.execute(
@@ -1031,7 +1047,9 @@ router.delete('/:id/plants/:plantId', verifyToken, async (req, res) => {
     );
 
     if (garden.length === 0) {
-      return res.status(404).json({ error: 'Garden not found or access denied' });
+      return sendErrorResponse(res, 404, 'Garden not found or access denied', {
+        code: 'GARDEN_NOT_FOUND'
+      });
     }
 
     const [result] = await db.execute(
@@ -1040,7 +1058,9 @@ router.delete('/:id/plants/:plantId', verifyToken, async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Plant not found in this garden' });
+      return sendErrorResponse(res, 404, 'Plant not found in this garden', {
+        code: 'PLANT_NOT_FOUND'
+      });
     }
 
     res.json({ message: 'Plant removed successfully' });
