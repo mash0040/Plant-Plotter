@@ -15,6 +15,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useWeather } from '@/hooks/useWeather'; 
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 import apiClient from '@/lib/api';
+import { getUserFacingErrorMessage, isAuthenticationError, shouldUseLocalReadFallback } from '@/lib/apiErrors';
 
 function TrackingPageContent() {
   const [gardens, setGardens] = useState([]);
@@ -134,33 +135,37 @@ function TrackingPageContent() {
       }
     } catch (error) {
       console.error('Failed to load gardens from API:', error);
-      if (error.status === 401) {
+      if (isAuthenticationError(error)) {
         setGardens([]);
         return;
       }
-      
-      // Fallback to localStorage
-      try {
-        const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-        
-        const trackerGardens = localGardens.map(garden => ({
-          id: garden.id,
-          name: garden.name,
-          icon: getGardenIcon(garden),
-          plantCount: garden.plantCount || garden.plantedItems?.length || 0,
-          status: garden.status || 'Active',
-          location: garden.location || 'Unknown',
-          plantedItems: garden.plantedItems || [],
-          hasLoadedPlants: true
-        }));
-        
-        setGardens(trackerGardens);
-        if (trackerGardens.length > 0 && !selectedGarden) {
-          setSelectedGarden(trackerGardens[0]);
+
+      if (shouldUseLocalReadFallback(error)) {
+        try {
+          const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+
+          const trackerGardens = localGardens.map(garden => ({
+            id: garden.id,
+            name: garden.name,
+            icon: getGardenIcon(garden),
+            plantCount: garden.plantCount || garden.plantedItems?.length || 0,
+            status: garden.status || 'Active',
+            location: garden.location || 'Unknown',
+            plantedItems: garden.plantedItems || [],
+            hasLoadedPlants: true
+          }));
+
+          setGardens(trackerGardens);
+          if (trackerGardens.length > 0 && !selectedGarden) {
+            setSelectedGarden(trackerGardens[0]);
+          }
+        } catch (localError) {
+          console.error('Failed to load from localStorage:', localError);
+          setGardens([]);
         }
-      } catch (localError) {
-        console.error('Failed to load from localStorage:', localError);
+      } else {
         setGardens([]);
+        setActivityError(getUserFacingErrorMessage(error, 'Could not load your gardens. Please try again.'));
       }
     } finally {
       setIsLoadingGardens(false);
@@ -186,6 +191,7 @@ function TrackingPageContent() {
       )));
     } catch (error) {
       console.error('Failed to load selected garden plants:', error);
+      setActivityError(getUserFacingErrorMessage(error, 'Could not load plants for this garden. Please try again.'));
       setSelectedGarden(prevGarden => prevGarden
         ? { ...prevGarden, hasLoadedPlants: true }
         : prevGarden
@@ -246,6 +252,7 @@ function TrackingPageContent() {
       
     } catch (error) {
       console.error('Failed to load activities:', error);
+      setActivityError(getUserFacingErrorMessage(error, 'Failed to load activities. Please try again.'));
       // Keep existing calendar data or use empty
       setCalendarData({});
     }
@@ -384,7 +391,7 @@ function TrackingPageContent() {
       setCalendarTasks(calendarTaskData);
     } catch (error) {
       console.error('Failed to load tasks:', error);
-      if (error.status === 401) {
+      if (isAuthenticationError(error)) {
         setTodayTasks([]);
         setUpcomingTasks([]);
         setOverdueTasks([]);
@@ -392,7 +399,7 @@ function TrackingPageContent() {
         return;
       }
 
-      setTaskError('Failed to load tasks. Please try again.');
+      setTaskError(getUserFacingErrorMessage(error, 'Failed to load tasks. Please try again.'));
       setTodayTasks([]);
       setUpcomingTasks([]);
       setOverdueTasks([]);
@@ -446,7 +453,7 @@ function TrackingPageContent() {
       await loadTasks();
     } catch (error) {
       console.error('Failed to complete task:', error);
-      setTaskError('Failed to complete task. Please try again.');
+      setTaskError(getUserFacingErrorMessage(error, 'Failed to complete task. Please try again.'));
     }
   };
 
@@ -506,7 +513,7 @@ function TrackingPageContent() {
       
     } catch (error) {
       console.error('Failed to add activity via API:', error);
-      setActivityError('Failed to log activity. Please try again.');
+      setActivityError(getUserFacingErrorMessage(error, 'Failed to log activity. Please try again.'));
     }
     
     setShowForm(false);
@@ -588,7 +595,7 @@ function TrackingPageContent() {
       setTaskPlantLibrary(Array.isArray(plants) ? plants : []);
     } catch (error) {
       console.error('Failed to load task plant library:', error);
-      setTaskError('Plant library could not be loaded for planting tasks.');
+      setTaskError(getUserFacingErrorMessage(error, 'Plant library could not be loaded for planting tasks.'));
     } finally {
       setIsTaskPlantLibraryLoading(false);
     }
@@ -604,7 +611,7 @@ function TrackingPageContent() {
       await handleActivityDelete(activityToDelete);
       setActivityToDelete(null);
     } catch (error) {
-      setActivityError('Failed to delete activity. Please try again.');
+      setActivityError(getUserFacingErrorMessage(error, 'Failed to delete activity. Please try again.'));
     } finally {
       setIsDeletingActivity(false);
     }

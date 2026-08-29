@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, User, Info } from 'lucide-react';
 import { useAuth, SESSION_EXPIRED_FLAG } from '@/hooks/useAuth';
+import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 import { validateNewPassword, PASSWORD_RULES_HINT } from '@/lib/passwordValidation';
 import { validateEmail } from '@/lib/emailValidation';
 
@@ -99,7 +100,7 @@ export default function AuthForm({ initialMode = 'login' }) {
         router.push('/gardens');
       }
     } catch (err) {
-      setLocalError(err.message || `${mode === 'login' ? 'Login' : 'Registration'} failed. Please try again.`);
+      setLocalError(getUserFacingErrorMessage(err, `${mode === 'login' ? 'Login' : 'Registration'} failed. Please try again.`));
     } finally {
       setIsSubmitting(false);
     }

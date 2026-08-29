@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { User, Mail, Save, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 import { validateEmail } from '@/lib/emailValidation';
 
 export default function ProfileForm() {
@@ -84,7 +85,7 @@ export default function ProfileForm() {
         setMessage({ type: '', text: '' });
       }, 3000);
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
+      setMessage({ type: 'error', text: getUserFacingErrorMessage(error, 'Failed to update profile') });
     } finally {
       setIsSubmitting(false);
     }
@@ -111,7 +112,7 @@ export default function ProfileForm() {
     try {
       await deleteAccount();
     } catch (error) {
-      setDeleteError(error.message || 'Failed to delete account. Please try again.');
+      setDeleteError(getUserFacingErrorMessage(error, 'Failed to delete account. Please try again.'));
       setIsDeletingAccount(false);
     }
   };

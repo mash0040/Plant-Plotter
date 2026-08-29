@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { X, Save, Trash2, Edit3, AlertCircle, Plus } from 'lucide-react';
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
 export default function PlantEditModal({ 
   isOpen, 
@@ -242,7 +243,7 @@ export default function PlantEditModal({
       } else if (error.message.includes('Duplicate entry')) {
         setError('A plant with this name already exists. Please choose a different name.');
       } else {
-        setError(error.message || 'Failed to save plant');
+        setError(getUserFacingErrorMessage(error, 'Failed to save plant'));
       }
     } finally {
       setIsSaving(false);
@@ -260,7 +261,7 @@ export default function PlantEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to delete plant:', error);
-      setError(error.message || 'Failed to delete plant');
+      setError(getUserFacingErrorMessage(error, 'Failed to delete plant'));
       setShowDeleteConfirm(false);
     }
   };

@@ -4,6 +4,13 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Settings, ChevronDown, Heart, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
+import {
+  getUserFacingErrorMessage,
+  isAuthenticationError,
+  isValidationError,
+  shouldUseLocalReadFallback,
+  shouldUseLocalWriteFallback
+} from '@/lib/apiErrors';
 import { findPlantInLibrary, normalizePlantName } from '@/lib/plantLookup';
 import GardenForm from '@/components/Gardens/GardenForm'; 
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -19,6 +26,7 @@ function GardenDetailPageContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false); 
   const [successMessage, setSuccessMessage] = useState('');
+  const [pageError, setPageError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Single useEffect to load both garden and plant library data
@@ -36,19 +44,28 @@ function GardenDetailPageContent() {
         
       } catch (error) {
         console.error('Failed to load data:', error);
-        if (error.status === 401) {
+        if (isAuthenticationError(error)) {
           return;
         }
+
+        const errorMessage = getUserFacingErrorMessage(error, 'Failed to load garden. Please try again.');
         
-        // Try localStorage fallback for garden
-        try {
-          const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-          const localGarden = localGardens.find(g => g.id == params.id);
-          if (localGarden) {
-            setGarden(localGarden);
+        if (shouldUseLocalReadFallback(error)) {
+          try {
+            const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+            const localGarden = localGardens.find(g => g.id == params.id);
+            if (localGarden) {
+              setGarden(localGarden);
+              setPageError(`Showing local garden data. ${errorMessage}`);
+            } else {
+              setPageError(errorMessage);
+            }
+          } catch (localError) {
+            console.error('Failed to load from localStorage:', localError);
+            setPageError(errorMessage);
           }
-        } catch (localError) {
-          console.error('Failed to load from localStorage:', localError);
+        } else {
+          setPageError(errorMessage);
         }
       } finally {
         setLoading(false);
@@ -104,6 +121,7 @@ function GardenDetailPageContent() {
   const handleEditBasicInfo = (e) => {
     e?.stopPropagation();
     setSuccessMessage('');
+    setPageError('');
     setShowEditForm(true);
   };
 
@@ -126,9 +144,10 @@ function GardenDetailPageContent() {
         localStorage.setItem('gardens', JSON.stringify(localGardens));
       }
       setSuccessMessage('Garden updated successfully.');
+      setPageError('');
     } catch (error) {
       console.error('Failed to update garden:', error);
-      if (error.status === 401 || error.status === 400 || error.errors) {
+      if (isAuthenticationError(error) || isValidationError(error) || !shouldUseLocalWriteFallback(error)) {
         throw error;
       }
 
@@ -150,6 +169,7 @@ function GardenDetailPageContent() {
         localStorage.setItem('gardens', JSON.stringify(localGardens));
         setGarden(updatedGarden);
         setSuccessMessage('Garden updated successfully.');
+        setPageError('');
       } else {
         throw error;
       }
@@ -170,7 +190,12 @@ function GardenDetailPageContent() {
       router.push('/gardens');
     } catch (error) {
       console.error('Failed to delete garden via API:', error);
-      if (error.status === 401) {
+      if (isAuthenticationError(error)) {
+        return;
+      }
+
+      if (!shouldUseLocalWriteFallback(error)) {
+        setPageError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
         return;
       }
 
@@ -401,7 +426,7 @@ function GardenDetailPageContent() {
             <span className="text-2xl">🚫</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Garden Not Found</h1>
-          <p className="text-gray-600 mb-6 text-sm sm:text-base">The garden you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-6 text-sm sm:text-base">{pageError || "The garden you're looking for doesn't exist."}</p>
           <Link
             href="/gardens"
             className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 text-sm sm:text-base"
@@ -537,6 +562,14 @@ function GardenDetailPageContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
           <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium">
             {successMessage}
+          </div>
+        </div>
+      )}
+
+      {pageError && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm font-medium">
+            {pageError}
           </div>
         </div>
       )}

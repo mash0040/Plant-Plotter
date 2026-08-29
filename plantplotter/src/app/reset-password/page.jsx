@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AlertCircle, CheckCircle, Eye, EyeOff, Leaf, Lock } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 import { PASSWORD_RULES_HINT, validateNewPassword } from '@/lib/passwordValidation';
 
 function ResetPasswordContent() {
@@ -50,7 +51,7 @@ function ResetPasswordContent() {
       setPassword('');
       setConfirmPassword('');
     } catch (resetError) {
-      setError(resetError.message || 'Password reset failed. Please request a new reset link.');
+      setError(getUserFacingErrorMessage(resetError, 'Password reset failed. Please request a new reset link.'));
     } finally {
       setIsSubmitting(false);
     }
