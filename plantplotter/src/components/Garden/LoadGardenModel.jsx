@@ -4,6 +4,7 @@ import { X, Calendar, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
 export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const [gardens, setGardens] = useState([]);
@@ -27,7 +28,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
       setGardens(userGardens);
     } catch (error) {
       console.error('Failed to load gardens:', error);
-      setLoadError('Failed to load gardens. Please check your connection and try again.');
+      setLoadError(getUserFacingErrorMessage(error, 'Failed to load gardens. Please check your connection and try again.'));
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
       onClose();
     } catch (error) {
       console.error('Failed to load garden:', error);
-      setLoadError('Failed to load garden. Please try again.');
+      setLoadError(getUserFacingErrorMessage(error, 'Failed to load garden. Please try again.'));
     }
   };
 
@@ -91,7 +92,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
       setGardenPendingDelete(null);
     } catch (error) {
       console.error('Failed to delete garden:', error);
-      setDeleteError('Failed to delete garden. Please try again.');
+      setDeleteError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
     }
   };
 

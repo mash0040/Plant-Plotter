@@ -3,6 +3,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Save, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
 const GENERAL_GARDEN_TASK_VALUE = '__whole_garden__';
 
@@ -260,7 +261,7 @@ export default function TaskEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to save task:', error);
-      setError(error.message || 'Failed to save task');
+      setError(getUserFacingErrorMessage(error, 'Failed to save task'));
     } finally {
       setIsSaving(false);
     }
@@ -277,7 +278,7 @@ export default function TaskEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to delete task:', error);
-      setError(error.message || 'Failed to delete task');
+      setError(getUserFacingErrorMessage(error, 'Failed to delete task'));
     } finally {
       setIsDeleting(false);
     }

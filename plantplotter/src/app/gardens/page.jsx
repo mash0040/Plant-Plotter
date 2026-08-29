@@ -8,6 +8,13 @@ import GardenForm from '@/components/Gardens/GardenForm';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  getUserFacingErrorMessage,
+  isAuthenticationError,
+  isValidationError,
+  shouldUseLocalReadFallback,
+  shouldUseLocalWriteFallback
+} from '@/lib/apiErrors';
 
 function GardensLoading() {
   return (
@@ -91,26 +98,32 @@ function AllGardensContent() {
       
     } catch (error) {
       console.error('Failed to load gardens from API:', error);
-      if (error.status === 401) {
+      if (isAuthenticationError(error)) {
         setGardens([]);
         return;
       }
 
-      setError(`API Error: ${error.message}`);
-      
-      // Fallback to localStorage
-      try {
-        const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-        
-        if (Array.isArray(localGardens) && localGardens.length > 0) {
-          setGardens(localGardens);
-          setError(`Using local data (API unavailable: ${error.message})`);
-        } else {
+      const errorMessage = getUserFacingErrorMessage(error, 'Could not load your gardens. Please try again.');
+
+      if (shouldUseLocalReadFallback(error)) {
+        try {
+          const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
+
+          if (Array.isArray(localGardens) && localGardens.length > 0) {
+            setGardens(localGardens);
+            setError(`Showing local garden data. ${errorMessage}`);
+          } else {
+            setGardens([]);
+            setError(errorMessage);
+          }
+        } catch (localError) {
+          console.error('Failed to load from localStorage:', localError);
           setGardens([]);
+          setError(errorMessage);
         }
-      } catch (localError) {
-        console.error('Failed to load from localStorage:', localError);
+      } else {
         setGardens([]);
+        setError(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -165,7 +178,12 @@ function AllGardensContent() {
       setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
       console.error('Failed to delete garden via API:', error);
-      if (error.status === 401) {
+      if (isAuthenticationError(error)) {
+        return;
+      }
+
+      if (!shouldUseLocalWriteFallback(error)) {
+        setError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
         return;
       }
       
@@ -183,7 +201,7 @@ function AllGardensContent() {
         setTimeout(() => setShowSuccessMessage(false), 3000);
       } catch (localError) {
         console.error('Failed to delete from localStorage:', localError);
-        setError('Failed to delete garden. Please try again.');
+        setError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
       }
     }
   };
@@ -227,7 +245,7 @@ function AllGardensContent() {
           };
         } catch (error) {
           console.error('Failed to update garden via API:', error);
-          if (error.status === 401 || error.status === 400 || error.errors) {
+          if (isAuthenticationError(error) || isValidationError(error) || !shouldUseLocalWriteFallback(error)) {
             throw error;
           }
 
@@ -286,7 +304,7 @@ function AllGardensContent() {
           };
         } catch (error) {
           console.error('Failed to create garden via API:', error);
-          if (error.status === 401 || error.status === 400 || error.errors) {
+          if (isAuthenticationError(error) || isValidationError(error) || !shouldUseLocalWriteFallback(error)) {
             throw error;
           }
 
@@ -319,11 +337,11 @@ function AllGardensContent() {
       
     } catch (error) {
       console.error('Failed to save garden:', error);
-      if (error.status === 401 || error.status === 400 || error.errors) {
+      if (isAuthenticationError(error) || isValidationError(error)) {
         throw error;
       }
 
-      setError('Failed to save garden. Please try again.');
+      setError(getUserFacingErrorMessage(error, 'Failed to save garden. Please try again.'));
     }
   };
 
@@ -367,7 +385,7 @@ function AllGardensContent() {
       )}
 
       {/* Retry Button */}
-      {error && error.includes('API') && (
+      {error && (
         <div className="fixed top-16 left-4 z-50">
           <button
             onClick={loadGardens}

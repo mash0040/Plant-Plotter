@@ -1,4 +1,12 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import {
+  API_ERROR_CODES,
+  ApiError,
+  NETWORK_ERROR_MESSAGE,
+  SERVER_ERROR_MESSAGE,
+  SERVICE_UNAVAILABLE_MESSAGE,
+  isServiceUnavailableError
+} from './apiErrors';
 
 class ApiClient {
   constructor() {
@@ -35,7 +43,66 @@ class ApiClient {
   }
 
   isServiceUnavailableError(error) {
-    return error?.status === 503 || error?.code === 'SERVICE_UNAVAILABLE';
+    return isServiceUnavailableError(error);
+  }
+
+  buildApiError(response, errorData, fallbackMessage) {
+    const apiMessage = errorData?.message || errorData?.error;
+    const message = apiMessage || fallbackMessage;
+    const errors = errorData?.errors || null;
+    const code = errorData?.code || errorData?.error;
+
+    switch (response.status) {
+      case 400:
+        return new ApiError(message || 'Please check your information and try again.', {
+          status: 400,
+          code: code || API_ERROR_CODES.VALIDATION_ERROR,
+          errors
+        });
+      case 401:
+        return new ApiError(message || 'Authentication required.', {
+          status: 401,
+          code: code || API_ERROR_CODES.AUTH_REQUIRED,
+          errors
+        });
+      case 403:
+        return new ApiError(message || 'Access forbidden. You do not have permission.', {
+          status: 403,
+          code: code || API_ERROR_CODES.FORBIDDEN,
+          errors
+        });
+      case 404:
+        return new ApiError(message || 'Resource not found.', {
+          status: 404,
+          code: code || API_ERROR_CODES.NOT_FOUND,
+          errors
+        });
+      case 429:
+        return new ApiError(message || 'Too many requests. Please try again later.', {
+          status: 429,
+          code: code || API_ERROR_CODES.RATE_LIMITED,
+          errors,
+          retryAfter: response.headers.get('Retry-After')
+        });
+      case 503:
+        return new ApiError(message || SERVICE_UNAVAILABLE_MESSAGE, {
+          status: 503,
+          code: code || API_ERROR_CODES.SERVICE_UNAVAILABLE,
+          errors,
+          retryAfter: response.headers.get('Retry-After')
+        });
+      case 500:
+        return new ApiError(SERVER_ERROR_MESSAGE, {
+          status: 500,
+          code: code || API_ERROR_CODES.SERVER_ERROR
+        });
+      default:
+        return new ApiError(message || fallbackMessage, {
+          status: response.status,
+          code: code || API_ERROR_CODES.UNEXPECTED_ERROR,
+          errors
+        });
+    }
   }
 
   transformPlantedItem(item = {}) {
@@ -103,47 +170,20 @@ class ApiClient {
         // and don't trigger the session-expired flow.
         const isAuthEntryEndpoint = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/register');
 
-        // Handle specific status codes
-        switch (response.status) {
-          case 401:
-            if (isAuthEntryEndpoint) {
-              const credError = new Error(errorMessage || 'Invalid credentials');
-              credError.status = 401;
-              throw credError;
-            }
-            const authError = new Error('Your session expired. Please sign in again.');
-            authError.status = 401;
-            authError.code = errorData?.error || errorData?.code || 'UNAUTHORIZED';
-            authError.errors = errorData?.errors;
-            authError.fieldErrors = errorData?.errors;
-            this.clearUserSessionStorage();
-            this.notifyAuthExpired(authError);
-            throw authError;
-          case 403:
-            throw new Error('Access forbidden. You do not have permission.');
-          case 404:
-            throw new Error(`Resource not found: ${endpoint}`);
-          case 503:
-            const serviceUnavailableMessage = errorData?.message ||
-              'Service temporarily unavailable. Please try again shortly.';
-            const serviceUnavailableError = new Error(
-              serviceUnavailableMessage
-            );
-            serviceUnavailableError.status = 503;
-            serviceUnavailableError.code = errorData?.code || 'SERVICE_UNAVAILABLE';
-            serviceUnavailableError.retryAfter = response.headers.get('Retry-After');
-            throw serviceUnavailableError;
-          case 500:
-            throw new Error('Server error. Please try again later.');
-          default:
-            const error = new Error(errorMessage);
-            error.status = response.status;
-            if (errorData?.errors) {
-              error.errors = errorData.errors;
-              error.fieldErrors = errorData.errors;
-            }
-            throw error;
+        const apiError = this.buildApiError(response, errorData, errorMessage);
+
+        if (response.status === 401 && !isAuthEntryEndpoint) {
+          const authError = new ApiError('Your session expired. Please sign in again.', {
+            status: 401,
+            code: apiError.code || API_ERROR_CODES.AUTH_REQUIRED,
+            errors: apiError.errors
+          });
+          this.clearUserSessionStorage();
+          this.notifyAuthExpired(authError);
+          throw authError;
         }
+
+        throw apiError;
       }
 
       // Handle empty responses
@@ -159,7 +199,11 @@ class ApiClient {
       
       // Handle network errors
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error('Network error. Please check your connection and server status.');
+        throw new ApiError(NETWORK_ERROR_MESSAGE, {
+          status: 0,
+          code: API_ERROR_CODES.NETWORK_ERROR,
+          cause: error
+        });
       }
       
       throw error;
@@ -306,10 +350,6 @@ class ApiClient {
       
     } catch (error) {
       console.error('Failed to fetch gardens:', error);
-      
-      if (error.message.includes('Network error')) {
-        throw new Error('Cannot connect to server. Please check if the backend is running.');
-      }
       
       throw error;
     }

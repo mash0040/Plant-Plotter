@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api';
+import { getUserFacingErrorMessage, isAuthenticationError } from '@/lib/apiErrors';
 
 const AuthContext = createContext(null);
 
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }) => {
       
     } catch (error) {
       // Handle authentication errors
-      if (error.status === 401 || error.message.includes('Authentication failed') || error.message.includes('Unauthorized')) {
+      if (isAuthenticationError(error)) {
         apiClient.logout();
         setUser(null);
         hadActiveSessionRef.current = false;
@@ -170,7 +171,7 @@ export const AuthProvider = ({ children }) => {
       
       return response;
     } catch (error) {
-      setError(error.message);
+      setError(getUserFacingErrorMessage(error));
       throw error;
     } finally {
       setLoading(false);
@@ -199,7 +200,7 @@ export const AuthProvider = ({ children }) => {
       
       return response;
     } catch (error) {
-      setError(error.message);
+      setError(getUserFacingErrorMessage(error));
       throw error;
     } finally {
       setLoading(false);
@@ -216,7 +217,7 @@ export const AuthProvider = ({ children }) => {
       
       return response;
     } catch (error) {
-      setError(error.message);
+      setError(getUserFacingErrorMessage(error));
       throw error;
     }
   };
@@ -231,7 +232,7 @@ export const AuthProvider = ({ children }) => {
       
       return response;
     } catch (error) {
-      setError(error.message);
+      setError(getUserFacingErrorMessage(error));
       throw error;
     }
   };
@@ -254,7 +255,7 @@ export const AuthProvider = ({ children }) => {
       router.replace('/');
       return response;
     } catch (error) {
-      setError(error.message);
+      setError(getUserFacingErrorMessage(error));
       throw error;
     } finally {
       setLoading(false);

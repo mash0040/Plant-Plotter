@@ -17,6 +17,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
 import { snapToGrid, checkPlantOverlap, isWithinBounds, getPlantFootprint } from '@/components/Garden/Utils/GardenUtils';
 import apiClient from '@/lib/api';
+import { getUserFacingErrorMessage, isAuthenticationError } from '@/lib/apiErrors';
 
 function GardenPlannerPageContent() {
   const searchParams = useSearchParams();
@@ -318,7 +319,7 @@ function GardenPlannerPageContent() {
         setHasUnsavedChanges(false);
       } catch (error) {
         console.error('Failed to load garden:', error);
-        setPlannerLoadError('Failed to load garden. Please try again.');
+        setPlannerLoadError(getUserFacingErrorMessage(error, 'Failed to load garden. Please try again.'));
         setCurrentGarden(null);
         setPlacedPlants([]);
       } finally {
@@ -341,10 +342,10 @@ function GardenPlannerPageContent() {
         setPlannerGardenSummaries(Array.isArray(summaries) ? summaries : []);
       } catch (error) {
         console.error('Failed to load garden summaries for planner:', error);
-        if (error.status === 401) {
+        if (isAuthenticationError(error)) {
           return;
         }
-        setGardenSummaryError('Could not load your gardens. Please try again.');
+        setGardenSummaryError(getUserFacingErrorMessage(error, 'Could not load your gardens. Please try again.'));
         setPlannerGardenSummaries([]);
       } finally {
         setIsLoadingGardenSummaries(false);
@@ -742,7 +743,7 @@ function GardenPlannerPageContent() {
       setLayoutSaveMessage('Changes saved successfully.');
     } catch (error) {
       console.error('Garden layout save failed:', error);
-      setLayoutSaveError(error.message || 'Failed to save layout. Please try again.');
+      setLayoutSaveError(getUserFacingErrorMessage(error, 'Failed to save layout. Please try again.'));
     } finally {
       setIsSavingLayout(false);
     }

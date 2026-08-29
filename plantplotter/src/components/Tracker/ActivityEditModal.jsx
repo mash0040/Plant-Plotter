@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Save, Trash2, Activity } from 'lucide-react';
+import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
 export default function ActivityEditModal({ 
   isOpen, 
@@ -182,7 +183,7 @@ export default function ActivityEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to save activity:', error);
-      setError(error.message || 'Failed to save activity');
+      setError(getUserFacingErrorMessage(error, 'Failed to save activity'));
     } finally {
       setIsSaving(false);
     }
@@ -199,7 +200,7 @@ export default function ActivityEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to delete activity:', error);
-      setError(error.message || 'Failed to delete activity');
+      setError(getUserFacingErrorMessage(error, 'Failed to delete activity'));
     } finally {
       setIsDeleting(false);
     }

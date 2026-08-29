@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Save, Leaf } from 'lucide-react';
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
 const getDefaultFormData = () => ({
   name: '',
@@ -311,7 +312,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         }));
         requestAnimationFrame(() => scrollToFirstError(apiErrors));
       } else {
-        setFormError(error.message || 'Failed to save garden. Please try again.');
+        setFormError(getUserFacingErrorMessage(error, 'Failed to save garden. Please try again.'));
       }
     }
   };
