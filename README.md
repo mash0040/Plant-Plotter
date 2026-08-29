@@ -107,27 +107,54 @@ Copy-Item plantplotter_backend/.env.example plantplotter_backend/.env
 
 Update the local files with your own values. Do not commit real `.env` or `.env.local` files.
 
-Common values include:
+The committed example files are safe templates only. Keep real secrets in local environment files and in the hosting provider's environment variable settings.
 
-Frontend:
+### Frontend environment
 
-- NEXT_PUBLIC_API_URL
+`plantplotter/.env.local` is read by Next.js during local development and builds.
 
-Backend:
+| Variable | Local value | Production value |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:5001/api` | `https://api.plantplotter.me/api` |
+| `NEXT_PUBLIC_APP_NAME` | `PlantPlotter` | `PlantPlotter` |
+| `NEXT_PUBLIC_APP_VERSION` | placeholder app version | placeholder app version |
 
-- PORT
-- FRONTEND_URL
-- DB_HOST
-- DB_PORT
-- DB_USER
-- DB_PASSWORD
-- DB_NAME
-- JWT_SECRET
-- JWT_EXPIRES_IN
-- EMAIL_PROVIDER
-- EMAIL_FROM
-- RESEND_API_KEY
-- PASSWORD_RESET_BASE_URL
+Only `NEXT_PUBLIC_*` values are exposed to the browser. Do not put private secrets in frontend environment files.
+
+### Backend environment
+
+`plantplotter_backend/.env` is read by the Express API through `dotenv`.
+
+| Variable | Purpose |
+| --- | --- |
+| `PORT` | Local API port. Default local value is `5001`. |
+| `NODE_ENV` | Runtime mode, usually `development`, `test`, or `production`. |
+| `FRONTEND_URL` | Comma-separated list of allowed browser origins for CORS. Local value is `http://localhost:3000`. |
+| `DB_HOST` | MySQL host. Use your local MySQL host locally and the Aiven host in production. |
+| `DB_PORT` | MySQL port. Default is `3306`. |
+| `DB_USER` | MySQL username. |
+| `DB_PASSWORD` | MySQL password. |
+| `DB_NAME` | MySQL database name. The active local database is `garden_plotter`. |
+| `DB_SSL` | Enables MySQL TLS. Local default is `false`; production must be `true`. |
+| `DB_SSL_REJECT_UNAUTHORIZED` | Verifies the database certificate. Production must be `true`. |
+| `DB_SSL_CA_PATH` | Filesystem path to the trusted Aiven CA certificate in production. |
+| `JWT_SECRET` | Required signing secret for JWTs. Use a long private value. |
+| `JWT_EXPIRES_IN` | JWT lifetime, for example `1h` locally. |
+| `PASSWORD_RESET_BASE_URL` | Frontend password reset URL. Local value is `http://localhost:3000/reset-password`. |
+| `EMAIL_PROVIDER` | Email provider for password reset, currently `resend` or `sendgrid`. |
+| `EMAIL_FROM` | Verified sender address for password reset email. |
+| `RESEND_API_KEY` | Resend API key when `EMAIL_PROVIDER=resend`. |
+| `SENDGRID_API_KEY` | SendGrid API key when `EMAIL_PROVIDER=sendgrid`. |
+
+Production database TLS must remain fail-closed:
+
+```text
+DB_SSL=true
+DB_SSL_REJECT_UNAUTHORIZED=true
+DB_SSL_CA_PATH=/etc/secrets/aiven-ca.pem
+```
+
+The backend refuses to start in production unless verified TLS and a CA certificate path are configured.
 
 ## Database Setup
 
@@ -158,8 +185,8 @@ npm run dev
 Or run them separately:
 
 ```sh
-npm run dev: backend
-npm run dev: frontend
+npm run dev:backend
+npm run dev:frontend
 ```
 
 Default local URLs:
@@ -171,8 +198,20 @@ Default local URLs:
 
 ```sh
 npm run lint --workspace=plantplotter
-npm run build --workspace=plantplotter
 npm test --workspace=plantplotter_backend
+```
+
+For the same frontend build environment used in CI, set the production API URL:
+
+```sh
+NEXT_PUBLIC_API_URL=https://api.plantplotter.me/api npm run build --workspace=plantplotter
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:NEXT_PUBLIC_API_URL='https://api.plantplotter.me/api'
+npm run build --workspace=plantplotter
 ```
 
 ## Deployment
@@ -185,6 +224,13 @@ The live version uses:
 - Email: Resend
 - CI: GitHub Actions
 - Domain/DNS: `plantplotter.me` with `api.plantplotter.me` routing to the backend
+
+Production secrets should live in the platform that uses them:
+
+- Vercel stores frontend public build/runtime variables such as `NEXT_PUBLIC_API_URL`.
+- Render stores backend variables such as database credentials, CORS origins, JWT secret, password reset URL, and email provider credentials.
+- Aiven provides the MySQL host, port, user, password, database name, and CA certificate.
+- GitHub Actions sets `NEXT_PUBLIC_API_URL=https://api.plantplotter.me/api` for frontend builds and should not store database or JWT secrets for the current test/build workflow.
 
 ## Demo
 

@@ -24,7 +24,16 @@ The main frontend setting is:
 NEXT_PUBLIC_API_URL=http://localhost:5001/api
 ```
 
+For production builds, use:
+
+```text
+NEXT_PUBLIC_API_URL=https://api.plantplotter.me/api
+```
+
+The GitHub Actions frontend build uses this production API URL. Vercel should also define `NEXT_PUBLIC_API_URL` for deployed builds.
+
 Use `plantplotter/.env.local` for local values. Keep `plantplotter/.env.local.example` safe for documented defaults. Do not commit real local environment files.
+Only `NEXT_PUBLIC_*` values should be placed in frontend environment files because they are exposed to browser code.
 
 ## Commands
 
