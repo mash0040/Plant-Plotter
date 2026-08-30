@@ -21,9 +21,18 @@ class ApiClient {
   clearUserSessionStorage() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
+      // Legacy key from earlier builds. Keep clearing it, but do not write it for new sessions.
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       localStorage.removeItem('gardens');
+    }
+  }
+
+  storeUserSession(token, user) {
+    if (typeof window !== 'undefined') {
+      this.clearUserSessionStorage();
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
     }
   }
 
@@ -123,7 +132,7 @@ class ApiClient {
     };
   }
 
-  // Get auth token from localStorage
+  // Get auth token from localStorage. authToken is a legacy fallback for existing browser sessions.
   getAuthToken() {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -219,10 +228,7 @@ class ApiClient {
       });
 
       if (response.token && typeof window !== 'undefined') {
-        this.clearUserSessionStorage();
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('authToken', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        this.storeUserSession(response.token, response.user);
       }
 
       return response;
@@ -249,10 +255,7 @@ class ApiClient {
       });
 
       if (response.token && typeof window !== 'undefined') {
-        this.clearUserSessionStorage();
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('authToken', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        this.storeUserSession(response.token, response.user);
       }
 
       return response;

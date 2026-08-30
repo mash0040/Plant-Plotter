@@ -244,6 +244,7 @@ Try the app live at https://www.plantplotter.me
 
 ## Known Limitations
 
+- Authentication currently stores the access JWT in browser `localStorage`; the tradeoff and migration plan are documented in [SECURITY.md](./SECURITY.md).
 - Refresh tokens are not implemented yet; expired sessions redirect users to sign in again.
 - Weather currently uses fixed Ottawa/default coordinates instead of user- or garden-specific location.
 - Email reminders, weather alerts, public garden sharing, and public profiles are planned future improvements.

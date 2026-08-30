@@ -116,4 +116,80 @@ describe('apiClient error handling', () => {
 
     expect(localStorage.getItem('token')).toBe('existing-token');
   });
+
+  it('stores successful login tokens only under the current token key', async () => {
+    fetch.mockResolvedValue(createJsonResponse({
+      status: 200,
+      body: {
+        token: 'new-login-token',
+        user: {
+          id: 1,
+          username: 'Demo User',
+          email: 'demo@example.com'
+        }
+      },
+      headers: {
+        'content-type': 'application/json'
+      }
+    }));
+
+    await apiClient.login('demo@example.com', 'password');
+
+    expect(localStorage.getItem('token')).toBe('new-login-token');
+    expect(localStorage.getItem('authToken')).toBeNull();
+    expect(JSON.parse(localStorage.getItem('user'))).toMatchObject({
+      username: 'Demo User',
+      email: 'demo@example.com'
+    });
+  });
+
+  it('stores successful registration tokens only under the current token key', async () => {
+    fetch.mockResolvedValue(createJsonResponse({
+      status: 201,
+      body: {
+        token: 'new-register-token',
+        user: {
+          id: 2,
+          username: 'New User',
+          email: 'new@example.com'
+        }
+      },
+      headers: {
+        'content-type': 'application/json'
+      }
+    }));
+
+    await apiClient.register('New User', 'new@example.com', 'Password123');
+
+    expect(localStorage.getItem('token')).toBe('new-register-token');
+    expect(localStorage.getItem('authToken')).toBeNull();
+    expect(JSON.parse(localStorage.getItem('user'))).toMatchObject({
+      username: 'New User',
+      email: 'new@example.com'
+    });
+  });
+
+  it('keeps reading the legacy authToken key for existing sessions', async () => {
+    localStorage.setItem('authToken', 'legacy-token');
+
+    fetch.mockResolvedValue(createJsonResponse({
+      status: 200,
+      body: {
+        id: 1,
+        username: 'Demo User',
+        email: 'demo@example.com'
+      },
+      headers: {
+        'content-type': 'application/json'
+      }
+    }));
+
+    await apiClient.getProfile();
+
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/users/profile'), expect.objectContaining({
+      headers: expect.objectContaining({
+        Authorization: 'Bearer legacy-token'
+      })
+    }));
+  });
 });
