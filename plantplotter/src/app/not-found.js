@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, Leaf, Sprout } from 'lucide-react';
+import { Leaf, Sprout } from 'lucide-react';
 
 export const metadata = {
   title: 'Page not found | PlantPlotter'
@@ -19,20 +19,13 @@ export default function NotFound() {
           This page does not exist. Check the address, or head back to your gardens.
         </p>
 
-        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+        <div className="mt-7 flex justify-center">
           <Link
             href="/gardens"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700"
           >
             <Leaf className="h-4 w-4" aria-hidden="true" />
             My Gardens
-          </Link>
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-white px-4 py-3 text-sm font-semibold text-green-800 transition-colors hover:bg-green-50"
-          >
-            <Home className="h-4 w-4" aria-hidden="true" />
-            Home
           </Link>
         </div>
       </section>
