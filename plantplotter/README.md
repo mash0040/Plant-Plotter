@@ -41,6 +41,7 @@ From this folder:
 
 ```sh
 npm run dev
+npm run test
 npm run lint
 npm run build
 npm run start
@@ -50,6 +51,7 @@ From the repository root:
 
 ```sh
 npm run dev:frontend
+npm test --workspace=plantplotter
 npm run lint --workspace=plantplotter
 npm run build --workspace=plantplotter
 ```
