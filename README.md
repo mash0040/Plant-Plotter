@@ -197,6 +197,7 @@ Default local URLs:
 ## Checks
 
 ```sh
+npm test --workspace=plantplotter
 npm run lint --workspace=plantplotter
 npm test --workspace=plantplotter_backend
 ```
@@ -246,7 +247,6 @@ Try the app live at https://www.plantplotter.me
 - Refresh tokens are not implemented yet; expired sessions redirect users to sign in again.
 - Weather currently uses fixed Ottawa/default coordinates instead of user- or garden-specific location.
 - Email reminders, weather alerts, public garden sharing, and public profiles are planned future improvements.
-- Frontend automated tests are not configured yet.
 
 ## Status
 
