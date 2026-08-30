@@ -9,6 +9,28 @@ const AuthContext = createContext(null);
 
 export const SESSION_EXPIRED_FLAG = 'plantplotter:session-expired';
 
+const getUserWithDisplayName = (userData = {}) => ({
+  ...userData,
+  displayName: userData.username || userData.name || userData.email,
+  username: userData.username || userData.name || 'User'
+});
+
+const getCachedAuthUser = () => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const cachedUser = localStorage.getItem('user');
+    if (!cachedUser) return null;
+
+    const userData = JSON.parse(cachedUser);
+    if (!userData || typeof userData !== 'object') return null;
+
+    return getUserWithDisplayName(userData);
+  } catch (storageError) {
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -44,11 +66,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       // Ensure user object has proper display fields
-      const userWithDisplayName = {
-        ...userData,
-        displayName: userData.username || userData.name || userData.email,
-        username: userData.username || userData.name || 'User'
-      };
+      const userWithDisplayName = getUserWithDisplayName(userData);
       
       setUser(userWithDisplayName);
       
@@ -79,6 +97,12 @@ export const AuthProvider = ({ children }) => {
             router.replace('/login');
           }
         }
+      }
+
+      const cachedUser = getCachedAuthUser();
+      if (cachedUser) {
+        setUser(cachedUser);
+        return cachedUser;
       }
       
       return null;
@@ -161,11 +185,7 @@ export const AuthProvider = ({ children }) => {
       
       if (!freshUser) {
         // Fallback to response data if profile fetch fails
-        const userWithDisplayName = {
-          ...response.user,
-          displayName: response.user.username || response.user.name || response.user.email,
-          username: response.user.username || response.user.name || 'User'
-        };
+        const userWithDisplayName = getUserWithDisplayName(response.user);
         setUser(userWithDisplayName);
       }
       

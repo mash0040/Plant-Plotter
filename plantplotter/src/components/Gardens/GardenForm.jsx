@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { X, Save, Leaf } from 'lucide-react';
+import RequestErrorNotice from '@/components/RequestErrorNotice';
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
@@ -361,9 +362,12 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4" noValidate>
           {formError && (
-            <div ref={formErrorRef} role="alert" aria-live="assertive" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-              {formError}
-            </div>
+            <RequestErrorNotice
+              noticeRef={formErrorRef}
+              message={formError}
+              retryLabel={isLoading ? 'Retrying...' : 'Retry save'}
+              retryType="submit"
+            />
           )}
 
           {/* Garden Name */}

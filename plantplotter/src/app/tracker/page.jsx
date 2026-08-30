@@ -12,6 +12,7 @@ import ActivityModal from '@/components/Tracker/ActivityModal';
 import TaskEditModal from '@/components/Tracker/TaskEditModal';
 import ActivityEditModal from '@/components/Tracker/ActivityEditModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import RequestErrorNotice from '@/components/RequestErrorNotice';
 import { useWeather } from '@/hooks/useWeather'; 
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 import apiClient from '@/lib/api';
@@ -44,6 +45,7 @@ function TrackingPageContent() {
   const [taskSuccess, setTaskSuccess] = useState('');
   const [activityError, setActivityError] = useState('');
   const [activitySuccess, setActivitySuccess] = useState('');
+  const [gardenLoadError, setGardenLoadError] = useState('');
   const [taskPlantLibrary, setTaskPlantLibrary] = useState([]);
   const [isTaskPlantLibraryLoading, setIsTaskPlantLibraryLoading] = useState(false);
   const trackerMessageRef = useRef(null);
@@ -111,6 +113,7 @@ function TrackingPageContent() {
   const loadGardens = async () => {
     try {
       setIsLoadingGardens(true);
+      setGardenLoadError('');
       // Try to load from API first
       const gardens = await apiClient.getGardenSummaries();
       
@@ -133,12 +136,17 @@ function TrackingPageContent() {
       if (trackerGardens.length > 0 && !selectedGarden) {
         setSelectedGarden(trackerGardens[0]);
       }
+      setGardenLoadError('');
+      setActivityError('');
     } catch (error) {
       console.error('Failed to load gardens from API:', error);
       if (isAuthenticationError(error)) {
         setGardens([]);
+        setGardenLoadError('');
         return;
       }
+
+      const errorMessage = getUserFacingErrorMessage(error, 'Could not load your gardens. Please try again.');
 
       if (shouldUseLocalReadFallback(error)) {
         try {
@@ -159,13 +167,23 @@ function TrackingPageContent() {
           if (trackerGardens.length > 0 && !selectedGarden) {
             setSelectedGarden(trackerGardens[0]);
           }
+          if (trackerGardens.length > 0) {
+            setGardenLoadError('');
+            setActivityError(`Showing local garden data. ${errorMessage}`);
+          } else {
+            setGardenLoadError(errorMessage);
+            setActivityError('');
+          }
         } catch (localError) {
           console.error('Failed to load from localStorage:', localError);
           setGardens([]);
+          setGardenLoadError(errorMessage);
+          setActivityError('');
         }
       } else {
         setGardens([]);
-        setActivityError(getUserFacingErrorMessage(error, 'Could not load your gardens. Please try again.'));
+        setGardenLoadError(errorMessage);
+        setActivityError('');
       }
     } finally {
       setIsLoadingGardens(false);
@@ -687,6 +705,26 @@ function TrackingPageContent() {
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading tracker data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (gardenLoadError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md rounded-2xl border border-green-100 bg-white/90 p-4 shadow-xl sm:p-6">
+          <RequestErrorNotice
+            title="Could not load tracker"
+            message={gardenLoadError}
+            onRetry={loadGardens}
+          />
+          <Link
+            href="/gardens"
+            className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 sm:w-auto"
+          >
+            Go to My Gardens
+          </Link>
         </div>
       </div>
     );

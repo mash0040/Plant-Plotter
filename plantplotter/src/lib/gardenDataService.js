@@ -26,36 +26,30 @@ class GardenDataService {
     this.listeners.forEach(callback => callback());
   }
 
-  // Get all gardens (from localStorage first, then API fallback)
+  // Get all gardens from the API, using localStorage only as a read-only fallback.
   async getGardens() {
     try {
-      // Try localStorage first
-      const localGardens = localStorage.getItem(GARDENS_STORAGE_KEY);
-      
-      if (localGardens && localGardens !== '[]') {
-        const parsedGardens = JSON.parse(localGardens);
-        console.log('Loaded gardens from localStorage:', parsedGardens);
-        return this.enrichGardenData(parsedGardens);
-      } else {
-        // Load from API (your rich mock data) and save to localStorage
-        console.log('Loading gardens from API...');
-        const apiGardens = await getApiGardens();
-        console.log('API gardens loaded:', apiGardens);
-        
-        // Save the rich mock data to localStorage for future use
-        this.saveToLocalStorage(apiGardens);
-        return this.enrichGardenData(apiGardens);
-      }
+      console.log('Loading gardens from API...');
+      const apiGardens = await getApiGardens();
+      console.log('API gardens loaded:', apiGardens);
+
+      this.saveToLocalStorage(apiGardens);
+      return this.enrichGardenData(apiGardens);
     } catch (error) {
-      console.error('Failed to load gardens:', error);
-      // If everything fails, try to return the API data directly
+      console.error('Failed to load gardens from API:', error);
+
       try {
-        const apiGardens = await getApiGardens();
-        return this.enrichGardenData(apiGardens);
-      } catch (apiError) {
-        console.error('Failed to load from API:', apiError);
-        return [];
+        const localGardens = localStorage.getItem(GARDENS_STORAGE_KEY);
+        if (localGardens && localGardens !== '[]') {
+          const parsedGardens = JSON.parse(localGardens);
+          console.warn('Using local garden data because the API could not be reached.');
+          return this.enrichGardenData(parsedGardens);
+        }
+      } catch (localError) {
+        console.error('Failed to load gardens from localStorage:', localError);
       }
+
+      return [];
     }
   }
 

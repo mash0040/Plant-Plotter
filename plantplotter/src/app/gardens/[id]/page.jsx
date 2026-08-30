@@ -7,14 +7,13 @@ import apiClient from '@/lib/api';
 import {
   getUserFacingErrorMessage,
   isAuthenticationError,
-  isValidationError,
-  shouldUseLocalReadFallback,
-  shouldUseLocalWriteFallback
+  shouldUseLocalReadFallback
 } from '@/lib/apiErrors';
 import { findPlantInLibrary, normalizePlantName } from '@/lib/plantLookup';
 import GardenForm from '@/components/Gardens/GardenForm'; 
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import RequestErrorNotice from '@/components/RequestErrorNotice';
 
 function GardenDetailPageContent() {
   const params = useParams();
@@ -28,11 +27,14 @@ function GardenDetailPageContent() {
   const [successMessage, setSuccessMessage] = useState('');
   const [pageError, setPageError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [loadRetryKey, setLoadRetryKey] = useState(0);
 
   // Single useEffect to load both garden and plant library data
   useEffect(() => {
     const loadData = async () => {
       try {
+        setLoading(true);
+        setPageError('');
         // Load garden data
         const gardenData = await apiClient.getGarden(params.id);
         
@@ -75,7 +77,7 @@ function GardenDetailPageContent() {
     if (params.id) {
       loadData();
     }
-  }, [params.id]);
+  }, [params.id, loadRetryKey]);
 
   // Close mobile garden actions menu when clicking outside
   useEffect(() => {
@@ -135,7 +137,7 @@ function GardenDetailPageContent() {
       
       setGarden(updatedGarden);
       
-      // Also update localStorage as fallback
+      // Refresh local cache only after the server update succeeds.
       const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
       const gardenIndex = localGardens.findIndex(g => g.id == garden.id);
       
@@ -147,32 +149,7 @@ function GardenDetailPageContent() {
       setPageError('');
     } catch (error) {
       console.error('Failed to update garden:', error);
-      if (isAuthenticationError(error) || isValidationError(error) || !shouldUseLocalWriteFallback(error)) {
-        throw error;
-      }
-
-      // Fallback to localStorage only
-      const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-      const gardenIndex = localGardens.findIndex(g => g.id == garden.id);
-      
-      if (gardenIndex !== -1) {
-        const updatedGarden = {
-          ...localGardens[gardenIndex],
-          ...updatedGardenData,
-          id: garden.id,
-          updatedAt: new Date().toISOString(),
-          plantedItems: garden.plantedItems || [],
-          plantCount: garden.plantCount || 0
-        };
-        
-        localGardens[gardenIndex] = updatedGarden;
-        localStorage.setItem('gardens', JSON.stringify(localGardens));
-        setGarden(updatedGarden);
-        setSuccessMessage('Garden updated successfully.');
-        setPageError('');
-      } else {
-        throw error;
-      }
+      throw error;
     }
     
     setShowEditForm(false);
@@ -194,15 +171,7 @@ function GardenDetailPageContent() {
         return;
       }
 
-      if (!shouldUseLocalWriteFallback(error)) {
-        setPageError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
-        return;
-      }
-
-      const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-      const updatedGardens = localGardens.filter(g => g.id != garden.id);
-      localStorage.setItem('gardens', JSON.stringify(updatedGardens));
-      router.push('/gardens');
+      setPageError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
     }
   };
 
@@ -419,6 +388,26 @@ function GardenDetailPageContent() {
   }
 
   if (!garden) {
+    if (pageError) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl border border-green-100 bg-white/90 p-4 shadow-xl sm:p-6">
+            <RequestErrorNotice
+              title="Could not load garden"
+              message={pageError}
+              onRetry={() => setLoadRetryKey(prevKey => prevKey + 1)}
+            />
+            <Link
+              href="/gardens"
+              className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 sm:w-auto"
+            >
+              Back to Gardens
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center p-4">
         <div className="text-center max-w-md mx-auto">
@@ -568,9 +557,7 @@ function GardenDetailPageContent() {
 
       {pageError && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-          <div role="alert" className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm font-medium">
-            {pageError}
-          </div>
+          <RequestErrorNotice message={pageError} />
         </div>
       )}
 
