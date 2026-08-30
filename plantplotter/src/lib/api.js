@@ -546,31 +546,8 @@ class ApiClient {
         body: JSON.stringify({ plantedItems }),
       });
     } catch (plantError) {
-      if (this.isServiceUnavailableError(plantError)) {
-        throw plantError;
-      }
-
-      await this.clearGardenPlants(gardenId);
-
-      const failedPlants = [];
-      for (const plant of plantedItems) {
-        try {
-          await this.addPlantToGarden(gardenId, plant);
-        } catch (error) {
-          if (this.isServiceUnavailableError(error)) {
-            throw error;
-          }
-
-          console.error(`Failed to add plant ${plant.plant_name}:`, error.message);
-          failedPlants.push(plant.plant_name || plant.plant_id || 'plant');
-        }
-      }
-
-      if (failedPlants.length > 0) {
-        throw new Error(`Failed to save ${failedPlants.length} planted item${failedPlants.length === 1 ? '' : 's'}.`);
-      }
-
-      return { success: true, totalPlants: plantedItems.length };
+      console.error('Failed to save planted items:', plantError);
+      throw plantError;
     }
   }
 
@@ -617,41 +594,13 @@ class ApiClient {
       if (plantedItems.length > 0) {        
         try {
           // Use the new complete save endpoint for plants
-          const plantResponse = await this.request(`/gardens/${garden.id}/complete`, {
+          await this.request(`/gardens/${garden.id}/complete`, {
             method: 'PUT',
             body: JSON.stringify({ plantedItems }),
-          });          
-          
+          });
         } catch (plantError) {
-          if (this.isServiceUnavailableError(plantError)) {
-            throw plantError;
-          }
-
-          // Fallback: Clear plants first, then add individually
-          try {
-            await this.clearGardenPlants(garden.id);
-          } catch (clearError) {
-            if (this.isServiceUnavailableError(clearError)) {
-              throw clearError;
-            }
-
-            // Continue even if clear fails
-          }
-          
-          // Add plants individually
-          let addedCount = 0;
-          for (const plant of plantedItems) {
-            try {
-              await this.addPlantToGarden(garden.id, plant);
-              addedCount++;
-            } catch (error) {
-              if (this.isServiceUnavailableError(error)) {
-                throw error;
-              }
-
-              console.error(`Failed to add plant ${plant.plant_name}:`, error.message);
-            }
-          }          
+          console.error('Failed to save planted items for complete garden:', plantError);
+          throw plantError;
         }
       }
       

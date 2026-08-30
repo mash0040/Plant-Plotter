@@ -7,13 +7,13 @@ import GardenList from '@/components/Gardens/GardenList';
 import GardenForm from '@/components/Gardens/GardenForm';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import RequestErrorNotice from '@/components/RequestErrorNotice';
+import { CheckCircle, X } from 'lucide-react';
 import {
   getUserFacingErrorMessage,
   isAuthenticationError,
   isValidationError,
-  shouldUseLocalReadFallback,
-  shouldUseLocalWriteFallback
+  shouldUseLocalReadFallback
 } from '@/lib/apiErrors';
 
 function GardensLoading() {
@@ -182,32 +182,13 @@ function AllGardensContent() {
         return;
       }
 
-      if (!shouldUseLocalWriteFallback(error)) {
-        setError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
-        return;
-      }
-      
-      // Fallback to localStorage deletion
-      try {
-        const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-        const updatedGardens = localGardens.filter(g => g.id !== gardenToDelete.id);
-        localStorage.setItem('gardens', JSON.stringify(updatedGardens));
-        
-        // Reload gardens to reflect the deletion
-        await loadGardens();
-        
-        setSuccessMessage(`"${gardenToDelete.name}" deleted successfully!`);
-        setShowSuccessMessage(true);
-        setTimeout(() => setShowSuccessMessage(false), 3000);
-      } catch (localError) {
-        console.error('Failed to delete from localStorage:', localError);
-        setError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
-      }
+      setError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
     }
   };
 
   const handleSave = async (gardenData) => {
     try {
+      setError(null);
       const isUpdate = selectedGarden !== null;
       let savedGarden;
       
@@ -245,28 +226,7 @@ function AllGardensContent() {
           };
         } catch (error) {
           console.error('Failed to update garden via API:', error);
-          if (isAuthenticationError(error) || isValidationError(error) || !shouldUseLocalWriteFallback(error)) {
-            throw error;
-          }
-
-          // Fallback to localStorage update
-          const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-          const gardenIndex = localGardens.findIndex(g => g.id === selectedGarden.id);
-          
-          if (gardenIndex !== -1) {
-            savedGarden = {
-              ...localGardens[gardenIndex],
-              ...gardenData,
-              id: selectedGarden.id,
-              updatedAt: new Date().toISOString(),
-              plantedItems: selectedGarden.plantedItems || []
-            };
-            
-            localGardens[gardenIndex] = savedGarden;
-            localStorage.setItem('gardens', JSON.stringify(localGardens));
-          } else {
-            throw error;
-          }
+          throw error;
         }
         
         setSuccessMessage('Garden updated successfully.');
@@ -304,23 +264,7 @@ function AllGardensContent() {
           };
         } catch (error) {
           console.error('Failed to create garden via API:', error);
-          if (isAuthenticationError(error) || isValidationError(error) || !shouldUseLocalWriteFallback(error)) {
-            throw error;
-          }
-
-          // Fallback to localStorage creation
-          savedGarden = {
-            ...gardenData,
-            id: Date.now(), // Simple ID generation for fallback
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            plantCount: 0,
-            plantedItems: []
-          };
-          
-          const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-          localGardens.push(savedGarden);
-          localStorage.setItem('gardens', JSON.stringify(localGardens));
+          throw error;
         }
         
         setSuccessMessage('Garden created successfully.');
@@ -341,7 +285,7 @@ function AllGardensContent() {
         throw error;
       }
 
-      setError(getUserFacingErrorMessage(error, 'Failed to save garden. Please try again.'));
+      throw error;
     }
   };
 
@@ -354,6 +298,26 @@ function AllGardensContent() {
     return <GardensLoading />;
   }
 
+  const showPageError = Boolean(error && !isFormOpen);
+  const showFullPageError = Boolean(showPageError && gardens.length === 0);
+
+  if (showFullPageError) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-md rounded-2xl border border-green-100 bg-white/90 p-4 shadow-xl sm:p-6">
+            <RequestErrorNotice
+              noticeRef={messageRef}
+              title="Could not load gardens"
+              message={error}
+              onRetry={loadGardens}
+            />
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
   return (
     <ProtectedRoute>
       {/* Success Message */}
@@ -362,39 +326,26 @@ function AllGardensContent() {
           <CheckCircle className="w-5 h-5 text-green-600" />
           <span className="text-green-800 font-medium">{successMessage}</span>
           <button
+            type="button"
             onClick={() => setShowSuccessMessage(false)}
-            className="text-green-600 hover:text-green-800 ml-2"
+            aria-label="Dismiss success message"
+            className="ml-2 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-green-600 transition-colors hover:bg-green-100 hover:text-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 focus-visible:ring-offset-green-50"
           >
-            ×
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
 
       {/* Error Message */}
-      {error && (
-        <div ref={messageRef} role="alert" aria-live="assertive" className="fixed left-4 right-4 top-20 z-50 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg flex items-center gap-3 sm:right-auto sm:max-w-md">
-          <AlertCircle className="w-5 h-5 text-red-600" />
-          <span className="text-red-800 font-medium">{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="text-red-600 hover:text-red-800 ml-2"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* Retry Button */}
-      {error && (
-        <div className="fixed top-16 left-4 z-50">
-          <button
-            onClick={loadGardens}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Retry
-          </button>
-        </div>
+      {showPageError && (
+        <RequestErrorNotice
+          noticeRef={messageRef}
+          message={error}
+          onRetry={loadGardens}
+          onDismiss={() => setError(null)}
+          dismissLabel="Dismiss error"
+          className="fixed left-4 right-4 top-20 z-50 shadow-lg sm:left-6 sm:right-auto sm:max-w-xl"
+        />
       )}
 
       <GardenList

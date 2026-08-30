@@ -63,6 +63,4 @@ export const shouldUseLocalReadFallback = (error) => (
   isNetworkError(error) || isServerError(error)
 );
 
-export const shouldUseLocalWriteFallback = (error) => (
-  isNetworkError(error) || isServerError(error)
-);
+export const shouldUseLocalWriteFallback = () => false;

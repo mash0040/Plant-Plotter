@@ -14,6 +14,7 @@ import RowPlantingModal from '@/components/Garden/RowPlantingModal';
 import GardenForm from '@/components/Gardens/GardenForm';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import RequestErrorNotice from '@/components/RequestErrorNotice';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
 import { snapToGrid, checkPlantOverlap, isWithinBounds, getPlantFootprint } from '@/components/Garden/Utils/GardenUtils';
 import apiClient from '@/lib/api';
@@ -50,6 +51,8 @@ function GardenPlannerPageContent() {
   const [duplicatePlantPending, setDuplicatePlantPending] = useState(null);
   const [plannerLoadError, setPlannerLoadError] = useState('');
   const [placementPreview, setPlacementPreview] = useState(null);
+  const [plannerLoadRetryKey, setPlannerLoadRetryKey] = useState(0);
+  const [gardenSummaryRetryKey, setGardenSummaryRetryKey] = useState(0);
 
   // State to store plant library data
   const [libraryPlants, setLibraryPlants] = useState([]);
@@ -328,7 +331,7 @@ function GardenPlannerPageContent() {
     };
 
     loadGarden();
-  }, [gardenId, router]);
+  }, [gardenId, router, plannerLoadRetryKey]);
 
   useEffect(() => {
     const loadGardenSummaries = async () => {
@@ -353,7 +356,7 @@ function GardenPlannerPageContent() {
     };
 
     loadGardenSummaries();
-  }, [gardenId]);
+  }, [gardenId, gardenSummaryRetryKey]);
 
   // Enhanced bounds checking
   const isWithinBoundsFlexible = (plant, dimensions, gridSize, useGrid = true) => {
@@ -960,12 +963,15 @@ function GardenPlannerPageContent() {
   if (plannerLoadError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white/90 border border-red-100 rounded-2xl shadow-xl p-6 text-center">
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">Planner unavailable</h1>
-          <p className="text-sm text-gray-600 mb-5">{plannerLoadError}</p>
+        <div className="w-full max-w-md rounded-2xl border border-green-100 bg-white/90 p-4 shadow-xl sm:p-6">
+          <RequestErrorNotice
+            title="Planner unavailable"
+            message={plannerLoadError}
+            onRetry={() => setPlannerLoadRetryKey(prevKey => prevKey + 1)}
+          />
           <Link
             href="/gardens"
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium"
+            className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 sm:w-auto"
           >
             Go to My Gardens
           </Link>
@@ -988,6 +994,26 @@ function GardenPlannerPageContent() {
 
     const hasGardenSummaries = plannerGardenSummaries.length > 0;
 
+    if (gardenSummaryError && !hasGardenSummaries) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 px-4 py-8">
+          <div className="mx-auto w-full max-w-md rounded-2xl border border-green-100 bg-white/90 p-4 shadow-xl sm:p-6">
+            <RequestErrorNotice
+              title="Could not load gardens"
+              message={gardenSummaryError}
+              onRetry={() => setGardenSummaryRetryKey(prevKey => prevKey + 1)}
+            />
+            <Link
+              href="/gardens"
+              className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 sm:w-auto"
+            >
+              Go to My Gardens
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 px-4 py-8">
         <div className="mx-auto w-full max-w-5xl">
@@ -1004,9 +1030,11 @@ function GardenPlannerPageContent() {
               </div>
 
               {gardenSummaryError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                  {gardenSummaryError}
-                </div>
+                <RequestErrorNotice
+                  title="Could not refresh gardens"
+                  message={gardenSummaryError}
+                  onRetry={() => setGardenSummaryRetryKey(prevKey => prevKey + 1)}
+                />
               )}
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1067,11 +1095,6 @@ function GardenPlannerPageContent() {
                 <p className="text-gray-600 mb-6">
                   Create your first garden space, then you can open the planner and start adding plants.
                 </p>
-                {gardenSummaryError && (
-                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                    {gardenSummaryError}
-                  </div>
-                )}
                 <button
                   type="button"
                   onClick={() => setShowCreateGardenForm(true)}
