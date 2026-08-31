@@ -55,6 +55,13 @@ test('does not classify SQL and application errors as temporary outages', () => 
   assert.equal(isTemporaryDatabaseUnavailableError({ code: 'ER_PARSE_ERROR' }), false);
 });
 
+test('classifies mysql2 pool queue saturation as a temporary outage', () => {
+  assert.equal(
+    isTemporaryDatabaseUnavailableError(new Error('Queue limit reached.')),
+    true
+  );
+});
+
 test('classifies wrapped temporary database outage errors through cause', () => {
   const error = new Error('Database query failed', {
     cause: { code: 'ENOTFOUND' }

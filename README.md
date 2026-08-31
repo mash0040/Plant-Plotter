@@ -135,6 +135,10 @@ Only `NEXT_PUBLIC_*` values are exposed to the browser. Do not put private secre
 | `DB_USER` | MySQL username. |
 | `DB_PASSWORD` | MySQL password. |
 | `DB_NAME` | MySQL database name. The active local database is `garden_plotter`. |
+| `DB_CONNECTION_LIMIT` | Maximum open MySQL connections in the shared pool. Default is `10`. |
+| `DB_QUEUE_LIMIT` | Maximum queued pool waiters when all connections are busy. Default is `50`; invalid or `0` values fall back to this finite limit. |
+| `DB_CONNECT_TIMEOUT_MS` | MySQL connection establishment timeout in milliseconds. Default is `30000`. |
+| `DB_IDLE_TIMEOUT_MS` | Idle pooled connection timeout in milliseconds. Default is `60000`. |
 | `DB_SSL` | Enables MySQL TLS. Local default is `false`; production must be `true`. |
 | `DB_SSL_REJECT_UNAUTHORIZED` | Verifies the database certificate. Production must be `true`. |
 | `DB_SSL_CA_PATH` | Filesystem path to the trusted Aiven CA certificate in production. |
@@ -155,6 +159,12 @@ DB_SSL_CA_PATH=/etc/secrets/aiven-ca.pem
 ```
 
 The backend refuses to start in production unless verified TLS and a CA certificate path are configured.
+
+The MySQL pool uses a finite wait queue so slow, unavailable, or saturated database conditions cannot build an unbounded in-memory request backlog. When the mysql2 pool reports `Queue limit reached.`, the API treats it as temporary database unavailability and returns the same sanitized `503` response used for connectivity outages.
+
+`DB_CONNECT_TIMEOUT_MS` bounds initial connection establishment. The app does not currently apply a global query timeout or automatic write retry, because that would affect every DB-backed route and should be designed separately if slow in-flight queries become an observed production issue.
+
+The backend does not ping the database before each request and does not run a periodic SQL keep-alive query. It relies on mysql2 TCP keepalive plus normal request traffic instead of using database queries to keep the managed database awake.
 
 ## Database Setup
 
