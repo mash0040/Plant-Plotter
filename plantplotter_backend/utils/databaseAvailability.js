@@ -15,6 +15,10 @@ const TEMPORARY_DATABASE_ERROR_CODES = new Set([
   'PROTOCOL_CONNECTION_LOST'
 ]);
 
+const TEMPORARY_DATABASE_ERROR_MESSAGES = new Set([
+  'Queue limit reached.'
+]);
+
 const getErrorChain = (error) => {
   const chain = [];
   const seen = new Set();
@@ -43,6 +47,9 @@ const isTemporaryDatabaseUnavailableError = (error) => {
   return errorChain.some((currentError) => (
     typeof currentError.code === 'string' &&
     TEMPORARY_DATABASE_ERROR_CODES.has(currentError.code)
+  )) || errorChain.some((currentError) => (
+    typeof currentError.message === 'string' &&
+    TEMPORARY_DATABASE_ERROR_MESSAGES.has(currentError.message)
   ));
 };
 
@@ -77,6 +84,7 @@ module.exports = {
   SERVICE_UNAVAILABLE_CODE,
   SERVICE_UNAVAILABLE_MESSAGE,
   TEMPORARY_DATABASE_ERROR_CODES,
+  TEMPORARY_DATABASE_ERROR_MESSAGES,
   isTemporaryDatabaseUnavailableError,
   sendDatabaseAwareErrorResponse,
   sendDatabaseUnavailableResponse
