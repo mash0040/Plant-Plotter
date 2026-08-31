@@ -1,15 +1,6 @@
 -- Insert demo users with properly generated bcrypt hashes
 USE garden_plotter;
 
-INSERT INTO users (
-    username, 
-    email, 
-    password_hash, 
-    role, 
-    is_active, 
-    email_verified,
-    preferences
-) VALUES 
 INSERT INTO users (username, email, password_hash, role, is_active, email_verified, preferences)
 VALUES (
   'Demo User',
@@ -22,15 +13,15 @@ VALUES (
 );
 
 update users 
-set preferences =  '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenRemainders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
+set preferences =  '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenReminders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
 where id = 1;
 
 update users 
-set preferences = '{"language":"en", "theme": "dark", "notifications": {"email":true,"push":true,"gardenRemainders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":true}, "garden":{"defaultUnits": "imperial", "autoSave":true, "gridSize":40}}'
+set preferences = '{"language":"en", "theme": "dark", "notifications": {"email":true,"push":true,"gardenReminders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":true}, "garden":{"defaultUnits": "imperial", "autoSave":true, "gridSize":40}}'
 where id = 2;
 
 update users 
-set preferences = '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenRemainders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
+set preferences = '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenReminders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
 where id = 3;
 
 
@@ -394,8 +385,8 @@ INSERT INTO gardens (id, user_id, name, description, width, height, grid_size, s
 (3, 1, 'Culinary Herb Collection', 'Comprehensive herb garden with cooking essentials and specialty varieties', 8, 8, 40, 'Loamy', 'Kitchen garden', 'Active', 12),
 (4, 1, 'Young Orchard', 'Developing fruit tree collection with understory plantings', 20, 15, 40, 'Clay', 'Side yard', 'Active', 11),
 (5, 1, 'Intensive Container Garden', 'Maximized small-space gardening with succession planting', 6, 4, 40, 'Loamy', 'Apartment balcony', 'Active', 14),
--- Admin User Garden (user_id = 2) - Empty for testing
-(6, 2, 'Admin Test Garden', 'Empty garden for admin user testing', 10, 8, 40, 'Loamy', 'Test Location', 'Planning', 0),
+-- Admin User Garden (user_id = 2) - Empty for workflow checks
+(6, 2, 'Admin Review Garden', 'Empty garden reserved for admin workflow checks', 10, 8, 40, 'Loamy', 'Demo workspace', 'Planning', 0),
 -- Regular User Garden (user_id = 3) - Empty for new users
 (7, 3, 'My First Garden', 'Starter garden for regular user', 8, 6, 40, 'Loamy', 'Backyard', 'Planning', 0);
 
@@ -424,9 +415,8 @@ INSERT INTO planted_items (id, garden_id, plant_id, plant_name, plant_emoji, pla
 (17, 2, 'strawberry', 'Strawberry', '🍓', 1, 'fruits', 3, 1, '2024-09-15', 'Second strawberry plant for better yield'),
 (18, 2, 'strawberry', 'Strawberry', '🍓', 1, 'fruits', 5, 1, '2024-09-15', 'Third strawberry for full bed'),
 (19, 2, 'blueberry', 'Blueberry', '🫐', 3, 'fruits', 8, 2, '2024-08-01', 'Highbush variety, acidic soil added'),
--- Note: raspberry is not in plant_library, using strawberry as placeholder or consider adding raspberry to plant_library
-(20, 2, 'strawberry', 'Raspberry', '🍇', 2, 'fruits', 2, 4, '2024-07-20', 'Red raspberry canes, summer bearing - NOTE: Using strawberry ID as raspberry not in library'),
-(21, 2, 'strawberry', 'Raspberry', '🍇', 2, 'fruits', 4, 4, '2024-07-20', 'Second raspberry for better production - NOTE: Using strawberry ID as raspberry not in library'),
+(20, 2, 'raspberry', 'Raspberry', '🍇', 2, 'fruits', 2, 4, '2024-07-20', 'Red raspberry canes, summer bearing'),
+(21, 2, 'raspberry', 'Raspberry', '🍇', 2, 'fruits', 4, 4, '2024-07-20', 'Second raspberry for better production'),
 (22, 2, 'lavender', 'Lavender', '💜', 2, 'herbs', 0, 7, '2024-08-15', 'English lavender, drought tolerant'),
 (23, 2, 'lavender', 'Lavender', '💜', 2, 'herbs', 3, 7, '2024-08-15', 'Second lavender for hedge effect'),
 (24, 2, 'rose', 'Rose Bush', '🌹', 2, 'flowers', 10, 6, '2024-07-01', 'Hybrid tea rose, needs regular feeding'),
@@ -453,10 +443,9 @@ INSERT INTO planted_items (id, garden_id, plant_id, plant_name, plant_emoji, pla
 (41, 4, 'apple', 'Apple Tree', '🍎', 4, 'fruits', 3, 3, '2024-04-15', 'Honeycrisp variety, dwarf rootstock'),
 (42, 4, 'apple', 'Apple Tree', '🍎', 4, 'fruits', 10, 3, '2024-04-15', 'Gala variety, cross-pollinator'),
 (43, 4, 'pear', 'Pear Tree', '🍐', 4, 'fruits', 16, 3, '2024-04-20', 'Bartlett pear, needs cross-pollination'),
--- Note: cherry, peach, fig are not in plant_library, using closest alternatives
-(44, 4, 'apricot', 'Cherry Tree', '🍒', 4, 'fruits', 3, 10, '2024-05-01', 'Sweet cherry, self-pollinating variety - NOTE: Using apricot ID as cherry not in library'),
-(45, 4, 'apricot', 'Peach Tree', '🍑', 4, 'fruits', 10, 10, '2024-05-05', 'Freestone peach, disease resistant - NOTE: Using apricot ID as peach not in library'),
-(46, 4, 'fruit_trees', 'Fig Tree', '🟤', 4, 'fruits', 16, 10, '2024-05-10', 'Brown Turkey fig, cold hardy - NOTE: Using fruit_trees ID as fig not in library'),
+(44, 4, 'cherry', 'Cherry Tree', '🍒', 4, 'fruits', 3, 10, '2024-05-01', 'Sweet cherry, self-pollinating variety'),
+(45, 4, 'peach', 'Peach Tree', '🍑', 4, 'fruits', 10, 10, '2024-05-05', 'Freestone peach, disease resistant'),
+(46, 4, 'fig', 'Fig Tree', '🟤', 4, 'fruits', 16, 10, '2024-05-10', 'Brown Turkey fig, cold hardy'),
 (47, 4, 'nasturtium', 'Nasturtium', '🌸', 1, 'flowers', 1, 1, '2024-08-01', 'Ground cover around apple tree'),
 (48, 4, 'nasturtium', 'Nasturtium', '🌸', 1, 'flowers', 8, 1, '2024-08-01', 'Beneficial insect attractor'),
 (49, 4, 'nasturtium', 'Nasturtium', '🌸', 1, 'flowers', 14, 1, '2024-08-01', 'Understory planting'),
