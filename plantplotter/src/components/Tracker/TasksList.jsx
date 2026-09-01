@@ -60,10 +60,12 @@ export default function TasksList({
             {tasks.length}
           </span>
           {showAddButton && onTaskAdd && (
-            <button 
+            <button
+              type="button"
               onClick={onTaskAdd}
-              className="flex h-9 w-9 items-center justify-center bg-blue-100 hover:bg-blue-200 rounded-full transition-colors"
+              className="flex h-9 w-9 items-center justify-center bg-blue-100 hover:bg-blue-200 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               title="Add new task"
+              aria-label="Add new task"
             >
               <Plus className="w-4 h-4 text-blue-600" />
             </button>
@@ -71,21 +73,27 @@ export default function TasksList({
         </div>
       </div>
       <div className="space-y-3">
-        {tasks.map(task => (
+        {tasks.map(task => {
+          const taskName = task.title || task.task || 'task';
+
+          return (
           <div key={task.id} className="group flex items-start space-x-3 p-3 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             {showCheckboxes ? (
-              <input 
-                type="checkbox" 
-                className="w-6 h-6 rounded border-gray-300 text-green-600 focus:ring-green-500 mt-0.5 flex-shrink-0" 
+              <input
+                type="checkbox"
+                aria-label={`Complete ${taskName}`}
+                className="w-6 h-6 rounded border-gray-300 text-green-600 focus:ring-green-500 mt-0.5 flex-shrink-0"
                 onChange={() => onTaskComplete && onTaskComplete(task.id)}
               />
             ) : (
               <button
+                type="button"
                 onClick={() => onTaskComplete && onTaskComplete(task.id)}
-                className="w-6 h-6 rounded border-2 flex items-center justify-center transition-colors border-gray-300 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900 mt-0.5 flex-shrink-0 group"
+                className="w-6 h-6 rounded border-2 flex items-center justify-center transition-colors border-gray-300 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900 mt-0.5 flex-shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
                 title="Complete task"
+                aria-label={`Complete ${taskName}`}
               >
-                <Check className="w-3 h-3 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Check className="w-3 h-3 text-green-600 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity" />
               </button>
             )}
             
@@ -131,9 +139,11 @@ export default function TasksList({
                 <div className="flex items-center gap-1">
                   {showEditButtons && onTaskEdit && (
                     <button
+                      type="button"
                       onClick={() => onTaskEdit(task)}
-                      className="flex h-9 w-9 items-center justify-center bg-gray-100 hover:bg-gray-200 rounded transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                      className="flex h-9 w-9 items-center justify-center bg-gray-100 hover:bg-gray-200 rounded transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
                       title="Edit task"
+                      aria-label={`Edit ${taskName}`}
                     >
                       <Edit3 className="w-4 h-4 text-gray-600" />
                     </button>
@@ -145,7 +155,8 @@ export default function TasksList({
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

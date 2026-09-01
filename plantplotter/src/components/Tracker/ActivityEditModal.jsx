@@ -229,8 +229,10 @@ export default function ActivityEditModal({
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 rounded-lg transition-colors"
+            aria-label="Close activity form"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -246,10 +248,11 @@ export default function ActivityEditModal({
           {/* Garden Selection */}
           {!isEditingExistingActivity && gardens.length > 1 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="activity-garden" className="block text-sm font-medium text-gray-700 mb-2">
                 Garden *
               </label>
               <select
+                id="activity-garden"
                 value={formData.garden_id}
                 onChange={(e) => handleInputChange('garden_id', e.target.value)}
                 className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -284,10 +287,11 @@ export default function ActivityEditModal({
 
           {/* Activity Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="activity-type" className="block text-sm font-medium text-gray-700 mb-2">
               Activity Type *
             </label>
             <select
+              id="activity-type"
               value={formData.activity_type}
               onChange={(e) => handleInputChange('activity_type', e.target.value)}
               className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -307,10 +311,11 @@ export default function ActivityEditModal({
 
           {/* Plant Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="activity-plant" className="block text-sm font-medium text-gray-700 mb-2">
               Plant
             </label>
             <select
+              id="activity-plant"
               value={formData.plant_name}
               onChange={(e) => handleInputChange('plant_name', e.target.value)}
               className="mb-2 w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -347,10 +352,11 @@ export default function ActivityEditModal({
 
           {/* Activity Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="activity-date" className="block text-sm font-medium text-gray-700 mb-2">
               Date
             </label>
             <input
+              id="activity-date"
               type="date"
               value={formData.activity_date}
               onChange={(e) => handleInputChange('activity_date', e.target.value)}
@@ -364,10 +370,11 @@ export default function ActivityEditModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="activity-notes" className="block text-sm font-medium text-gray-700 mb-2">
               Notes
             </label>
             <textarea
+              id="activity-notes"
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -426,6 +433,7 @@ export default function ActivityEditModal({
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isSaving || isDeleting || plantOptions.length === 0}
               className="flex min-h-11 items-center justify-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg transition-colors duration-200"

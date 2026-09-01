@@ -421,7 +421,7 @@ export default function PlantLibrary({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               aria-label="Close plant details"
             >
               <X className="w-5 h-5" />
@@ -518,9 +518,11 @@ export default function PlantLibrary({
             </div>
             <h2 className="text-lg font-semibold text-gray-800">Plants</h2>
           </div>
-          <button 
+          <button
+            type="button"
             onClick={onToggle}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close plant library"
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
           >
             <X className="w-5 h-5 text-gray-600" />
           </button>
@@ -533,9 +535,10 @@ export default function PlantLibrary({
             </div>
             <h3 className="font-semibold text-red-800 mb-2">Error Loading Plants</h3>
             <p className="text-red-600 text-sm mb-4 px-2">{error}</p>
-            <button 
+            <button
+              type="button"
               onClick={loadPlants}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
             >
               Retry
             </button>
@@ -592,17 +595,21 @@ export default function PlantLibrary({
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && (
-              <button 
+              <button
+                type="button"
                 onClick={handleAddNewPlant}
-                className="p-2 bg-green-100 hover:bg-green-200 rounded-lg transition-colors"
+                aria-label="Add new plant"
+                className="p-2 bg-green-100 hover:bg-green-200 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
                 title="Add new plant"
               >
                 <Plus className="w-4 h-4 text-green-600" />
               </button>
             )}
-            <button 
+            <button
+              type="button"
               onClick={onToggle}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Close plant library"
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
             >
               <X className="w-5 h-5 text-gray-600" />
             </button>
@@ -611,8 +618,10 @@ export default function PlantLibrary({
         
         <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
           <div className="relative">
+            <label htmlFor="plant-library-search" className="sr-only">Search plants</label>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
+              id="plant-library-search"
               type="text"
               placeholder="Search plants..."
               value={searchTerm}
@@ -628,8 +637,10 @@ export default function PlantLibrary({
         {placedPlants.length > 0 && (
           <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50 flex-shrink-0">
             <button
+              type="button"
               onClick={() => setShowCompanionGuide(!showCompanionGuide)}
-              className="w-full flex items-center justify-between p-4 hover:bg-white/50 transition-colors"
+              aria-expanded={showCompanionGuide}
+              className="w-full flex items-center justify-between p-4 hover:bg-white/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-green-600"
             >
               <div className="flex items-center gap-2">
                 <Info className="w-4 h-4 text-green-600" />
@@ -654,8 +665,10 @@ export default function PlantLibrary({
                     {companionSuggestionsByPlant.map((plantSuggestion) => (
                       <div key={plantSuggestion.sourcePlant.id} className="bg-white/70 rounded-lg p-3 border border-white/50">
                         <button
+                          type="button"
                           onClick={() => togglePlantSection(plantSuggestion.sourcePlant.id)}
-                          className="flex items-center justify-between w-full text-left"
+                          aria-expanded={Boolean(expandedPlants[plantSuggestion.sourcePlant.id])}
+                          className="flex items-center justify-between w-full text-left rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-lg">{plantSuggestion.sourcePlant.emoji}</span>

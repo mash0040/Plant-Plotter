@@ -320,8 +320,10 @@ export default function TaskEditModal({
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 rounded-lg transition-colors"
+            aria-label="Close task form"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -352,19 +354,20 @@ export default function TaskEditModal({
           {/* Title and Description */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="block text-sm font-medium text-gray-700 mb-2">
                 Task
-              </label>
+              </span>
               <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900 break-words">
                 {generatedTitle || 'Select a task type and plant'}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="task-type" className="block text-sm font-medium text-gray-700 mb-2">
                 Task Type *
               </label>
               <select
+                id="task-type"
                 value={formData.task_type}
                 onChange={(e) => handleInputChange('task_type', e.target.value)}
                 className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -379,11 +382,12 @@ export default function TaskEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="task-description" className="block text-sm font-medium text-gray-700 mb-2">
                 Description
                 {isOtherTask && <span className="text-red-600"> *</span>}
               </label>
               <textarea
+                id="task-description"
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -401,9 +405,11 @@ export default function TaskEditModal({
           {/* Garden and Plant */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {isEditingExistingTask ? 'Garden' : 'Garden *'}
-              </label>
+              {isEditingExistingTask ? (
+                <span className="block text-sm font-medium text-gray-700 mb-2">Garden</span>
+              ) : (
+                <label htmlFor="task-garden" className="block text-sm font-medium text-gray-700 mb-2">Garden *</label>
+              )}
               {isEditingExistingTask ? (
                 <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2">
                   <div className="font-medium text-green-800 break-words">{selectedGarden?.name || 'Selected garden'}</div>
@@ -413,6 +419,7 @@ export default function TaskEditModal({
                 </div>
               ) : (
               <select
+                id="task-garden"
                 value={formData.garden_id}
                 onChange={(e) => handleInputChange('garden_id', e.target.value)}
                 className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -429,10 +436,11 @@ export default function TaskEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="task-plant" className="block text-sm font-medium text-gray-700 mb-2">
                 {plantFieldLabel}
               </label>
               <select
+                id="task-plant"
                 value={selectedPlantValue}
                 onChange={(e) => handleInputChange('plant_name', e.target.value === GENERAL_GARDEN_TASK_VALUE ? '' : e.target.value)}
                 className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -467,10 +475,11 @@ export default function TaskEditModal({
           {/* Due Date and Duration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="task-due-date" className="block text-sm font-medium text-gray-700 mb-2">
                 Due Date *
               </label>
               <input
+                id="task-due-date"
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => handleInputChange('due_date', e.target.value)}
@@ -479,10 +488,11 @@ export default function TaskEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="task-duration" className="block text-sm font-medium text-gray-700 mb-2">
                 Estimated Duration (minutes)
               </label>
               <input
+                id="task-duration"
                 type="number"
                 value={formData.estimated_duration}
                 onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
@@ -496,10 +506,11 @@ export default function TaskEditModal({
           {/* Priority and Status */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="task-priority" className="block text-sm font-medium text-gray-700 mb-2">
                 Priority
               </label>
               <select
+                id="task-priority"
                 value={formData.priority}
                 onChange={(e) => handleInputChange('priority', e.target.value)}
                 className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -526,10 +537,11 @@ export default function TaskEditModal({
 
             {task && (
               <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="task-status" className="block text-sm font-medium text-gray-700 mb-2">
                 Status
               </label>
               <select
+                id="task-status"
                 value={formData.status}
                 onChange={(e) => handleInputChange('status', e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -546,10 +558,11 @@ export default function TaskEditModal({
 
           {/* Recurring Pattern */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="task-recurring-pattern" className="block text-sm font-medium text-gray-700 mb-2">
               Recurring Pattern
             </label>
             <select
+              id="task-recurring-pattern"
               value={formData.recurring_pattern}
               onChange={(e) => handleInputChange('recurring_pattern', e.target.value)}
               className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -564,10 +577,11 @@ export default function TaskEditModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="task-notes" className="block text-sm font-medium text-gray-700 mb-2">
               Notes
             </label>
             <textarea
+              id="task-notes"
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -640,6 +654,7 @@ export default function TaskEditModal({
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isSaving || isDeleting || isNoPlantGardenBlocked}
               className="flex min-h-11 items-center justify-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors duration-200"

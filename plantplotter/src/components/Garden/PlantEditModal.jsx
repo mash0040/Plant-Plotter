@@ -312,8 +312,9 @@ export default function PlantEditModal({
             onClick={() => {
               onClose();
             }}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 rounded-lg transition-colors"
             type="button"
+            aria-label="Close plant form"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -359,10 +360,11 @@ export default function PlantEditModal({
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-name" className="block text-sm font-medium text-gray-700 mb-2">
                 Plant Name *
               </label>
               <input
+                id="plant-name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
@@ -377,10 +379,11 @@ export default function PlantEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-emoji" className="block text-sm font-medium text-gray-700 mb-2">
                 Emoji
               </label>
               <input
+                id="plant-emoji"
                 type="text"
                 value={formData.emoji}
                 onChange={(e) => handleInputChange('emoji', e.target.value)}
@@ -391,10 +394,11 @@ export default function PlantEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-size" className="block text-sm font-medium text-gray-700 mb-2">
                 Size (Grid Units)
               </label>
               <select
+                id="plant-size"
                 value={formData.size}
                 onChange={(e) => handleInputChange('size', parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -407,10 +411,11 @@ export default function PlantEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-category" className="block text-sm font-medium text-gray-700 mb-2">
                 Category
               </label>
               <select
+                id="plant-category"
                 value={formData.category}
                 onChange={(e) => handleInputChange('category', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -426,10 +431,11 @@ export default function PlantEditModal({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="plant-description" className="block text-sm font-medium text-gray-700 mb-2">
               Description
             </label>
             <textarea
+              id="plant-description"
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -442,10 +448,11 @@ export default function PlantEditModal({
           {/* Growing Conditions */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-sunlight" className="block text-sm font-medium text-gray-700 mb-2">
                 Sunlight
               </label>
               <select
+                id="plant-sunlight"
                 value={formData.sunlight}
                 onChange={(e) => handleInputChange('sunlight', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -459,10 +466,11 @@ export default function PlantEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-water-needs" className="block text-sm font-medium text-gray-700 mb-2">
                 Water Needs
               </label>
               <select
+                id="plant-water-needs"
                 value={formData.waterNeeds}
                 onChange={(e) => handleInputChange('waterNeeds', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -476,10 +484,11 @@ export default function PlantEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-difficulty" className="block text-sm font-medium text-gray-700 mb-2">
                 Difficulty
               </label>
               <select
+                id="plant-difficulty"
                 value={formData.difficulty}
                 onChange={(e) => handleInputChange('difficulty', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -496,10 +505,11 @@ export default function PlantEditModal({
           {/* Numerical Fields */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-days-to-maturity" className="block text-sm font-medium text-gray-700 mb-2">
                 Days to Maturity
               </label>
               <input
+                id="plant-days-to-maturity"
                 type="number"
                 value={formData.daysToMaturity}
                 onChange={(e) => handleInputChange('daysToMaturity', e.target.value)}
@@ -511,10 +521,11 @@ export default function PlantEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-spacing" className="block text-sm font-medium text-gray-700 mb-2">
                 Spacing (inches)
               </label>
               <input
+                id="plant-spacing"
                 type="text"
                 value={formData.spacing}
                 onChange={(e) => handleInputChange('spacing', e.target.value)}
@@ -525,10 +536,11 @@ export default function PlantEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-depth" className="block text-sm font-medium text-gray-700 mb-2">
                 Planting Depth
               </label>
               <input
+                id="plant-depth"
                 type="text"
                 value={formData.plantingDepth}
                 onChange={(e) => handleInputChange('plantingDepth', e.target.value)}
@@ -542,10 +554,11 @@ export default function PlantEditModal({
           {/* FIXED: Companion and Avoid Plants */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-companions" className="block text-sm font-medium text-gray-700 mb-2">
                 Companion Plants
               </label>
               <input
+                id="plant-companions"
                 type="text"
                 value={companionPlantsText}
                 onChange={(e) => handleCompanionPlantsChange(e.target.value)}
@@ -559,10 +572,11 @@ export default function PlantEditModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-avoid" className="block text-sm font-medium text-gray-700 mb-2">
                 Avoid Plants
               </label>
               <input
+                id="plant-avoid"
                 type="text"
                 value={avoidPlantsText}
                 onChange={(e) => handleAvoidPlantsChange(e.target.value)}
@@ -577,10 +591,10 @@ export default function PlantEditModal({
           </div>
 
           {/* Soil Types */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 mb-2">
               Suitable Soil Types
-            </label>
+            </legend>
             <div className="flex flex-wrap gap-2">
               {soilTypeOptions.map(option => (
                 <label key={option.value} className="flex items-center">
@@ -600,15 +614,16 @@ export default function PlantEditModal({
                 </label>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           {/* Notes (only for placed plants) */}
           {isPlaced && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="plant-notes" className="block text-sm font-medium text-gray-700 mb-2">
                 Notes
               </label>
               <textarea
+                id="plant-notes"
                 value={formData.notes}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"

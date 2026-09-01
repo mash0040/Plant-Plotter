@@ -210,6 +210,32 @@ describe('WeatherWidget', () => {
     expect(screen.getByText('43.65°N, 79.38°W')).toBeInTheDocument();
   });
 
+  it('opens weather details only from the explicit details action', async () => {
+    const refreshWeather = vi.fn();
+    const handleViewDetails = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <WeatherWidget
+        weatherState={{
+          weatherData: createWidgetWeatherData(),
+          loading: false,
+          error: null,
+          lastUpdated: new Date(),
+          refreshWeather
+        }}
+        onViewDetails={handleViewDetails}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Refresh weather data' }));
+    expect(refreshWeather).toHaveBeenCalledTimes(1);
+    expect(handleViewDetails).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'View weather details' }));
+    expect(handleViewDetails).toHaveBeenCalledTimes(1);
+  });
+
   it('shows the location message and retries without opening weather details', async () => {
     const refreshWeather = vi.fn();
     const handleOpenDetails = vi.fn();

@@ -162,6 +162,11 @@ export default function TrackingCalendar({
       const tasks = taskData[dateStr] || [];
       const calendarItemsCount = activities.length + tasks.length;
       const isSelected = selectedDate === dateStr;
+      const dateLabel = new Date(currentYear, currentDate.getMonth(), day).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
       const today = new Date();
       const isToday = day === today.getDate() && 
                      currentDate.getMonth() === today.getMonth() && 
@@ -170,17 +175,23 @@ export default function TrackingCalendar({
       days.push(
         <div
           key={day}
-          className={`p-1 min-h-[58px] sm:min-h-[80px] border border-gray-200 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors relative ${
+          className={`p-1 min-h-[58px] sm:min-h-[80px] border border-gray-200 dark:border-gray-700 transition-colors relative ${
             isSelected ? 'bg-green-100 dark:bg-green-900 border-green-300' : ''
           } ${isToday ? 'ring-2 ring-green-500 ring-inset' : ''}`}
-          onClick={() => onDateSelect(dateStr)}
         >
-          <div className={`text-sm font-medium mb-1 ${isToday ? 'text-green-600 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>
+          <button
+            type="button"
+            onClick={() => onDateSelect(dateStr)}
+            aria-label={`Select ${dateLabel}`}
+            aria-pressed={isSelected}
+            className="absolute inset-0 z-0 rounded-sm transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-green-600 dark:hover:bg-gray-800"
+          />
+          <div className={`pointer-events-none relative z-10 text-sm font-medium mb-1 ${isToday ? 'text-green-600 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>
             {day}
           </div>
           
           {calendarItemsCount > 0 && (
-            <div className="mt-1 flex flex-wrap gap-0.5 sm:hidden" aria-label={`${calendarItemsCount} tracker item${calendarItemsCount === 1 ? '' : 's'}`}>
+            <div className="pointer-events-none relative z-10 mt-1 flex flex-wrap gap-0.5 sm:hidden" aria-label={`${calendarItemsCount} tracker item${calendarItemsCount === 1 ? '' : 's'}`}>
               {activities.slice(0, 3).map((activity, idx) => {
                 const activityType = activity.activity || activity.activity_type || 'activity';
                 return (
@@ -203,7 +214,7 @@ export default function TrackingCalendar({
           )}
 
           {calendarItemsCount > 0 && (
-            <div className="hidden space-y-1 sm:block">
+            <div className="pointer-events-none relative z-10 hidden space-y-1 sm:block">
               {activities.slice(0, 2).map((activity, idx) => {
                 const plantName = activity.plant || activity.plant_name || 'Unknown';
                 const activityType = activity.activity || activity.activity_type || 'activity';
@@ -223,17 +234,21 @@ export default function TrackingCalendar({
                     </span>
                     
                     {activity.id && onActivityEdit && onActivityDelete && (
-                      <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex gap-1 ml-auto">
+                      <div className="pointer-events-auto opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 flex gap-1 ml-auto">
                         <button
+                          type="button"
                           onClick={(e) => handleActivityEdit(activity, e)}
-                          className="rounded p-0.5 text-gray-600 hover:text-blue-600 transition-colors"
+                          aria-label={`Edit ${activityType} activity for ${plantName}`}
+                          className="rounded p-0.5 text-gray-600 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
                           title="Edit activity"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          type="button"
                           onClick={(e) => handleActivityDelete(activity, e)}
-                          className="rounded p-0.5 text-gray-600 hover:text-red-600 transition-colors"
+                          aria-label={`Delete ${activityType} activity for ${plantName}`}
+                          className="rounded p-0.5 text-gray-600 hover:text-red-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
                           title="Delete activity"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -266,7 +281,7 @@ export default function TrackingCalendar({
           )}
           
           {calendarItemsCount > 3 && (
-            <div className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+            <div className="pointer-events-none absolute top-1 right-1 z-10 w-2 h-2 bg-green-500 rounded-full"></div>
           )}
         </div>
       );
@@ -287,8 +302,9 @@ export default function TrackingCalendar({
           </h2>
           <div className="relative flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
             <button 
+              type="button"
               onClick={goToPreviousMonth}
-              className="flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               aria-label="Previous month"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -296,12 +312,15 @@ export default function TrackingCalendar({
             
             <div className="relative min-w-0 flex-1 sm:flex-none">
               <button
+                type="button"
                 onClick={() => {
                   setTempYear(currentYear);
                   setTempMonth(currentDate.getMonth());
                   setShowMonthYearPicker(!showMonthYearPicker);
                 }}
-                className="flex min-h-10 w-full items-center justify-center gap-1 rounded px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors sm:w-auto sm:px-4"
+                aria-expanded={showMonthYearPicker}
+                aria-controls="calendar-month-year-picker"
+                className="flex min-h-10 w-full items-center justify-center gap-1 rounded px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:w-auto sm:px-4"
               >
                 <span className="font-medium text-gray-900 dark:text-white">
                   {currentMonth} {currentYear}
@@ -310,13 +329,14 @@ export default function TrackingCalendar({
               </button>
 
               {showMonthYearPicker && (
-                <div className="absolute right-0 top-full mt-2 z-10 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-gray-200 bg-white p-4 text-gray-900 shadow-lg sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
+                <div id="calendar-month-year-picker" className="absolute right-0 top-full mt-2 z-10 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-gray-200 bg-white p-4 text-gray-900 shadow-lg sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
                   <div className="flex space-x-4 mb-4">
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="calendar-year" className="block text-sm font-medium text-gray-700 mb-2">
                         Year
                       </label>
                       <select
+                        id="calendar-year"
                         value={tempYear}
                         onChange={(e) => setTempYear(parseInt(e.target.value))}
                         className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -332,10 +352,11 @@ export default function TrackingCalendar({
                       </select>
                     </div>
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="calendar-month" className="block text-sm font-medium text-gray-700 mb-2">
                         Month
                       </label>
                       <select
+                        id="calendar-month"
                         value={tempMonth}
                         onChange={(e) => setTempMonth(parseInt(e.target.value))}
                         className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -350,14 +371,16 @@ export default function TrackingCalendar({
                   </div>
                   <div className="flex justify-center space-x-2">
                     <button
+                      type="button"
                       onClick={handleMonthYearSelect}
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
                     >
                       Go
                     </button>
                     <button
+                      type="button"
                       onClick={() => setShowMonthYearPicker(false)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
                     >
                       Cancel
                     </button>
@@ -367,8 +390,9 @@ export default function TrackingCalendar({
             </div>
             
             <button 
+              type="button"
               onClick={goToNextMonth}
-              className="flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               aria-label="Next month"
             >
               <ChevronRight className="w-4 h-4" />
@@ -446,17 +470,21 @@ export default function TrackingCalendar({
                   </div>
                   
                   {activity.id && onActivityEdit && onActivityDelete && (
-                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
                       <button
+                        type="button"
                         onClick={(e) => handleActivityEdit(activity, e)}
-                        className="flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-blue-600 transition-colors"
+                        aria-label={`Edit ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || 'plant'}`}
+                        className="flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
                         title="Edit activity"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={(e) => handleActivityDelete(activity, e)}
-                        className="flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-red-600 transition-colors"
+                        aria-label={`Delete ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || 'plant'}`}
+                        className="flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-red-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
                         title="Delete activity"
                       >
                         <Trash2 className="w-4 h-4" />

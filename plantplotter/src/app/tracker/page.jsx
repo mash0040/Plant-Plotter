@@ -834,13 +834,10 @@ function TrackingPageContent() {
 
           {/* Right Sidebar */}
           <div className="w-full lg:w-80 space-y-4 sm:space-y-6">
-            {/* Weather Widget - Now clickable for detailed view */}
-            <div
-              onClick={() => weatherData && setShowDetailedWeather(true)}
-              className={weatherData ? 'cursor-pointer' : ''}
-            >
-              <WeatherWidget weatherState={weatherState} />
-            </div>
+            <WeatherWidget
+              weatherState={weatherState}
+              onViewDetails={weatherData ? () => setShowDetailedWeather(true) : undefined}
+            />
 
             <div className="rounded-lg bg-white p-4 text-gray-900 shadow-lg">
               <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

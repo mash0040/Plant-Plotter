@@ -139,9 +139,10 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
         <div className="flex flex-wrap items-center gap-2 min-w-0">
           {/* Back Button */}
           {onBackClick && (
-            <button 
+            <button
+              type="button"
               onClick={onBackClick}
-              className="min-h-10 min-w-10 px-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5 flex-shrink-0"
+              className="min-h-10 min-w-10 px-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               title={backLabel}
               aria-label={backLabel}
             >
@@ -154,9 +155,10 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           
           {/* Mobile Plant Library Button */}
           {onToggleSidebar && (
-            <button 
+            <button
+              type="button"
               onClick={onToggleSidebar}
-              className="lg:hidden min-h-10 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-800 transition-colors hover:bg-green-100 flex items-center gap-2 flex-shrink-0"
+              className="lg:hidden min-h-10 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-800 transition-colors hover:bg-green-100 flex items-center gap-2 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               title="Open plant library"
               aria-label="Open plant library"
               data-menu-button
@@ -185,39 +187,47 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           {/* View Controls Group - Same height as others */}
           <div className="flex items-center justify-between gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200 sm:justify-start">
             <button
+              type="button"
               onClick={onToggleGrid}
               className={`min-h-9 px-3 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center justify-center gap-1 text-xs font-medium transition-colors ${
                 showGrid 
                   ? 'bg-green-100 hover:bg-green-200 text-green-700' 
                   : 'hover:bg-gray-100 text-gray-600'
-              }`}
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2`}
               title="Toggle grid"
+              aria-label="Toggle garden grid"
+              aria-pressed={showGrid}
             >
               <Grid className="w-4 h-4" />
               <span className="hidden sm:inline">Grid</span>
             </button>
             
             <button
+              type="button"
               onClick={onToggleRuler}
               className={`min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
                 showRuler 
                   ? 'bg-green-100 hover:bg-green-200 text-green-700' 
                   : 'hover:bg-gray-100 text-gray-600'
-              }`}
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2`}
               title="Toggle ruler"
+              aria-label="Toggle garden ruler"
+              aria-pressed={showRuler}
             >
               <Ruler className="w-4 h-4" />
               <span className="hidden sm:inline">Ruler</span>
             </button>
             
-            <button 
+            <button
+              type="button"
               onClick={onSave}
               className={`min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
                 hasUnsavedChanges 
                   ? 'bg-green-100 text-green-700 hover:bg-green-200' 
                   : 'hover:bg-gray-100 text-gray-600'
-              }`}
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2`}
               title="Save garden"
+              aria-label="Save garden"
             >
               <Save className="w-4 h-4" />
               <span className="whitespace-nowrap">{saveLabel}</span>
@@ -227,9 +237,11 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           {/* Unit Toggle - Same height */}
           <div className="flex items-center bg-white rounded-lg p-1 shadow-sm border border-gray-200">
             <button
+              type="button"
               onClick={toggleUnit}
-              className="min-h-9 w-full px-3 py-2 rounded text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-800 sm:w-auto sm:px-2 sm:py-1.5"
+              className="min-h-9 w-full px-3 py-2 rounded text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:w-auto sm:px-2 sm:py-1.5"
               title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
+              aria-label={`${unit === 'metric' ? 'Metric' : 'Imperial'} dimensions; switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
             >
               {unit === 'metric' ? 'Metric (m)' : 'Imperial (ft)'}
             </button>
@@ -242,10 +254,12 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             {/* Width Controls */}
             <div className="flex items-center gap-1">
               <span className="w-16 text-xs font-medium text-gray-700 md:w-auto md:px-1">Width</span>
-              <button 
-                onClick={() => adjustDimension('width', -1)} 
-                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:p-1"
+              <button
+                type="button"
+                onClick={() => adjustDimension('width', -1)}
+                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Decrease width"
+                aria-label="Decrease garden width"
               >
                 <Minus className="w-3 h-3" />
               </button>
@@ -260,10 +274,12 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
                 min="1"
               />
               <span className="text-xs text-gray-700">{getUnitLabel()}</span>
-              <button 
-                onClick={() => adjustDimension('width', 1)} 
-                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:p-1"
+              <button
+                type="button"
+                onClick={() => adjustDimension('width', 1)}
+                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Increase width"
+                aria-label="Increase garden width"
               >
                 <Plus className="w-3 h-3" />
               </button>
@@ -272,10 +288,12 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             {/* Height Controls */}
             <div className="flex items-center gap-1">
               <span className="w-16 text-xs font-medium text-gray-700 md:w-auto md:px-1">Height</span>
-              <button 
-                onClick={() => adjustDimension('height', -1)} 
-                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:p-1"
+              <button
+                type="button"
+                onClick={() => adjustDimension('height', -1)}
+                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Decrease height"
+                aria-label="Decrease garden height"
               >
                 <Minus className="w-3 h-3" />
               </button>
@@ -290,10 +308,12 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
                 min="1"
               />
               <span className="text-xs text-gray-700">{getUnitLabel()}</span>
-              <button 
-                onClick={() => adjustDimension('height', 1)} 
-                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center sm:min-h-0 sm:min-w-0 sm:p-1"
+              <button
+                type="button"
+                onClick={() => adjustDimension('height', 1)}
+                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Increase height"
+                aria-label="Increase garden height"
               >
                 <Plus className="w-3 h-3" />
               </button>
@@ -303,15 +323,18 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
           {/* Zoom Controls Group - Same height */}
           <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
             <span className="text-xs font-medium text-gray-600 hidden md:inline px-1">Zoom:</span>
-            <button 
-              onClick={() => adjustGridSize(-5)} 
-              className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
+            <button
+              type="button"
+              onClick={() => adjustGridSize(-5)}
+              className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
               title="Zoom out"
+              aria-label="Zoom out"
             >
               <Minus className="w-3 h-3" />
             </button>
             <input
               type="number"
+              aria-label="Garden zoom percentage"
               value={inputValues.zoom}
               onChange={(e) => handleInputChange('zoom', e.target.value)}
               onBlur={(e) => handleInputBlur('zoom', e.target.value)}
@@ -321,10 +344,12 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
               max="250"
             />
             <span className="text-xs text-gray-500">%</span>
-            <button 
-              onClick={() => adjustGridSize(5)} 
-              className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center"
+            <button
+              type="button"
+              onClick={() => adjustGridSize(5)}
+              className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
               title="Zoom in"
+              aria-label="Zoom in"
             >
               <Plus className="w-3 h-3" />
             </button>

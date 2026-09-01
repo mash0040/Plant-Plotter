@@ -352,8 +352,10 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            aria-label={`Close ${garden ? 'edit' : 'new'} garden form`}
+            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
           >
             <X className="w-4 h-4 text-gray-600" />
           </button>
@@ -372,10 +374,11 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Garden Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-800 mb-2">
+            <label htmlFor="garden-name" className="block text-sm font-medium text-gray-800 mb-2">
               Garden Name *
             </label>
             <input
+              id="garden-name"
               ref={nameInputRef}
               type="text"
               value={formData.name}
@@ -392,10 +395,11 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-800 mb-2">
+            <label htmlFor="garden-description" className="block text-sm font-medium text-gray-800 mb-2">
               Description
             </label>
             <textarea
+              id="garden-description"
               ref={descriptionInputRef}
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
@@ -411,10 +415,11 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Soil Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-800 mb-2">
+            <label htmlFor="garden-soil-type" className="block text-sm font-medium text-gray-800 mb-2">
               Soil Type
             </label>
             <select
+              id="garden-soil-type"
               ref={soilTypeInputRef}
               value={formData.soil_type}
               onChange={(e) => handleChange('soil_type', e.target.value)}
@@ -434,14 +439,15 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Unit Toggle */}
           <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-gray-800">
+            <span className="block text-sm font-medium text-gray-800">
               Dimensions *
-            </label>
+            </span>
             <button
               type="button"
               onClick={toggleUnit}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-200"
               title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
+              aria-label={`${unit === 'metric' ? 'Metric' : 'Imperial'} dimensions; switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
             >
               {unit === 'metric' ? 'Metric (m)' : 'Imperial (ft)'}
             </button>
@@ -450,10 +456,11 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
           {/* Dimensions */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
+              <label htmlFor="garden-width" className="block text-sm font-medium text-gray-800 mb-2">
                 Width ({getUnitLabel()}) *
               </label>
               <input
+                id="garden-width"
                 ref={widthInputRef}
                 type="number"
                 value={formData.width}
@@ -471,10 +478,11 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
+              <label htmlFor="garden-height" className="block text-sm font-medium text-gray-800 mb-2">
                 Height ({getUnitLabel()}) *
               </label>
               <input
+                id="garden-height"
                 ref={heightInputRef}
                 type="number"
                 value={formData.height}
@@ -495,10 +503,11 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-800 mb-2">
+            <label htmlFor="garden-location" className="block text-sm font-medium text-gray-800 mb-2">
               Location
             </label>
             <input
+              id="garden-location"
               ref={locationInputRef}
               type="text"
               value={formData.location}
@@ -514,10 +523,11 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-800 mb-2">
+            <label htmlFor="garden-status" className="block text-sm font-medium text-gray-800 mb-2">
               Status
             </label>
             <select
+              id="garden-status"
               ref={statusInputRef}
               value={formData.status}
               onChange={(e) => handleChange('status', e.target.value)}
