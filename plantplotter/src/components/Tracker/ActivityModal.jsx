@@ -1,6 +1,7 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
+import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 
 export default function ActivityModal({
   isOpen,
@@ -11,17 +12,13 @@ export default function ActivityModal({
   selectedGarden
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen]);
+  const plantSelectRef = useRef(null);
+  const { dialogProps, titleId } = useAccessibleDialog({
+    isOpen,
+    onClose,
+    canDismiss: !isSubmitting,
+    initialFocusRef: plantSelectRef
+  });
 
   if (!isOpen) return null;
 
@@ -59,9 +56,12 @@ export default function ActivityModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-      <div className="bg-white text-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
+      <div
+        {...dialogProps}
+        className="bg-white text-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col"
+      >
         <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 id={titleId} className="text-lg font-semibold text-gray-900">
             Log {activityLabel}
           </h3>
           <div className="text-sm text-gray-700 mt-1">
@@ -76,6 +76,7 @@ export default function ActivityModal({
                 Plant
               </label>
               <select
+                ref={plantSelectRef}
                 id="quick-activity-plant"
                 value={formData.plant}
                 onChange={(event) => onFormDataChange({ ...formData, plant: event.target.value })}

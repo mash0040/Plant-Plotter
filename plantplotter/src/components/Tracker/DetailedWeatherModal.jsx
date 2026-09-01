@@ -2,7 +2,7 @@
 import React from 'react';
 import { X, Thermometer, Droplets, Wind, Cloud, Eye, Gauge, TrendingUp, TrendingDown, MapPin, Clock, Sun, CloudRain, RotateCcw } from 'lucide-react';
 import { formatWeatherCoordinates, getWeatherDescription, getWindDirection } from '@/hooks/useWeather';
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 
 // Helper function to determine comfort level
 function getComfortLevel(temp, humidity, windSpeed) {
@@ -148,7 +148,10 @@ export default function DetailedWeatherModal({
   isWeatherLoading,
   onRetry
 }) {
-  useBodyScrollLock(isOpen);
+  const { dialogProps, titleId } = useAccessibleDialog({
+    isOpen: isOpen && Boolean(weatherData),
+    onClose
+  });
 
   if (!isOpen || !weatherData) return null;
 
@@ -171,13 +174,16 @@ export default function DetailedWeatherModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden">
+      <div
+        {...dialogProps}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden"
+      >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20">
           <div className="flex min-w-0 items-center gap-3">
             <span className="text-sm font-semibold text-blue-700">{weather.icon}</span>
             <div className="min-w-0">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+              <h2 id={titleId} className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
                 {weatherData.location.label}
               </h2>
               <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Grid, ArrowRight, ArrowDown } from 'lucide-react';
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 
 export default function RowPlantingModal({ 
   isOpen, 
@@ -20,7 +20,6 @@ export default function RowPlantingModal({
   
   const [previewPositions, setPreviewPositions] = useState([]);
   const [validationMessage, setValidationMessage] = useState('');
-  useBodyScrollLock(isOpen);
 
   const toInteger = (value, fallback = 0) => {
     const parsedValue = parseInt(value, 10);
@@ -41,6 +40,11 @@ export default function RowPlantingModal({
     setValidationMessage('');
     onClose();
   };
+
+  const { dialogProps, titleId } = useAccessibleDialog({
+    isOpen: isOpen && Boolean(plant),
+    onClose: handleClose
+  });
 
   // Calculate preview positions when config changes
   useEffect(() => {
@@ -167,13 +171,21 @@ export default function RowPlantingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
-      <div className="bg-white rounded-lg p-4 sm:p-6 w-96 max-w-[90vw] max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto">
+      <div
+        {...dialogProps}
+        className="bg-white rounded-lg p-4 sm:p-6 w-96 max-w-[90vw] max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto"
+      >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{plant.emoji}</span>
-            <h3 className="text-lg font-semibold text-gray-900">Plant Row: {plant.name}</h3>
+            <h3 id={titleId} className="text-lg font-semibold text-gray-900">Plant Row: {plant.name}</h3>
           </div>
-          <button onClick={handleClose} className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+          <button
+            type="button"
+            onClick={handleClose}
+            aria-label="Close row planting"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>

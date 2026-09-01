@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Save, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
 const GENERAL_GARDEN_TASK_VALUE = '__whole_garden__';
@@ -37,6 +37,14 @@ export default function TaskEditModal({
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const errorRef = useRef(null);
+  const deleteButtonRef = useRef(null);
+  const deleteCancelRef = useRef(null);
+  const wasDeleteConfirmOpenRef = useRef(false);
+  const { dialogProps, titleId } = useAccessibleDialog({
+    isOpen,
+    onClose,
+    canDismiss: !isSaving && !isDeleting
+  });
 
   const priorityOptions = [
     { value: 'low', label: 'Low', color: 'text-green-600 bg-green-50' },
@@ -157,13 +165,32 @@ export default function TaskEditModal({
     }
   }, [isOpen, task, gardens, currentGarden]);
 
-  useBodyScrollLock(isOpen);
-
   useEffect(() => {
     if (error && errorRef.current) {
       errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [error]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      wasDeleteConfirmOpenRef.current = false;
+      return undefined;
+    }
+
+    if (showDeleteConfirm) {
+      wasDeleteConfirmOpenRef.current = true;
+      const frameId = requestAnimationFrame(() => deleteCancelRef.current?.focus());
+      return () => cancelAnimationFrame(frameId);
+    }
+
+    if (wasDeleteConfirmOpenRef.current) {
+      wasDeleteConfirmOpenRef.current = false;
+      const frameId = requestAnimationFrame(() => deleteButtonRef.current?.focus());
+      return () => cancelAnimationFrame(frameId);
+    }
+
+    return undefined;
+  }, [isOpen, showDeleteConfirm]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -308,14 +335,17 @@ export default function TaskEditModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white text-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col">
+      <div
+        {...dialogProps}
+        className="bg-white text-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-green-50">
           <div className="flex min-w-0 items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
               <Calendar className="w-5 h-5 text-blue-600" />
             </div>
-            <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+            <h2 id={titleId} className="text-lg sm:text-xl font-bold text-gray-800">
               {task ? 'Edit Task' : 'Create New Task'}
             </h2>
           </div>
@@ -614,6 +644,7 @@ export default function TaskEditModal({
                   <p className="text-sm text-red-700">Delete this task? This cannot be undone.</p>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <button
+                      ref={deleteCancelRef}
                       type="button"
                       onClick={() => setShowDeleteConfirm(false)}
                       className="min-h-11 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -633,6 +664,7 @@ export default function TaskEditModal({
                 </div>
               ) : (
                 <button
+                  ref={deleteButtonRef}
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
                   className="flex min-h-11 items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
