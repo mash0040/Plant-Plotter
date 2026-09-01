@@ -11,7 +11,7 @@ const upcomingSettings = [
   { name: 'Theme', note: 'Light theme is the only fully styled mode today.' },
   { name: 'Email notifications', note: 'No email delivery is configured yet.' },
   { name: 'Garden reminders', note: 'Reminders will arrive with the notifications system.' },
-  { name: 'Weather alerts', note: 'Weather currently uses a fixed location and rule-based advice.' },
+  { name: 'Weather alerts', note: 'Tracker weather requires browser location access; alerts are not configured yet.' },
   { name: 'Default units (m / ft)', note: 'Pick units per garden in the Garden form.' },
   { name: 'Public profile / Share gardens', note: 'Sharing is not part of this release.' }
 ];

@@ -61,8 +61,9 @@ function TrackingPageContent() {
   // Weather modal state
   const [showDetailedWeather, setShowDetailedWeather] = useState(false);
   
-  // Get weather data for the detailed modal
-  const { weatherData } = useWeather();
+  // Share one weather request between the card and detailed modal.
+  const weatherState = useWeather();
+  const { weatherData } = weatherState;
   useBodyScrollLock(Boolean(activityToDelete));
 
   useEffect(() => {
@@ -834,8 +835,11 @@ function TrackingPageContent() {
           {/* Right Sidebar */}
           <div className="w-full lg:w-80 space-y-4 sm:space-y-6">
             {/* Weather Widget - Now clickable for detailed view */}
-            <div onClick={() => setShowDetailedWeather(true)} className="cursor-pointer">
-              <WeatherWidget />
+            <div
+              onClick={() => weatherData && setShowDetailedWeather(true)}
+              className={weatherData ? 'cursor-pointer' : ''}
+            >
+              <WeatherWidget weatherState={weatherState} />
             </div>
 
             <div className="rounded-lg bg-white p-4 text-gray-900 shadow-lg">
@@ -968,6 +972,9 @@ function TrackingPageContent() {
         isOpen={showDetailedWeather}
         onClose={() => setShowDetailedWeather(false)}
         weatherData={weatherData}
+        weatherError={weatherState.error}
+        isWeatherLoading={weatherState.loading}
+        onRetry={weatherState.refreshWeather}
       />
     </div>
   );

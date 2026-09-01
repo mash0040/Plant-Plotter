@@ -40,7 +40,7 @@ Backend validation is the source of truth. User validation errors should return 
 
 Environment files with real secrets must remain local and ignored. Only safe placeholder examples should be committed: `plantplotter/.env.local.example` and `plantplotter_backend/.env.example`.
 
-Known limitations documented in the README include no refresh tokens, fixed Ottawa/default weather coordinates, planned but unimplemented email reminders, weather alerts, public garden sharing, public profiles, and no configured frontend automated tests yet.
+Known limitations documented in the README include no refresh tokens, browser location access being required for tracker weather, planned but unimplemented email reminders, weather alerts, public garden sharing, and public profiles.
 
 ## Brand Commitments
 

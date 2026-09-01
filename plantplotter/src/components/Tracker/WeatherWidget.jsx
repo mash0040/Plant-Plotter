@@ -1,10 +1,15 @@
 'use client';
 import React from 'react';
 import { Sun, Cloud, CloudRain, Wind, Droplets, Thermometer, RotateCcw, MapPin, Clock, Eye, Gauge } from 'lucide-react';
-import { useWeather, getWeatherDescription, getGardeningAdvice, getWindDirection } from '@/hooks/useWeather';
+import { formatWeatherCoordinates, getWeatherDescription, getGardeningAdvice, getWindDirection } from '@/hooks/useWeather';
 
-export default function WeatherWidget() {
-  const { weatherData, loading, error, lastUpdated, refreshWeather } = useWeather();
+export default function WeatherWidget({ weatherState }) {
+  const { weatherData, loading, error, lastUpdated, refreshWeather } = weatherState;
+
+  const handleRefreshClick = (event) => {
+    event.stopPropagation();
+    refreshWeather();
+  };
 
   if (loading && !weatherData) {
     return (
@@ -29,15 +34,14 @@ export default function WeatherWidget() {
           <Sun className="w-5 h-5 text-red-500" />
           <h3 className="font-semibold text-gray-900 dark:text-white">Weather</h3>
         </div>
-        <div className="text-red-600 text-sm">
-          Failed to load weather data
-        </div>
-        <button 
-          onClick={refreshWeather}
-          className="mt-2 text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
+        <p role="alert" className="text-sm text-red-700">{error}</p>
+        <button
+          type="button"
+          onClick={handleRefreshClick}
+          className="mt-3 flex min-h-11 items-center gap-2 rounded-lg border border-green-200 px-3 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
         >
-          <RotateCcw className="w-3 h-3" />
-          Retry
+          <RotateCcw className="h-4 w-4" />
+          Try again
         </button>
       </div>
     );
@@ -68,18 +72,20 @@ export default function WeatherWidget() {
         <div className="flex min-w-0 items-start space-x-2">
           <span className="text-sm font-semibold text-blue-700">{weather.icon}</span>
           <div className="min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-white">Ottawa Weather</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">{weatherData.location.label}</h3>
             <div className="flex items-center gap-1 text-xs text-gray-500">
               <MapPin className="w-3 h-3" />
-              <span>45.42°N, 75.70°W</span>
+              <span>{formatWeatherCoordinates(weatherData.location)}</span>
             </div>
           </div>
         </div>
         
         <button
-          onClick={refreshWeather}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          type="button"
+          onClick={handleRefreshClick}
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 dark:hover:bg-gray-700"
           title="Refresh weather data"
+          aria-label="Refresh weather data"
         >
           <RotateCcw className={`w-4 h-4 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
         </button>
@@ -143,6 +149,22 @@ export default function WeatherWidget() {
         </div>
       </div>
 
+      {error && (
+        <div role="alert" className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <p>{error}</p>
+          <p className="mt-1">Showing weather from the last successful update.</p>
+          <button
+            type="button"
+            onClick={handleRefreshClick}
+            disabled={loading}
+            className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 font-medium text-amber-900 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RotateCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Try again
+          </button>
+        </div>
+      )}
+
       {/* Last Updated */}
       {lastUpdated && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
@@ -150,16 +172,6 @@ export default function WeatherWidget() {
             <Clock className="w-3 h-3" />
             <span>Updated {formatLastUpdated(lastUpdated)}</span>
           </div>
-          {error && !weatherData.isFallback && (
-            <span className="text-yellow-600" title={error}>
-              ⚠️ Using cached data
-            </span>
-          )}
-          {error && weatherData.isFallback && (
-            <span className="text-yellow-600" title={error}>
-              Using fallback demo weather
-            </span>
-          )}
         </div>
       )}
     </div>

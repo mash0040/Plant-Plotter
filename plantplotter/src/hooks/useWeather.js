@@ -1,25 +1,89 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 
-// Ottawa coordinates
-const OTTAWA_COORDS = {
-  latitude: 45.4215,
-  longitude: -75.6972
+const GEOLOCATION_OPTIONS = {
+  enableHighAccuracy: false,
+  maximumAge: 10 * 60 * 1000,
+  timeout: 8000
 };
 
-export const useWeather = (latitude = OTTAWA_COORDS.latitude, longitude = OTTAWA_COORDS.longitude) => {
+export const LOCATION_ACCESS_ERROR_MESSAGE = 'Turn on location access to see weather for your area.';
+export const WEATHER_SERVICE_ERROR_MESSAGE = 'Weather services are currently unavailable. Please try again.';
+
+export const resolveWeatherLocation = () => new Promise((resolve, reject) => {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    reject(new Error(LOCATION_ACCESS_ERROR_MESSAGE));
+    return;
+  }
+
+  const handleSuccess = (position) => {
+    const latitude = position?.coords?.latitude;
+    const longitude = position?.coords?.longitude;
+    const hasValidCoordinates = Number.isFinite(latitude)
+      && Number.isFinite(longitude)
+      && latitude >= -90
+      && latitude <= 90
+      && longitude >= -180
+      && longitude <= 180;
+
+    if (!hasValidCoordinates) {
+      reject(new Error(LOCATION_ACCESS_ERROR_MESSAGE));
+      return;
+    }
+
+    resolve({
+      latitude,
+      longitude,
+      label: 'Weather near you',
+      source: 'device'
+    });
+  };
+
+  try {
+    navigator.geolocation.getCurrentPosition(
+      handleSuccess,
+      () => reject(new Error(LOCATION_ACCESS_ERROR_MESSAGE)),
+      GEOLOCATION_OPTIONS
+    );
+  } catch {
+    reject(new Error(LOCATION_ACCESS_ERROR_MESSAGE));
+  }
+});
+
+export const formatWeatherCoordinates = ({ latitude, longitude }) => {
+  const latitudeDirection = latitude >= 0 ? 'N' : 'S';
+  const longitudeDirection = longitude >= 0 ? 'E' : 'W';
+
+  return `${Math.abs(latitude).toFixed(2)}°${latitudeDirection}, ${Math.abs(longitude).toFixed(2)}°${longitudeDirection}`;
+};
+
+export const useWeather = () => {
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [errorType, setErrorType] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const fetchWeatherData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
+    setErrorType(null);
 
+    let weatherLocation;
+
+    try {
+      weatherLocation = await resolveWeatherLocation();
+    } catch {
+      setWeatherData(null);
+      setError(LOCATION_ACCESS_ERROR_MESSAGE);
+      setErrorType('location');
+      setLoading(false);
+      return;
+    }
+
+    try {
       // Open-Meteo API endpoint for current weather and hourly forecast
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=America%2FToronto&forecast_days=3`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${weatherLocation.latitude}&longitude=${weatherLocation.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&forecast_days=3`;
 
       const response = await fetch(url);
       
@@ -59,9 +123,10 @@ export const useWeather = (latitude = OTTAWA_COORDS.latitude, longitude = OTTAWA
         location: {
           latitude: data.latitude,
           longitude: data.longitude,
-          timezone: data.timezone
-        },
-        isFallback: false
+          timezone: data.timezone,
+          label: weatherLocation.label,
+          source: weatherLocation.source
+        }
       };
 
       setWeatherData(transformedData);
@@ -69,40 +134,12 @@ export const useWeather = (latitude = OTTAWA_COORDS.latitude, longitude = OTTAWA
       
     } catch (err) {
       console.error('Failed to fetch weather data:', err);
-      setError(err.message);
-      
-      // Fallback to mock data if API fails
-      setWeatherData({
-        current: {
-          temperature: 22,
-          feelsLike: 24,
-          humidity: 65,
-          windSpeed: 8,
-          windDirection: 180,
-          cloudCover: 25,
-          precipitation: 0,
-          weatherCode: 0, // Clear sky
-          isDay: 1,
-          time: new Date().toISOString()
-        },
-        daily: {
-          maxTemp: 25,
-          minTemp: 18,
-          weatherCode: 0,
-          precipitation: 0
-        },
-        location: {
-          latitude: OTTAWA_COORDS.latitude,
-          longitude: OTTAWA_COORDS.longitude,
-          timezone: 'America/Toronto'
-        },
-        isFallback: true
-      });
-      
+      setError(WEATHER_SERVICE_ERROR_MESSAGE);
+      setErrorType('weather');
     } finally {
       setLoading(false);
     }
-  }, [latitude, longitude]);
+  }, []);
 
   // Fetch weather data on component mount and set up refresh interval
   useEffect(() => {
@@ -115,14 +152,13 @@ export const useWeather = (latitude = OTTAWA_COORDS.latitude, longitude = OTTAWA
   }, [fetchWeatherData]);
 
   // Manual refresh function
-  const refreshWeather = () => {
-    fetchWeatherData();
-  };
+  const refreshWeather = useCallback(() => fetchWeatherData(), [fetchWeatherData]);
 
   return {
     weatherData,
     loading,
     error,
+    errorType,
     lastUpdated,
     refreshWeather
   };
