@@ -103,7 +103,12 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
       <div className="bg-white rounded-lg p-4 sm:p-6 w-[600px] max-w-[90vw] max-h-[calc(100vh-1.5rem)] sm:max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Load Garden</h3>
-          <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close load garden"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -138,10 +143,13 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
             {gardens.map((garden) => (
               <div
                 key={garden.id}
-                onClick={() => handleLoad(garden)}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between gap-3 transition-colors"
+                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 flex items-center justify-between gap-3 transition-colors"
               >
-                <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => handleLoad(garden)}
+                  className="flex-1 min-w-0 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+                >
                   <h4 className="font-medium text-gray-900 truncate">{garden.name}</h4>
                   <div className="text-sm text-gray-700 mt-1">
                     {garden.dimensions?.width || garden.width}×{garden.dimensions?.height || garden.height} units • {garden.plantedItems?.length || 0} plants
@@ -158,10 +166,12 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
                       <span>🌱 {garden.soilType}</span>
                     )}
                   </div>
-                </div>
+                </button>
                 <button
+                  type="button"
                   onClick={(e) => handleDelete(garden.id, e)}
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  aria-label={`Delete ${garden.name}`}
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

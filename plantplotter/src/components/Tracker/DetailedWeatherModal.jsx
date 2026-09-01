@@ -187,8 +187,10 @@ export default function DetailedWeatherModal({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+            aria-label="Close weather details"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>

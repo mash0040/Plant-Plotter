@@ -68,24 +68,29 @@ export default function ForgotPasswordPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-gray-400" />
+          <div>
+            <label htmlFor="forgot-password-email" className="mb-2 block text-sm font-medium text-gray-800">
+              Email address
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Mail className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                id="forgot-password-email"
+                type="email"
+                placeholder="Email address"
+                autoComplete="email"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setError('');
+                  setSuccessMessage('');
+                }}
+                disabled={isSubmitting}
+              />
             </div>
-            <input
-              type="email"
-              placeholder="Email address"
-              aria-label="Email address"
-              autoComplete="email"
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                setError('');
-                setSuccessMessage('');
-              }}
-              disabled={isSubmitting}
-            />
           </div>
 
           <button

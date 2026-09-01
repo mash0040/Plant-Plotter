@@ -38,6 +38,18 @@ const submitForm = async (user) => {
 };
 
 describe('GardenForm validation', () => {
+  it('associates visible labels with every garden form control', () => {
+    renderGardenForm();
+
+    expect(screen.getByLabelText('Garden Name *')).toBeInTheDocument();
+    expect(screen.getByLabelText('Description')).toBeInTheDocument();
+    expect(screen.getByLabelText('Soil Type')).toBeInTheDocument();
+    expect(screen.getByLabelText('Width (m) *')).toBeInTheDocument();
+    expect(screen.getByLabelText('Height (m) *')).toBeInTheDocument();
+    expect(screen.getByLabelText('Location')).toBeInTheDocument();
+    expect(screen.getByLabelText('Status')).toBeInTheDocument();
+  });
+
   it('shows required messages for garden name, width, and height', async () => {
     const { user, onSave } = renderGardenForm();
 

@@ -1,9 +1,9 @@
 'use client';
 import React from 'react';
-import { Sun, Cloud, CloudRain, Wind, Droplets, Thermometer, RotateCcw, MapPin, Clock, Eye, Gauge } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Wind, Droplets, RotateCcw, MapPin, Clock, Eye } from 'lucide-react';
 import { formatWeatherCoordinates, getWeatherDescription, getGardeningAdvice, getWindDirection } from '@/hooks/useWeather';
 
-export default function WeatherWidget({ weatherState }) {
+export default function WeatherWidget({ weatherState, onViewDetails }) {
   const { weatherData, loading, error, lastUpdated, refreshWeather } = weatherState;
 
   const handleRefreshClick = (event) => {
@@ -173,6 +173,17 @@ export default function WeatherWidget({ weatherState }) {
             <span>Updated {formatLastUpdated(lastUpdated)}</span>
           </div>
         </div>
+      )}
+
+      {onViewDetails && (
+        <button
+          type="button"
+          onClick={onViewDetails}
+          className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-green-200 px-3 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-900/20"
+        >
+          <Eye className="h-4 w-4" />
+          View weather details
+        </button>
       )}
     </div>
   );

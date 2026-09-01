@@ -224,7 +224,7 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
               {plant.category}
             </span>
 
-            <div className="flex flex-wrap items-center justify-end gap-1 pointer-events-auto opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
+            <div className="flex flex-wrap items-center justify-end gap-1 pointer-events-auto opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity duration-200">
               {onPlantRow && (
                 <button
                   className="
@@ -232,12 +232,14 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
                     rounded-full flex items-center justify-center gap-1 transition-all duration-200
                     cursor-pointer z-10 touch-manipulation
                     hover:scale-110 active:scale-95 flex-shrink-0
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2
                     sm:min-h-6 sm:w-6 sm:px-0
                   "
                   onClick={handleRowPlantClick}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={handleActionTouchStart}
                   title="Plant in row"
+                  aria-label={`Plant ${plant.name} in a row`}
                   type="button"
                 >
                   <Grid className="w-3 h-3 text-blue-600" />
@@ -252,11 +254,13 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
                     rounded-full flex items-center justify-center transition-all duration-200
                     cursor-pointer z-10 touch-manipulation
                     hover:scale-110 active:scale-95 flex-shrink-0
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2
                   "
                   onClick={handleEditClick}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={handleActionTouchStart}
                   title="Edit plant"
+                  aria-label={`Edit ${plant.name}`}
                   type="button"
                 >
                   <Edit3 className="w-3 h-3 text-orange-600" />
@@ -269,12 +273,14 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
                   rounded-full flex items-center justify-center gap-1 transition-all duration-200
                   cursor-pointer z-10 touch-manipulation
                   hover:scale-110 active:scale-95 flex-shrink-0
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2
                   sm:min-h-6 sm:w-6 sm:px-0
                 "
                 onClick={handleInfoClick}
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchStart={handleActionTouchStart}
                 title="View plant info"
+                aria-label={`View information for ${plant.name}`}
                 type="button"
               >
                 <Info className="w-3 h-3 text-gray-600" />

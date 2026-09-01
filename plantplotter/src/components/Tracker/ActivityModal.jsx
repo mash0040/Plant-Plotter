@@ -72,10 +72,11 @@ export default function ActivityModal({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
           <div className="space-y-4 overflow-y-auto p-4 sm:p-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="quick-activity-plant" className="block text-sm font-medium text-gray-700 mb-2">
                 Plant
               </label>
               <select
+                id="quick-activity-plant"
                 value={formData.plant}
                 onChange={(event) => onFormDataChange({ ...formData, plant: event.target.value })}
                 className="w-full min-h-11 rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
@@ -104,10 +105,11 @@ export default function ActivityModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="quick-activity-notes" className="block text-sm font-medium text-gray-700 mb-2">
                 Notes (optional)
               </label>
               <textarea
+                id="quick-activity-notes"
                 value={formData.notes}
                 onChange={(event) => onFormDataChange({ ...formData, notes: event.target.value })}
                 className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
