@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
 export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
@@ -12,7 +12,10 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const [gardenPendingDelete, setGardenPendingDelete] = useState(null);
   const [deleteError, setDeleteError] = useState('');
   const [loadError, setLoadError] = useState('');
-  useBodyScrollLock(isOpen);
+  const { dialogProps, titleId } = useAccessibleDialog({
+    isOpen,
+    onClose
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -100,9 +103,12 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
-      <div className="bg-white rounded-lg p-4 sm:p-6 w-[600px] max-w-[90vw] max-h-[calc(100vh-1.5rem)] sm:max-h-[80vh] overflow-y-auto">
+      <div
+        {...dialogProps}
+        className="bg-white rounded-lg p-4 sm:p-6 w-[600px] max-w-[90vw] max-h-[calc(100vh-1.5rem)] sm:max-h-[80vh] overflow-y-auto"
+      >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Load Garden</h3>
+          <h3 id={titleId} className="text-lg font-semibold text-gray-900">Load Garden</h3>
           <button
             type="button"
             onClick={onClose}

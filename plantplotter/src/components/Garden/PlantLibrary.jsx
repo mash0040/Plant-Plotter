@@ -5,7 +5,7 @@ import PlantLibraryItem from './PlantLibraryItem';
 import apiClient from '@/lib/api';
 import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 import { useAuth } from '@/hooks/useAuth';
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 
 export default function PlantLibrary({ 
   searchTerm, 
@@ -400,7 +400,10 @@ export default function PlantLibrary({
   ]);
 
   const PlantInfoModal = ({ plant, onClose }) => {
-    useBodyScrollLock(Boolean(plant));
+    const { dialogProps, titleId } = useAccessibleDialog({
+      isOpen: Boolean(plant),
+      onClose
+    });
 
     if (!plant) return null;
 
@@ -409,12 +412,15 @@ export default function PlantLibrary({
 
     return (
       <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
-        <div className="w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl border border-gray-100">
+        <div
+          {...dialogProps}
+          className="w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl border border-gray-100"
+        >
           <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <span className="text-3xl flex-shrink-0">{plant.emoji || 'Plant'}</span>
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-gray-900 truncate">{plant.name}</h2>
+                <h2 id={titleId} className="text-lg font-semibold text-gray-900 truncate">{plant.name}</h2>
                 <p className="text-sm text-gray-700 capitalize">{formatPlantValue(plant.category || plant.type)}</p>
               </div>
             </div>

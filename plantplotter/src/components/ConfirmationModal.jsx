@@ -1,21 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 
 export default function ConfirmationModal({
   isOpen,
   title,
   message,
   confirmLabel = 'Confirm',
+  confirmingLabel = 'Working...',
   cancelLabel = 'Cancel',
   variant = 'danger',
   onConfirm,
   onCancel
 }) {
   const [isConfirming, setIsConfirming] = useState(false);
-  useBodyScrollLock(isOpen);
+  const cancelButtonRef = useRef(null);
+  const descriptionId = useId();
+  const { dialogProps, titleId } = useAccessibleDialog({
+    isOpen,
+    onClose: onCancel,
+    canDismiss: !isConfirming,
+    initialFocusRef: cancelButtonRef
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -47,14 +55,19 @@ export default function ConfirmationModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
-      <div className="w-full max-w-md max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-xl bg-white p-5 shadow-xl border border-gray-100">
+      <div
+        {...dialogProps}
+        role="alertdialog"
+        aria-describedby={descriptionId}
+        className="w-full max-w-md max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-xl bg-white p-5 shadow-xl border border-gray-100"
+      >
         <div className="flex items-start gap-3">
           <div className={`mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${iconClasses}`}>
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3">
-              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+              <h2 id={titleId} className="text-lg font-semibold text-gray-900">{title}</h2>
               <button
                 type="button"
                 onClick={onCancel}
@@ -65,12 +78,13 @@ export default function ConfirmationModal({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className="mt-2 text-sm leading-6 text-gray-700">{message}</p>
+            <p id={descriptionId} className="mt-2 text-sm leading-6 text-gray-700">{message}</p>
           </div>
         </div>
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
+            ref={cancelButtonRef}
             type="button"
             onClick={onCancel}
             disabled={isConfirming}
@@ -84,7 +98,7 @@ export default function ConfirmationModal({
             disabled={isConfirming}
             className={`min-h-11 rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-70 ${confirmClasses}`}
           >
-            {isConfirming ? 'Working...' : confirmLabel}
+            {isConfirming ? confirmingLabel : confirmLabel}
           </button>
         </div>
       </div>

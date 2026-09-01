@@ -1,7 +1,7 @@
 'use client';
 import React, { useRef, useState, useEffect } from 'react';
 import { X, Save, Trash2, Edit3, AlertCircle, Plus } from 'lucide-react';
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
 export default function PlantEditModal({ 
@@ -36,7 +36,14 @@ export default function PlantEditModal({
   const [companionPlantsText, setCompanionPlantsText] = useState('');
   const [avoidPlantsText, setAvoidPlantsText] = useState('');
   const errorRef = useRef(null);
-  useBodyScrollLock(isOpen);
+  const deleteButtonRef = useRef(null);
+  const deleteCancelRef = useRef(null);
+  const wasDeleteConfirmOpenRef = useRef(false);
+  const { dialogProps, titleId } = useAccessibleDialog({
+    isOpen,
+    onClose,
+    canDismiss: !isSaving
+  });
 
   // Categories available for selection
   const categories = [
@@ -124,6 +131,27 @@ export default function PlantEditModal({
       setShowDeleteConfirm(false);
     }
   }, [isOpen, plant]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      wasDeleteConfirmOpenRef.current = false;
+      return undefined;
+    }
+
+    if (showDeleteConfirm) {
+      wasDeleteConfirmOpenRef.current = true;
+      const frameId = requestAnimationFrame(() => deleteCancelRef.current?.focus());
+      return () => cancelAnimationFrame(frameId);
+    }
+
+    if (wasDeleteConfirmOpenRef.current) {
+      wasDeleteConfirmOpenRef.current = false;
+      const frameId = requestAnimationFrame(() => deleteButtonRef.current?.focus());
+      return () => cancelAnimationFrame(frameId);
+    }
+
+    return undefined;
+  }, [isOpen, showDeleteConfirm]);
 
   useEffect(() => {
     if (error && errorRef.current) {
@@ -289,7 +317,8 @@ export default function PlantEditModal({
       }}
       onClick={handleBackdropClick}
     >
-      <div 
+      <div
+        {...dialogProps}
         className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col"
         style={{ zIndex: 1000000 }}
         onClick={(e) => e.stopPropagation()}
@@ -304,7 +333,7 @@ export default function PlantEditModal({
                 <Edit3 className="w-5 h-5 text-green-600" />
               )}
             </div>
-            <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+            <h2 id={titleId} className="text-lg sm:text-xl font-bold text-gray-800">
               {isNewPlant ? 'Add New Plant' : (isPlaced ? 'Edit Placed Plant' : 'Edit Plant')}
             </h2>
           </div>
@@ -338,6 +367,7 @@ export default function PlantEditModal({
             </p>
             <div className="mt-3 flex gap-2">
               <button
+                ref={deleteCancelRef}
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-3 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg text-sm font-medium"
@@ -345,6 +375,7 @@ export default function PlantEditModal({
                 Cancel
               </button>
               <button
+                ref={deleteButtonRef}
                 type="button"
                 onClick={handleConfirmDelete}
                 className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium"
@@ -640,6 +671,7 @@ export default function PlantEditModal({
           <div>
             {(onDelete && !isPlaced && !isNewPlant) && (
               <button
+                ref={deleteButtonRef}
                 type="button"
                 onClick={handleDelete}
                 className="flex min-h-11 items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

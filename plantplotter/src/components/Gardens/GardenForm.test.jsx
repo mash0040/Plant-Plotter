@@ -38,6 +38,17 @@ const submitForm = async (user) => {
 };
 
 describe('GardenForm validation', () => {
+  it('opens as a named modal dialog and moves focus to the garden name', async () => {
+    const { user, onClose } = renderGardenForm();
+
+    const dialog = screen.getByRole('dialog', { name: 'New Garden' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    await waitFor(() => expect(screen.getByLabelText('Garden Name *')).toHaveFocus());
+
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('associates visible labels with every garden form control', () => {
     renderGardenForm();
 

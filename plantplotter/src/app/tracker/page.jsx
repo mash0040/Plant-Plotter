@@ -11,10 +11,10 @@ import TasksList from '@/components/Tracker/TasksList';
 import ActivityModal from '@/components/Tracker/ActivityModal';
 import TaskEditModal from '@/components/Tracker/TaskEditModal';
 import ActivityEditModal from '@/components/Tracker/ActivityEditModal';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import RequestErrorNotice from '@/components/RequestErrorNotice';
 import { useWeather } from '@/hooks/useWeather'; 
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 import apiClient from '@/lib/api';
 import { getUserFacingErrorMessage, isAuthenticationError, shouldUseLocalReadFallback } from '@/lib/apiErrors';
 
@@ -64,7 +64,6 @@ function TrackingPageContent() {
   // Share one weather request between the card and detailed modal.
   const weatherState = useWeather();
   const { weatherData } = weatherState;
-  useBodyScrollLock(Boolean(activityToDelete));
 
   useEffect(() => {
     if (!taskSuccess) return undefined;
@@ -935,34 +934,17 @@ function TrackingPageContent() {
         selectedDate={selectedDate}
       />
 
-      {activityToDelete && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] overflow-y-auto p-5 sm:p-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-2">Delete activity?</h2>
-            <p className="text-sm text-gray-600 mb-6">
-              This will remove the {activityToDelete.activity || activityToDelete.activity_type} log for {activityToDelete.plant || activityToDelete.plant_name || 'this plant'}. This cannot be undone.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setActivityToDelete(null)}
-                disabled={isDeletingActivity}
-                className="min-h-11 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmActivityDelete}
-                disabled={isDeletingActivity}
-                className="min-h-11 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-lg transition-colors"
-              >
-                {isDeletingActivity ? 'Deleting...' : 'Delete Activity'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={Boolean(activityToDelete)}
+        title="Delete activity?"
+        message={`This will remove the ${activityToDelete?.activity || activityToDelete?.activity_type || 'activity'} log for ${activityToDelete?.plant || activityToDelete?.plant_name || 'this plant'}. This cannot be undone.`}
+        confirmLabel="Delete Activity"
+        confirmingLabel="Deleting..."
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmActivityDelete}
+        onCancel={() => setActivityToDelete(null)}
+      />
 
       {/* Detailed Weather Modal */}
       <DetailedWeatherModal

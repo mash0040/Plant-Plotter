@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Save, Leaf } from 'lucide-react';
 import RequestErrorNotice from '@/components/RequestErrorNotice';
-import useBodyScrollLock from '@/hooks/useBodyScrollLock';
+import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 
 const getDefaultFormData = () => ({
@@ -41,7 +41,12 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
   const locationInputRef = useRef(null);
   const statusInputRef = useRef(null);
   const formErrorRef = useRef(null);
-  useBodyScrollLock(isOpen);
+  const { dialogProps, titleId } = useAccessibleDialog({
+    isOpen,
+    onClose,
+    canDismiss: !isLoading,
+    initialFocusRef: nameInputRef
+  });
 
   // Conversion functions
   const metersToFeet = (meters) => (meters * 3.28084).toFixed(2);
@@ -340,14 +345,17 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto">
+      <div
+        {...dialogProps}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
               <Leaf className="w-5 h-5 text-green-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-800">
+            <h2 id={titleId} className="text-xl font-semibold text-gray-800">
               {garden ? 'Edit Garden' : 'New Garden'}
             </h2>
           </div>
