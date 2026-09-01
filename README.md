@@ -35,7 +35,7 @@ After the group project delivery, I independently improved and expanded the appl
 - Garden tracker with activity logs and planned care tasks
 - Today, upcoming, and overdue task organization
 - Task types for planting, watering, fertilizing, pruning, weeding, harvesting, inspection, treatment, and general tasks
-- Weather-based tracker card using Open-Meteo with fixed Ottawa/default weather
+- Location-based tracker weather using browser coordinates and Open-Meteo
 - Profile settings and account deletion
 - Responsive mobile layout improvements across planner, tracker, garden details, forms, and modals
 
@@ -256,7 +256,7 @@ Try the app live at https://www.plantplotter.me
 
 - Authentication currently stores the access JWT in browser `localStorage`; the tradeoff and migration plan are documented in [SECURITY.md](./SECURITY.md).
 - Refresh tokens are not implemented yet; expired sessions redirect users to sign in again.
-- Weather currently uses fixed Ottawa/default coordinates instead of user- or garden-specific location.
+- Tracker weather requires browser location access. When permission is denied or location cannot be resolved, the tracker does not substitute another location and instead provides a retryable message. Garden placement labels such as `Backyard` are not treated as geographic addresses.
 - Email reminders, weather alerts, public garden sharing, and public profiles are planned future improvements.
 
 ## Status

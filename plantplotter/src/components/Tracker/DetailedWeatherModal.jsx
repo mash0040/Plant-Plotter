@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
-import { X, Thermometer, Droplets, Wind, Cloud, Eye, Gauge, TrendingUp, TrendingDown, MapPin, Clock, Sun, CloudRain } from 'lucide-react';
-import { getWeatherDescription, getWindDirection } from '@/hooks/useWeather';
+import { X, Thermometer, Droplets, Wind, Cloud, Eye, Gauge, TrendingUp, TrendingDown, MapPin, Clock, Sun, CloudRain, RotateCcw } from 'lucide-react';
+import { formatWeatherCoordinates, getWeatherDescription, getWindDirection } from '@/hooks/useWeather';
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
 // Helper function to determine comfort level
@@ -140,7 +140,14 @@ function getDetailedGardeningAdvice(weatherData) {
   return advice;
 }
 
-export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
+export default function DetailedWeatherModal({
+  isOpen,
+  onClose,
+  weatherData,
+  weatherError,
+  isWeatherLoading,
+  onRetry
+}) {
   useBodyScrollLock(isOpen);
 
   if (!isOpen || !weatherData) return null;
@@ -171,11 +178,11 @@ export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
             <span className="text-sm font-semibold text-blue-700">{weather.icon}</span>
             <div className="min-w-0">
               <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-                Ottawa Weather Details
+                {weatherData.location.label}
               </h2>
               <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
                 <MapPin className="w-4 h-4" />
-                <span>45.42°N, 75.70°W</span>
+                <span>{formatWeatherCoordinates(weatherData.location)}</span>
               </div>
             </div>
           </div>
@@ -390,21 +397,30 @@ export default function DetailedWeatherModal({ isOpen, onClose, weatherData }) {
           </div>
 
           {/* Weather Data Source */}
-          {weatherData.isFallback ? (
-            <div className="text-xs text-amber-700 dark:text-amber-300 text-center pt-4 border-t border-gray-200 dark:border-gray-700">
-              Fallback demo weather is shown because live weather could not be loaded.
+          {weatherError && (
+            <div role="alert" className="border-t border-gray-200 pt-4 text-center text-xs text-amber-800 dark:border-gray-700 dark:text-amber-300">
+              <p>{weatherError}</p>
+              <p className="mt-1">Showing weather from the last successful update.</p>
+              <button
+                type="button"
+                onClick={onRetry}
+                disabled={isWeatherLoading}
+                className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 font-medium text-amber-900 transition-colors hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-800 dark:text-amber-200"
+              >
+                <RotateCcw className={`h-4 w-4 ${isWeatherLoading ? 'animate-spin' : ''}`} />
+                Try again
+              </button>
             </div>
-          ) : (
-          <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex flex-wrap items-center justify-center gap-1 mb-1">
+          )}
+          <div className={`text-center text-xs text-gray-500 dark:text-gray-400 ${weatherError ? 'pt-3' : 'border-t border-gray-200 pt-4 dark:border-gray-700'}`}>
+            <div className="mb-1 flex flex-wrap items-center justify-center gap-1">
               <Clock className="w-3 h-3" />
-              <span>Data from Open-Meteo API - Updated every 10 minutes</span>
+              <span>Data from Open-Meteo - Updated every 10 minutes</span>
             </div>
             <div className="text-xs">
               Weather models: NOAA GFS, Environment Canada, ECMWF
             </div>
           </div>
-          )}
         </div>
       </div>
     </div>
