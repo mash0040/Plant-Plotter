@@ -26,7 +26,8 @@ describe('ControlPanel accessibility', () => {
     expect(screen.getByRole('button', { name: 'Toggle garden grid' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Toggle garden ruler' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('spinbutton', { name: 'Garden zoom percentage' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Decrease garden width' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Increase garden height' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Decrease garden width' })).toHaveClass('touch-target');
+    expect(screen.getByRole('button', { name: 'Increase garden height' })).toHaveClass('touch-target');
+    expect(screen.getByRole('spinbutton', { name: 'Garden zoom percentage' })).toHaveClass('touch-target');
   });
 });

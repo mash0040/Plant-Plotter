@@ -304,7 +304,7 @@ export default function TrackingCalendar({
             <button 
               type="button"
               onClick={goToPreviousMonth}
-              className="flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+              className="touch-target flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               aria-label="Previous month"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -320,7 +320,7 @@ export default function TrackingCalendar({
                 }}
                 aria-expanded={showMonthYearPicker}
                 aria-controls="calendar-month-year-picker"
-                className="flex min-h-10 w-full items-center justify-center gap-1 rounded px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:w-auto sm:px-4"
+                className="touch-target flex min-h-10 w-full items-center justify-center gap-1 rounded px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:w-auto sm:px-4"
               >
                 <span className="font-medium text-gray-900 dark:text-white">
                   {currentMonth} {currentYear}
@@ -339,7 +339,7 @@ export default function TrackingCalendar({
                         id="calendar-year"
                         value={tempYear}
                         onChange={(e) => setTempYear(parseInt(e.target.value))}
-                        className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="touch-target w-full rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       >
                         {Array.from({ length: 10 }, (_, i) => {
                           const year = new Date().getFullYear() - 5 + i;
@@ -359,7 +359,7 @@ export default function TrackingCalendar({
                         id="calendar-month"
                         value={tempMonth}
                         onChange={(e) => setTempMonth(parseInt(e.target.value))}
-                        className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="touch-target w-full rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       >
                         {months.map((month, index) => (
                           <option key={index} value={index}>
@@ -373,14 +373,14 @@ export default function TrackingCalendar({
                     <button
                       type="button"
                       onClick={handleMonthYearSelect}
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+                      className="touch-target px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
                     >
                       Go
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowMonthYearPicker(false)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+                      className="touch-target px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
                     >
                       Cancel
                     </button>
@@ -392,7 +392,7 @@ export default function TrackingCalendar({
             <button 
               type="button"
               onClick={goToNextMonth}
-              className="flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+              className="touch-target flex h-10 w-10 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               aria-label="Next month"
             >
               <ChevronRight className="w-4 h-4" />
@@ -470,12 +470,12 @@ export default function TrackingCalendar({
                   </div>
                   
                   {activity.id && onActivityEdit && onActivityDelete && (
-                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
+                    <div className="touch-reveal flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
                       <button
                         type="button"
                         onClick={(e) => handleActivityEdit(activity, e)}
                         aria-label={`Edit ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || 'plant'}`}
-                        className="flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+                        className="touch-target flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
                         title="Edit activity"
                       >
                         <Edit3 className="w-4 h-4" />
@@ -484,7 +484,7 @@ export default function TrackingCalendar({
                         type="button"
                         onClick={(e) => handleActivityDelete(activity, e)}
                         aria-label={`Delete ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || 'plant'}`}
-                        className="flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-red-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                        className="touch-target flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-red-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
                         title="Delete activity"
                       >
                         <Trash2 className="w-4 h-4" />

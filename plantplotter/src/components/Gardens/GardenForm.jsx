@@ -363,7 +363,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
             type="button"
             onClick={onClose}
             aria-label={`Close ${garden ? 'edit' : 'new'} garden form`}
-            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+            className="touch-target w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
           >
             <X className="w-4 h-4 text-gray-600" />
           </button>
@@ -453,7 +453,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
             <button
               type="button"
               onClick={toggleUnit}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-200"
+              className="touch-target px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-200"
               title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
               aria-label={`${unit === 'metric' ? 'Metric' : 'Imperial'} dimensions; switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
             >

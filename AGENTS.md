@@ -198,11 +198,11 @@ Frontend tests should cover:
 - Valid form submission calls the expected create/update handler
 - Location can be empty and defaults correctly
 
-Potential frontend test command:
+Run frontend tests with:
 
 `npm test --workspace=plantplotter`
 
-If frontend tests are not configured yet, do not pretend they exist. Add the test setup in a small, scoped change.
+Frontend tests are configured with Vitest and React Testing Library. Keep additions focused on user-visible behavior.
 
 ### Linting
 

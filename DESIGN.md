@@ -190,6 +190,8 @@ Borders are light and practical: green-tinted borders on garden-branded surfaces
 - **Primary:** Leaf green background with white text, medium or semibold weight, and 12px by 24px padding on full actions.
 - **Hover / Focus:** Primary hover deepens to darker green. Inputs and controls use green or blue focus rings depending on context.
 - **Secondary / Ghost:** Secondary buttons use white or gray backgrounds, tinted text, subtle borders, and quiet hover fills.
+- **Touch Targets:** Frequently used controls use a minimum `44px` hit area for coarse pointers while remaining compact for fine pointers. Space-constrained planner-canvas controls may use a smaller visible control with an expanded hit area when a full `44px` control would overlap nearby plants.
+- **Touch Discoverability:** Actions must not rely on hover visibility when the active input cannot hover. Keep touch actions visible or provide an immediately discoverable full-size action in the selected-item detail surface.
 
 ### Chips
 - **Style:** Status and metadata chips use soft tinted backgrounds with darker semantic text.
