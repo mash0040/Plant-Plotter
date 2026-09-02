@@ -83,7 +83,7 @@ export default function WeatherWidget({ weatherState, onViewDetails }) {
         <button
           type="button"
           onClick={handleRefreshClick}
-          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 dark:hover:bg-gray-700"
+          className="touch-target flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 dark:hover:bg-gray-700"
           title="Refresh weather data"
           aria-label="Refresh weather data"
         >
@@ -157,7 +157,7 @@ export default function WeatherWidget({ weatherState, onViewDetails }) {
             type="button"
             onClick={handleRefreshClick}
             disabled={loading}
-            className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 font-medium text-amber-900 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="touch-target mt-2 inline-flex min-h-10 items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 font-medium text-amber-900 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <RotateCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Try again
@@ -179,7 +179,7 @@ export default function WeatherWidget({ weatherState, onViewDetails }) {
         <button
           type="button"
           onClick={onViewDetails}
-          className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-green-200 px-3 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-900/20"
+          className="touch-target mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-green-200 px-3 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-900/20"
         >
           <Eye className="h-4 w-4" />
           View weather details

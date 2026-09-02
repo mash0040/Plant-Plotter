@@ -142,7 +142,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             <button
               type="button"
               onClick={onBackClick}
-              className="min-h-10 min-w-10 px-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+              className="touch-target min-h-10 min-w-10 px-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               title={backLabel}
               aria-label={backLabel}
             >
@@ -158,7 +158,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             <button
               type="button"
               onClick={onToggleSidebar}
-              className="lg:hidden min-h-10 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-800 transition-colors hover:bg-green-100 flex items-center gap-2 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+              className="touch-target lg:hidden min-h-10 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-800 transition-colors hover:bg-green-100 flex items-center gap-2 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
               title="Open plant library"
               aria-label="Open plant library"
               data-menu-button
@@ -189,7 +189,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             <button
               type="button"
               onClick={onToggleGrid}
-              className={`min-h-9 px-3 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center justify-center gap-1 text-xs font-medium transition-colors ${
+              className={`touch-target min-h-9 px-3 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center justify-center gap-1 text-xs font-medium transition-colors ${
                 showGrid 
                   ? 'bg-green-100 hover:bg-green-200 text-green-700' 
                   : 'hover:bg-gray-100 text-gray-600'
@@ -205,7 +205,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             <button
               type="button"
               onClick={onToggleRuler}
-              className={`min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
+              className={`touch-target min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
                 showRuler 
                   ? 'bg-green-100 hover:bg-green-200 text-green-700' 
                   : 'hover:bg-gray-100 text-gray-600'
@@ -221,7 +221,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             <button
               type="button"
               onClick={onSave}
-              className={`min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
+              className={`touch-target min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1.5 rounded flex items-center gap-1 text-xs transition-colors ${
                 hasUnsavedChanges 
                   ? 'bg-green-100 text-green-700 hover:bg-green-200' 
                   : 'hover:bg-gray-100 text-gray-600'
@@ -239,7 +239,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             <button
               type="button"
               onClick={toggleUnit}
-              className="min-h-9 w-full px-3 py-2 rounded text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:w-auto sm:px-2 sm:py-1.5"
+              className="touch-target min-h-9 w-full px-3 py-2 rounded text-xs font-medium transition-colors bg-blue-100 hover:bg-blue-200 text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:w-auto sm:px-2 sm:py-1.5"
               title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
               aria-label={`${unit === 'metric' ? 'Metric' : 'Imperial'} dimensions; switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
             >
@@ -257,7 +257,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
               <button
                 type="button"
                 onClick={() => adjustDimension('width', -1)}
-                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                className="touch-target min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Decrease width"
                 aria-label="Decrease garden width"
               >
@@ -269,7 +269,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
                 onChange={(e) => handleInputChange('width', e.target.value)}
                 onBlur={(e) => handleInputBlur('width', e.target.value)}
                 aria-label="Garden width"
-                className="w-14 sm:w-12 min-h-9 sm:min-h-0 px-1 py-2 sm:py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="touch-target w-14 sm:w-12 min-h-9 sm:min-h-0 px-1 py-2 sm:py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 step={unit === 'imperial' ? '0.1' : '1'}
                 min="1"
               />
@@ -277,7 +277,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
               <button
                 type="button"
                 onClick={() => adjustDimension('width', 1)}
-                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                className="touch-target min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Increase width"
                 aria-label="Increase garden width"
               >
@@ -291,7 +291,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
               <button
                 type="button"
                 onClick={() => adjustDimension('height', -1)}
-                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                className="touch-target min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Decrease height"
                 aria-label="Decrease garden height"
               >
@@ -303,7 +303,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
                 onChange={(e) => handleInputChange('height', e.target.value)}
                 onBlur={(e) => handleInputBlur('height', e.target.value)}
                 aria-label="Garden height"
-                className="w-14 sm:w-12 min-h-9 sm:min-h-0 px-1 py-2 sm:py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="touch-target w-14 sm:w-12 min-h-9 sm:min-h-0 px-1 py-2 sm:py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 step={unit === 'imperial' ? '0.1' : '1'}
                 min="1"
               />
@@ -311,7 +311,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
               <button
                 type="button"
                 onClick={() => adjustDimension('height', 1)}
-                className="min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                className="touch-target min-h-9 min-w-9 p-2 hover:bg-gray-100 rounded text-gray-700 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
                 title="Increase height"
                 aria-label="Increase garden height"
               >
@@ -326,7 +326,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             <button
               type="button"
               onClick={() => adjustGridSize(-5)}
-              className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+              className="touch-target min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
               title="Zoom out"
               aria-label="Zoom out"
             >
@@ -338,7 +338,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
               value={inputValues.zoom}
               onChange={(e) => handleInputChange('zoom', e.target.value)}
               onBlur={(e) => handleInputBlur('zoom', e.target.value)}
-              className="w-14 sm:w-12 min-h-9 sm:min-h-0 px-1 py-2 sm:py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="touch-target w-14 sm:w-12 min-h-9 sm:min-h-0 px-1 py-2 sm:py-1 text-xs text-center font-medium text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               step="10"
               min="50"
               max="250"
@@ -347,7 +347,7 @@ export default function ControlPanel({ dimensions, gridSize, showGrid, showRuler
             <button
               type="button"
               onClick={() => adjustGridSize(5)}
-              className="min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+              className="touch-target min-h-9 min-w-9 sm:min-h-0 sm:min-w-0 p-2 sm:p-1 hover:bg-gray-100 rounded text-gray-600 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
               title="Zoom in"
               aria-label="Zoom in"
             >

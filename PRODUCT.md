@@ -48,7 +48,7 @@ The product name is Plant Plotter in documentation and PlantPlotter in current a
 
 The product voice should stay clear, practical, and user-facing. Do not show developer/debug labels such as `Database values` in the UI, and do not expose sensitive implementation details in API responses.
 
-Existing brand and product assets are in `plantplotter/public/`, including logo files and garden-planning imagery. Their visual treatment is not documented here; DESIGN.md should own visual system decisions if created later.
+Existing brand and product assets are in `plantplotter/public/`, including logo files and garden-planning imagery. Their visual treatment and the current interface rules are documented in `DESIGN.md`.
 
 ## Evidence on Hand
 

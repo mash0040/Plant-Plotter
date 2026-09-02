@@ -102,7 +102,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link 
           href={user ? '/gardens' : '/'} 
-          className="text-white text-xl font-bold flex items-center gap-2 hover:text-green-100 transition-colors"
+          className="touch-target text-white text-xl font-bold flex items-center gap-2 hover:text-green-100 transition-colors"
           title={user ? 'Go to My Gardens' : 'Go to Home'}
         >
           <Image src="/PlantPlotter.svg" alt="PlantPlotter Logo" width={32} height={32} /> 
@@ -118,7 +118,7 @@ export default function Navbar() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-1 px-3 py-2 rounded-md transition ${
+                    className={`touch-target flex items-center gap-1 px-3 py-2 rounded-md transition ${
                       mounted && pathname === item.href
                         ? 'bg-green-700 text-white font-semibold'
                         : 'text-white hover:bg-green-800 hover:text-green-100'
@@ -169,7 +169,7 @@ export default function Navbar() {
                   <Link
                     href="/profile"
                     onClick={() => setShowUserMenu(false)}
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="touch-target flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Profile Settings
                   </Link>
@@ -177,7 +177,7 @@ export default function Navbar() {
                   <Link
                     href="/profile?tab=preferences"
                     onClick={() => setShowUserMenu(false)}
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="touch-target flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Preferences
                   </Link>
@@ -185,7 +185,7 @@ export default function Navbar() {
                   <div className="border-t border-gray-100 mt-1">
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                      className="touch-target w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
                     >
                       <LogOut className="w-4 h-4" />
                       Sign Out
@@ -197,7 +197,7 @@ export default function Navbar() {
           ) : (
             <Link
               href={publicActionHref}
-              className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium rounded-md transition-colors"
+              className="touch-target inline-flex items-center px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium rounded-md transition-colors"
             >
               {publicActionLabel}
             </Link>
@@ -207,7 +207,7 @@ export default function Navbar() {
         {/* Mobile menu toggle */}
         {showMobileMenuButton ? (
           <button
-            className="md:hidden text-white"
+            className="flex h-11 w-11 items-center justify-center rounded-md text-white transition-colors hover:bg-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-900 md:hidden"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
@@ -216,7 +216,7 @@ export default function Navbar() {
         ) : (
           <Link
             href={publicActionHref}
-            className="md:hidden rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600"
+            className="inline-flex min-h-11 items-center rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600 md:hidden"
           >
             {publicActionLabel}
           </Link>
@@ -234,7 +234,7 @@ export default function Navbar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-sm ${
+                  className={`flex min-h-11 items-center px-3 py-2 rounded-md text-sm ${
                     mounted && pathname === item.href
                       ? 'bg-green-700 text-white font-semibold'
                       : 'text-white hover:bg-green-700 hover:text-green-100'
@@ -274,7 +274,7 @@ export default function Navbar() {
                   <Link
                     href="/profile"
                     onClick={() => setMenuOpen(false)}
-                    className="block px-3 py-2 text-sm text-white hover:bg-green-700 rounded-md transition-colors"
+                    className="flex min-h-11 items-center px-3 py-2 text-sm text-white hover:bg-green-700 rounded-md transition-colors"
                   >
                     Profile Settings
                   </Link>
@@ -282,14 +282,14 @@ export default function Navbar() {
                   <Link
                     href="/profile?tab=preferences"
                     onClick={() => setMenuOpen(false)}
-                    className="block px-3 py-2 text-sm text-white hover:bg-green-700 rounded-md transition-colors"
+                    className="flex min-h-11 items-center px-3 py-2 text-sm text-white hover:bg-green-700 rounded-md transition-colors"
                   >
                     Preferences
                   </Link>
                   
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-3 py-2 text-sm text-red-200 hover:bg-red-800 rounded-md transition-colors flex items-center gap-2"
+                    className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-red-200 transition-colors hover:bg-red-800"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out
@@ -300,7 +300,7 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="w-full px-3 py-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium rounded-md transition-colors"
+                className="flex min-h-11 w-full items-center px-3 py-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium rounded-md transition-colors"
               >
                 Sign In
               </Link>

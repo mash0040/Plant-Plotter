@@ -26,8 +26,14 @@ describe('TasksList accessibility', () => {
       />
     );
 
-    await user.click(screen.getByRole('checkbox', { name: 'Complete Water tomatoes' }));
-    await user.click(screen.getByRole('button', { name: 'Edit Water tomatoes' }));
+    const completeCheckbox = screen.getByRole('checkbox', { name: 'Complete Water tomatoes' });
+    const editButton = screen.getByRole('button', { name: 'Edit Water tomatoes' });
+
+    expect(completeCheckbox.closest('label')).toHaveClass('touch-target');
+    expect(editButton).toHaveClass('touch-target', 'touch-reveal');
+
+    await user.click(completeCheckbox);
+    await user.click(editButton);
 
     expect(onTaskComplete).toHaveBeenCalledWith(7);
     expect(onTaskEdit).toHaveBeenCalledWith(task);
@@ -43,6 +49,6 @@ describe('TasksList accessibility', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: 'Complete Water tomatoes' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Complete Water tomatoes' })).toHaveClass('touch-target');
   });
 });
