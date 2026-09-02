@@ -48,9 +48,9 @@ export default function ControlPanel({
     unit === 'imperial' ? metersToFeet(dimensions[field]) : dimensions[field].toString()
   );
 
-  // Handle unit toggle
-  const toggleUnit = () => {
-    const newUnit = unit === 'metric' ? 'imperial' : 'metric';
+  const handleUnitChange = (newUnit) => {
+    if (newUnit === unit) return;
+
     setUnit(newUnit);
     
     // Update input values for display
@@ -280,15 +280,34 @@ export default function ControlPanel({
               className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-1"
             >
               <span className="pl-2 text-xs font-medium text-gray-600">Unit</span>
-              <button
-                type="button"
-                onClick={toggleUnit}
-                className="touch-target ml-auto min-h-9 flex-1 rounded bg-blue-100 px-3 py-2 text-xs font-medium text-blue-800 transition-colors hover:bg-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:min-h-0 sm:px-2 sm:py-1.5"
-                title={`Switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
-                aria-label={`${unit === 'metric' ? 'Metric' : 'Imperial'} dimensions; switch to ${unit === 'metric' ? 'feet' : 'meters'}`}
-              >
-                {unit === 'metric' ? 'Metric (m)' : 'Imperial (ft)'}
-              </button>
+              <div className="ml-auto grid flex-1 grid-cols-2 rounded-md bg-gray-100 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => handleUnitChange('metric')}
+                  aria-label="Use metric units"
+                  aria-pressed={unit === 'metric'}
+                  className={`touch-target min-h-9 rounded px-2 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-1 sm:min-h-0 ${
+                    unit === 'metric'
+                      ? 'bg-blue-100 text-blue-800 shadow-sm'
+                      : 'text-gray-600 hover:bg-white'
+                  }`}
+                >
+                  Metric (m)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleUnitChange('imperial')}
+                  aria-label="Use imperial units"
+                  aria-pressed={unit === 'imperial'}
+                  className={`touch-target min-h-9 rounded px-2 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-1 sm:min-h-0 ${
+                    unit === 'imperial'
+                      ? 'bg-blue-100 text-blue-800 shadow-sm'
+                      : 'text-gray-600 hover:bg-white'
+                  }`}
+                >
+                  Imperial (ft)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -296,12 +315,12 @@ export default function ControlPanel({
             <div
               role="group"
               aria-label="Garden size controls"
-              className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-2 sm:flex-row sm:items-center sm:p-1"
+              className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-2 sm:p-1 xl:flex-row xl:items-center"
             >
               <span className="px-1 text-xs font-semibold text-gray-700">Size</span>
 
               <div className="flex min-w-0 flex-1 items-center gap-1">
-                <span className="w-14 flex-shrink-0 text-xs font-medium text-gray-700 sm:w-auto sm:px-1">Width</span>
+                <span className="w-14 flex-shrink-0 text-xs font-medium text-gray-700 xl:w-auto xl:px-1">Width</span>
                 <button
                   type="button"
                   onClick={() => adjustDimension('width', -1)}
@@ -325,7 +344,7 @@ export default function ControlPanel({
                 <button
                   type="button"
                   onClick={() => adjustDimension('width', 1)}
-                  className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                  className="touch-target ml-auto flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1 xl:ml-0"
                   title="Increase width"
                   aria-label="Increase garden width"
                 >
@@ -334,7 +353,7 @@ export default function ControlPanel({
               </div>
 
               <div className="flex min-w-0 flex-1 items-center gap-1">
-                <span className="w-14 flex-shrink-0 text-xs font-medium text-gray-700 sm:w-auto sm:px-1">Height</span>
+                <span className="w-14 flex-shrink-0 text-xs font-medium text-gray-700 xl:w-auto xl:px-1">Height</span>
                 <button
                   type="button"
                   onClick={() => adjustDimension('height', -1)}
@@ -358,7 +377,7 @@ export default function ControlPanel({
                 <button
                   type="button"
                   onClick={() => adjustDimension('height', 1)}
-                  className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                  className="touch-target ml-auto flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1 xl:ml-0"
                   title="Increase height"
                   aria-label="Increase garden height"
                 >
@@ -397,7 +416,7 @@ export default function ControlPanel({
               <button
                 type="button"
                 onClick={() => adjustGridSize(5)}
-                className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-600 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                className="touch-target ml-auto flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-600 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1 xl:ml-0"
                 title="Zoom in"
                 aria-label="Zoom in"
               >
