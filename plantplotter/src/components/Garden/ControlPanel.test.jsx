@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ControlPanel from './ControlPanel';
 
@@ -30,6 +31,32 @@ describe('ControlPanel accessibility', () => {
     expect(screen.getByRole('button', { name: 'Decrease garden width' })).toHaveClass('touch-target');
     expect(screen.getByRole('button', { name: 'Increase garden height' })).toHaveClass('touch-target');
     expect(screen.getByRole('spinbutton', { name: 'Garden zoom percentage' })).toHaveClass('touch-target');
+  });
+
+  it('shows both unit choices and converts displayed dimensions when imperial is selected', async () => {
+    const user = userEvent.setup();
+    renderControlPanel();
+
+    const metricButton = screen.getByRole('button', { name: 'Use metric units' });
+    const imperialButton = screen.getByRole('button', { name: 'Use imperial units' });
+
+    expect(metricButton).toHaveAttribute('aria-pressed', 'true');
+    expect(imperialButton).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(imperialButton);
+
+    expect(metricButton).toHaveAttribute('aria-pressed', 'false');
+    expect(imperialButton).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('spinbutton', { name: 'Garden width' })).toHaveValue(19.69);
+    expect(screen.getByRole('spinbutton', { name: 'Garden height' })).toHaveValue(13.12);
+  });
+
+  it('keeps increment controls aligned to the far edge below desktop widths', () => {
+    renderControlPanel();
+
+    expect(screen.getByRole('button', { name: 'Increase garden width' })).toHaveClass('ml-auto', 'xl:ml-0');
+    expect(screen.getByRole('button', { name: 'Increase garden height' })).toHaveClass('ml-auto', 'xl:ml-0');
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toHaveClass('ml-auto', 'xl:ml-0');
   });
 
   it('keeps navigation, save state, and secondary tools in distinct groups', () => {
