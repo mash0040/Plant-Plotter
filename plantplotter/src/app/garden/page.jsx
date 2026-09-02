@@ -20,6 +20,8 @@ import { snapToGrid, checkPlantOverlap, isWithinBounds, getPlantFootprint } from
 import apiClient from '@/lib/api';
 import { getUserFacingErrorMessage, isAuthenticationError } from '@/lib/apiErrors';
 
+const SAVE_MESSAGE_DURATION_MS = 6000;
+
 function GardenPlannerPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -56,6 +58,16 @@ function GardenPlannerPageContent() {
 
   // State to store plant library data
   const [libraryPlants, setLibraryPlants] = useState([]);
+
+  useEffect(() => {
+    if (!layoutSaveMessage) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setLayoutSaveMessage('');
+    }, SAVE_MESSAGE_DURATION_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [layoutSaveMessage]);
 
   // Store refresh function
   const [refreshPlantsFunction, setRefreshPlantsFunction] = useState(null);
@@ -1168,15 +1180,9 @@ function GardenPlannerPageContent() {
             onBackClick={handleBackToGarden}
             backLabel="Choose another garden"
             saveLabel={isSavingLayout ? 'Saving...' : 'Save Layout'}
+            saveMessage={layoutSaveMessage}
+            saveError={layoutSaveError}
           />
-
-          {(layoutSaveMessage || layoutSaveError) && (
-            <div role={layoutSaveError ? 'alert' : 'status'} aria-live="polite" className="px-3 sm:px-4 py-2 bg-white border-b border-gray-100">
-              <div className={`text-sm font-medium ${layoutSaveError ? 'text-red-700' : 'text-green-700'}`}>
-                {layoutSaveError || layoutSaveMessage}
-              </div>
-            </div>
-          )}
 
           <div className="flex-1 min-h-0 relative overflow-hidden">
             <GardenCanvas
