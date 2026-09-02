@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { X, Plus, Minus, Grid, ArrowRight, ArrowDown } from 'lucide-react';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 
@@ -10,6 +10,13 @@ export default function RowPlantingModal({
   gridSize = 40,
   dimensions 
 }) {
+  const controlIdPrefix = useId();
+  const countInputId = `${controlIdPrefix}-count`;
+  const spacingInputId = `${controlIdPrefix}-spacing`;
+  const spacingSummaryId = `${controlIdPrefix}-spacing-summary`;
+  const startPositionHelpId = `${controlIdPrefix}-start-position-help`;
+  const startXInputId = `${controlIdPrefix}-start-x`;
+  const startYInputId = `${controlIdPrefix}-start-y`;
   const [rowConfig, setRowConfig] = useState({
     count: 5,
     spacing: 0, // Changed default to 0 for no spacing
@@ -197,18 +204,20 @@ export default function RowPlantingModal({
 
           {/* Plant Count */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor={countInputId} className="block text-sm font-medium text-gray-700 mb-2">
               Number of Plants
             </label>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleConfigChange('count', Math.max(1, normalizedConfig.count - 1))}
                 type="button"
+                aria-label="Decrease number of plants"
                 className="flex h-10 w-10 items-center justify-center hover:bg-gray-100 rounded"
               >
                 <Minus className="w-4 h-4" />
               </button>
               <input
+                id={countInputId}
                 type="number"
                 value={rowConfig.count}
                 onChange={(e) => handleConfigChange('count', e.target.value)}
@@ -220,6 +229,7 @@ export default function RowPlantingModal({
               <button
                 onClick={() => handleConfigChange('count', Math.min(50, normalizedConfig.count + 1))}
                 type="button"
+                aria-label="Increase number of plants"
                 className="flex h-10 w-10 items-center justify-center hover:bg-gray-100 rounded"
               >
                 <Plus className="w-4 h-4" />
@@ -228,14 +238,15 @@ export default function RowPlantingModal({
           </div>
 
           {/* Direction */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 mb-2">
               Direction
-            </label>
+            </legend>
             <div className="flex gap-2">
               <button
                 onClick={() => handleConfigChange('direction', 'horizontal')}
                 type="button"
+                aria-pressed={rowConfig.direction === 'horizontal'}
                 className={`flex min-h-10 items-center gap-2 px-3 py-2 rounded border ${
                   rowConfig.direction === 'horizontal' 
                     ? 'bg-green-100 border-green-300 text-green-700' 
@@ -248,6 +259,7 @@ export default function RowPlantingModal({
               <button
                 onClick={() => handleConfigChange('direction', 'vertical')}
                 type="button"
+                aria-pressed={rowConfig.direction === 'vertical'}
                 className={`flex min-h-10 items-center gap-2 px-3 py-2 rounded border ${
                   rowConfig.direction === 'vertical' 
                     ? 'bg-green-100 border-green-300 text-green-700' 
@@ -258,19 +270,20 @@ export default function RowPlantingModal({
                 Vertical
               </button>
             </div>
-          </div>
+          </fieldset>
 
           {/* Spacing with Quick Options */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 mb-2">
               Spacing Between Plants
-            </label>
+            </legend>
             
             {/* Quick spacing options */}
-            <div className="flex gap-2 mb-2">
+            <div className="flex gap-2 mb-2" role="group" aria-label="Spacing presets">
               <button
                 onClick={() => handleConfigChange('spacing', 0)}
                 type="button"
+                aria-pressed={normalizedConfig.spacing === 0}
                 className={`px-3 py-1 text-xs rounded border ${
                   normalizedConfig.spacing === 0 
                     ? 'bg-green-100 border-green-300 text-green-700' 
@@ -282,6 +295,7 @@ export default function RowPlantingModal({
               <button
                 onClick={() => handleConfigChange('spacing', 1)}
                 type="button"
+                aria-pressed={normalizedConfig.spacing === 1}
                 className={`px-3 py-1 text-xs rounded border ${
                   normalizedConfig.spacing === 1
                     ? 'bg-green-100 border-green-300 text-green-700' 
@@ -293,6 +307,7 @@ export default function RowPlantingModal({
               <button
                 onClick={() => handleConfigChange('spacing', 2)}
                 type="button"
+                aria-pressed={normalizedConfig.spacing === 2}
                 className={`px-3 py-1 text-xs rounded border ${
                   normalizedConfig.spacing === 2
                     ? 'bg-green-100 border-green-300 text-green-700' 
@@ -307,11 +322,14 @@ export default function RowPlantingModal({
               <button
                 onClick={() => handleConfigChange('spacing', Math.max(0, normalizedConfig.spacing - 1))}
                 type="button"
+                aria-label="Decrease spacing between plants"
                 className="flex h-10 w-10 items-center justify-center hover:bg-gray-100 rounded"
               >
                 <Minus className="w-4 h-4" />
               </button>
+              <label htmlFor={spacingInputId} className="sr-only">Spacing Between Plants</label>
               <input
+                id={spacingInputId}
                 type="number"
                 value={rowConfig.spacing}
                 onChange={(e) => handleConfigChange('spacing', e.target.value)}
@@ -320,31 +338,37 @@ export default function RowPlantingModal({
                 min="0"
                 step="1"
                 max="5"
+                aria-describedby={spacingSummaryId}
               />
               <button
                 onClick={() => handleConfigChange('spacing', Math.min(5, normalizedConfig.spacing + 1))}
                 type="button"
+                aria-label="Increase spacing between plants"
                 className="flex h-10 w-10 items-center justify-center hover:bg-gray-100 rounded"
               >
                 <Plus className="w-4 h-4" />
               </button>
               <span className="text-xs text-gray-600">grid units</span>
             </div>
-            <p className="text-xs text-gray-600 mt-1">
+            <p id={spacingSummaryId} className="text-xs text-gray-600 mt-1">
               {normalizedConfig.spacing === 0 ? 'Plants will touch each other' : `${normalizedConfig.spacing} unit${normalizedConfig.spacing !== 1 ? 's' : ''} between plants`}
             </p>
             <p className="text-xs text-gray-600 mt-1">
               Spacing uses full grid units so saved layouts stay aligned to the garden grid.
             </p>
-          </div>
+          </fieldset>
 
           {/* Starting Position */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 mb-2">
               Starting Position (X, Y)
-            </label>
+            </legend>
             <div className="flex items-center gap-2">
+              <label htmlFor={startXInputId} className="flex items-center gap-1 text-xs font-medium text-gray-700">
+                X
+              </label>
               <input
+                id={startXInputId}
                 type="number"
                 value={rowConfig.startX}
                 onChange={(e) => handleConfigChange('startX', e.target.value)}
@@ -352,9 +376,15 @@ export default function RowPlantingModal({
                 className="w-16 min-h-10 rounded border border-gray-300 bg-white px-2 py-1 text-center text-gray-900 disabled:bg-gray-100 disabled:text-gray-500"
                 min="1"
                 max={dimensions.width}
+                aria-label="Starting X coordinate"
+                aria-describedby={startPositionHelpId}
               />
               <span className="text-gray-600">,</span>
+              <label htmlFor={startYInputId} className="flex items-center gap-1 text-xs font-medium text-gray-700">
+                Y
+              </label>
               <input
+                id={startYInputId}
                 type="number"
                 value={rowConfig.startY}
                 onChange={(e) => handleConfigChange('startY', e.target.value)}
@@ -362,12 +392,14 @@ export default function RowPlantingModal({
                 className="w-16 min-h-10 rounded border border-gray-300 bg-white px-2 py-1 text-center text-gray-900 disabled:bg-gray-100 disabled:text-gray-500"
                 min="1"
                 max={dimensions.height}
+                aria-label="Starting Y coordinate"
+                aria-describedby={startPositionHelpId}
               />
             </div>
-            <p className="text-xs text-gray-600 mt-1">
+            <p id={startPositionHelpId} className="text-xs text-gray-600 mt-1">
               Grid positions start from 1,1 (top-left corner)
             </p>
-          </div>
+          </fieldset>
 
           {/* Preview Info */}
           <div className="bg-gray-50 p-3 rounded-lg">
