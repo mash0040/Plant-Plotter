@@ -51,12 +51,19 @@ describe('ControlPanel accessibility', () => {
     expect(screen.getByRole('spinbutton', { name: 'Garden height' })).toHaveValue(13.12);
   });
 
-  it('keeps increment controls aligned to the far edge below desktop widths', () => {
+  it('aligns dimension and zoom controls into consistent columns', () => {
     renderControlPanel();
 
-    expect(screen.getByRole('button', { name: 'Increase garden width' })).toHaveClass('ml-auto', 'xl:ml-0');
-    expect(screen.getByRole('button', { name: 'Increase garden height' })).toHaveClass('ml-auto', 'xl:ml-0');
-    expect(screen.getByRole('button', { name: 'Zoom in' })).toHaveClass('ml-auto', 'xl:ml-0');
+    const widthControls = screen.getByRole('group', { name: 'Width controls' });
+    const heightControls = screen.getByRole('group', { name: 'Height controls' });
+    const zoomControls = screen.getByRole('group', { name: 'Zoom controls' });
+
+    expect(screen.getByRole('button', { name: 'Increase garden width' }).parentElement).toHaveClass('grid-cols-[2.25rem_3.5rem_1.5rem_2.25rem]', 'justify-self-end');
+    expect(screen.getByRole('button', { name: 'Increase garden height' }).parentElement).toHaveClass('grid-cols-[2.25rem_3.5rem_1.5rem_2.25rem]', 'justify-self-end');
+    expect(screen.getByRole('button', { name: 'Zoom in' }).parentElement).toHaveClass('grid-cols-[2.25rem_3.5rem_1.5rem_2.25rem]', 'justify-self-end');
+    expect(within(widthControls).getByRole('spinbutton', { name: 'Garden width' })).toBeInTheDocument();
+    expect(within(heightControls).getByRole('spinbutton', { name: 'Garden height' })).toBeInTheDocument();
+    expect(within(zoomControls).getByRole('spinbutton', { name: 'Garden zoom percentage' })).toBeInTheDocument();
   });
 
   it('keeps navigation, save state, and secondary tools in distinct groups', () => {

@@ -319,109 +319,115 @@ export default function ControlPanel({
             >
               <span className="px-1 text-xs font-semibold text-gray-700">Size</span>
 
-              <div className="flex min-w-0 flex-1 items-center gap-1">
-                <span className="w-14 flex-shrink-0 text-xs font-medium text-gray-700 xl:w-auto xl:px-1">Width</span>
-                <button
-                  type="button"
-                  onClick={() => adjustDimension('width', -1)}
-                  className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
-                  title="Decrease width"
-                  aria-label="Decrease garden width"
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-                <input
-                  type="number"
-                  value={inputValues.width}
-                  onChange={(e) => handleInputChange('width', e.target.value)}
-                  onBlur={(e) => handleInputBlur('width', e.target.value)}
-                  aria-label="Garden width"
-                  className="touch-target min-h-9 w-14 rounded border border-gray-300 bg-white px-1 py-2 text-center text-xs font-medium text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:min-h-0 sm:w-12 sm:py-1"
-                  step={unit === 'imperial' ? '0.1' : '1'}
-                  min="1"
-                />
-                <span className="text-xs text-gray-700">{getUnitLabel()}</span>
-                <button
-                  type="button"
-                  onClick={() => adjustDimension('width', 1)}
-                  className="touch-target ml-auto flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1 xl:ml-0"
-                  title="Increase width"
-                  aria-label="Increase garden width"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
+              <div role="group" aria-label="Width controls" className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 xl:flex-1">
+                <span className="text-xs font-medium text-gray-700">Width</span>
+                <div className="grid grid-cols-[2.25rem_3.5rem_1.5rem_2.25rem] items-center justify-self-end gap-1">
+                  <button
+                    type="button"
+                    onClick={() => adjustDimension('width', -1)}
+                    className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                    title="Decrease width"
+                    aria-label="Decrease garden width"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <input
+                    type="number"
+                    value={inputValues.width}
+                    onChange={(e) => handleInputChange('width', e.target.value)}
+                    onBlur={(e) => handleInputBlur('width', e.target.value)}
+                    aria-label="Garden width"
+                    className="touch-target min-h-9 w-14 rounded border border-gray-300 bg-white px-1 py-2 text-center text-xs font-medium text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:min-h-0 sm:py-1"
+                    step={unit === 'imperial' ? '0.1' : '1'}
+                    min="1"
+                  />
+                  <span className="text-center text-xs text-gray-700">{getUnitLabel()}</span>
+                  <button
+                    type="button"
+                    onClick={() => adjustDimension('width', 1)}
+                    className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                    title="Increase width"
+                    aria-label="Increase garden width"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
 
-              <div className="flex min-w-0 flex-1 items-center gap-1">
-                <span className="w-14 flex-shrink-0 text-xs font-medium text-gray-700 xl:w-auto xl:px-1">Height</span>
-                <button
-                  type="button"
-                  onClick={() => adjustDimension('height', -1)}
-                  className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
-                  title="Decrease height"
-                  aria-label="Decrease garden height"
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-                <input
-                  type="number"
-                  value={inputValues.height}
-                  onChange={(e) => handleInputChange('height', e.target.value)}
-                  onBlur={(e) => handleInputBlur('height', e.target.value)}
-                  aria-label="Garden height"
-                  className="touch-target min-h-9 w-14 rounded border border-gray-300 bg-white px-1 py-2 text-center text-xs font-medium text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:min-h-0 sm:w-12 sm:py-1"
-                  step={unit === 'imperial' ? '0.1' : '1'}
-                  min="1"
-                />
-                <span className="text-xs text-gray-700">{getUnitLabel()}</span>
-                <button
-                  type="button"
-                  onClick={() => adjustDimension('height', 1)}
-                  className="touch-target ml-auto flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1 xl:ml-0"
-                  title="Increase height"
-                  aria-label="Increase garden height"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
+              <div role="group" aria-label="Height controls" className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 xl:flex-1">
+                <span className="text-xs font-medium text-gray-700">Height</span>
+                <div className="grid grid-cols-[2.25rem_3.5rem_1.5rem_2.25rem] items-center justify-self-end gap-1">
+                  <button
+                    type="button"
+                    onClick={() => adjustDimension('height', -1)}
+                    className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                    title="Decrease height"
+                    aria-label="Decrease garden height"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <input
+                    type="number"
+                    value={inputValues.height}
+                    onChange={(e) => handleInputChange('height', e.target.value)}
+                    onBlur={(e) => handleInputBlur('height', e.target.value)}
+                    aria-label="Garden height"
+                    className="touch-target min-h-9 w-14 rounded border border-gray-300 bg-white px-1 py-2 text-center text-xs font-medium text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:min-h-0 sm:py-1"
+                    step={unit === 'imperial' ? '0.1' : '1'}
+                    min="1"
+                  />
+                  <span className="text-center text-xs text-gray-700">{getUnitLabel()}</span>
+                  <button
+                    type="button"
+                    onClick={() => adjustDimension('height', 1)}
+                    className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                    title="Increase height"
+                    aria-label="Increase garden height"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
             </div>
 
             <div
               role="group"
               aria-label="Zoom controls"
-              className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1"
+              className="grid w-full grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 rounded-lg border border-gray-200 bg-white p-2 sm:p-1 md:w-auto"
             >
-              <span className="px-1 text-xs font-semibold text-gray-700">Zoom</span>
-              <button
-                type="button"
-                onClick={() => adjustGridSize(-5)}
-                className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-600 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
-                title="Zoom out"
-                aria-label="Zoom out"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <input
-                type="number"
-                aria-label="Garden zoom percentage"
-                value={inputValues.zoom}
-                onChange={(e) => handleInputChange('zoom', e.target.value)}
-                onBlur={(e) => handleInputBlur('zoom', e.target.value)}
-                className="touch-target min-h-9 w-14 rounded border border-gray-300 bg-white px-1 py-2 text-center text-xs font-medium text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:min-h-0 sm:w-12 sm:py-1"
-                step="10"
-                min="50"
-                max="250"
-              />
-              <span className="text-xs text-gray-500">%</span>
-              <button
-                type="button"
-                onClick={() => adjustGridSize(5)}
-                className="touch-target ml-auto flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-600 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1 xl:ml-0"
-                title="Zoom in"
-                aria-label="Zoom in"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
+              <span className="text-xs font-semibold text-gray-700">Zoom</span>
+              <div className="grid grid-cols-[2.25rem_3.5rem_1.5rem_2.25rem] items-center justify-self-end gap-1">
+                <button
+                  type="button"
+                  onClick={() => adjustGridSize(-5)}
+                  className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-600 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                  title="Zoom out"
+                  aria-label="Zoom out"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <input
+                  type="number"
+                  aria-label="Garden zoom percentage"
+                  value={inputValues.zoom}
+                  onChange={(e) => handleInputChange('zoom', e.target.value)}
+                  onBlur={(e) => handleInputBlur('zoom', e.target.value)}
+                  className="touch-target min-h-9 w-14 rounded border border-gray-300 bg-white px-1 py-2 text-center text-xs font-medium text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:min-h-0 sm:py-1"
+                  step="10"
+                  min="50"
+                  max="250"
+                />
+                <span className="text-center text-xs text-gray-500">%</span>
+                <button
+                  type="button"
+                  onClick={() => adjustGridSize(5)}
+                  className="touch-target flex min-h-9 min-w-9 items-center justify-center rounded p-2 text-gray-600 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 sm:min-h-0 sm:min-w-0 sm:p-1"
+                  title="Zoom in"
+                  aria-label="Zoom in"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
