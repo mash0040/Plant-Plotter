@@ -18,7 +18,7 @@ describe('TasksList accessibility', () => {
 
     render(
       <TasksList
-        title="Upcoming Tasks"
+        title="Upcoming"
         tasks={[task]}
         onTaskComplete={onTaskComplete}
         onTaskEdit={onTaskEdit}
@@ -42,13 +42,59 @@ describe('TasksList accessibility', () => {
   it('names the icon-only complete button with its task', () => {
     render(
       <TasksList
-        title="Overdue Tasks"
+        title="Overdue"
         tasks={[task]}
         onTaskComplete={vi.fn()}
         onTaskEdit={vi.fn()}
+        tone="urgent"
       />
     );
 
     expect(screen.getByRole('button', { name: 'Complete Water tomatoes' })).toHaveClass('touch-target');
+    expect(screen.getByText('Overdue')).toHaveClass('text-red-700', 'dark:text-red-300');
+    expect(screen.getByText('Water tomatoes')).toHaveClass('dark:text-white');
+    expect(screen.getByText('medium')).toHaveClass('dark:bg-amber-950', 'dark:text-amber-200');
+  });
+
+  it('keeps upcoming tasks collapsed until requested', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TasksList
+        title="Upcoming"
+        tasks={[task]}
+        onTaskComplete={vi.fn()}
+        onTaskEdit={vi.fn()}
+        collapsible
+      />
+    );
+
+    const summary = screen.getByText('Upcoming').closest('summary');
+    const disclosure = summary.closest('details');
+
+    expect(screen.getByText('Upcoming')).toHaveClass('dark:text-white');
+    expect(disclosure).not.toHaveAttribute('open');
+    expect(screen.getByText('Water tomatoes')).not.toBeVisible();
+
+    await user.click(summary);
+
+    expect(disclosure).toHaveAttribute('open');
+    expect(screen.getByText('Water tomatoes')).toBeVisible();
+  });
+
+  it('uses a quiet empty state without adding another create action', () => {
+    render(
+      <TasksList
+        title="Today"
+        tasks={[]}
+        onTaskComplete={vi.fn()}
+        onTaskEdit={vi.fn()}
+        emptyMessage="Nothing due today"
+      />
+    );
+
+    expect(screen.getByText('Nothing due today')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add new task' })).not.toBeInTheDocument();
+    expect(screen.queryByText('All Done!')).not.toBeInTheDocument();
   });
 });

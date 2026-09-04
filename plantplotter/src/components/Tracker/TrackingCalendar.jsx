@@ -291,7 +291,6 @@ export default function TrackingCalendar({
   };
 
   const selectedDateActivities = calendarData[selectedDate] || [];
-  const selectedDateTasks = taskData[selectedDate] || [];
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
@@ -497,31 +496,6 @@ export default function TrackingCalendar({
           </div>
         )}
 
-        {selectedDateTasks.length > 0 && (
-          <div className="mt-4 p-3 sm:p-4 bg-indigo-50 dark:bg-gray-700 rounded-lg">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex flex-wrap items-center gap-2">
-              <span>T</span>
-              Tasks for {formatDateKeyForDisplay(selectedDate)}:
-            </h4>
-            <div className="space-y-2">
-              {selectedDateTasks.map((task) => (
-                <div key={task.id} className="flex items-start gap-3 p-3 bg-white dark:bg-gray-600 rounded">
-                  <span className="text-sm text-indigo-700">{getTaskIcon(task.task_type || task.taskType)}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 dark:text-white break-words">
-                      {task.title || task.task}
-                    </div>
-                    {task.description && (
-                      <div className="text-sm text-gray-600 dark:text-gray-300 break-words">
-                        {task.description}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

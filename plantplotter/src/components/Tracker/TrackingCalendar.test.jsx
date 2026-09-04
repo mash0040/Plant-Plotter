@@ -66,4 +66,28 @@ describe('TrackingCalendar accessibility', () => {
     expect(onActivityEdit).toHaveBeenCalledWith(activity);
     expect(onActivityDelete).toHaveBeenCalledWith(activity);
   });
+
+  it('keeps tasks as calendar context without duplicating a selected-date task list', () => {
+    const today = new Date();
+    const selectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    const task = {
+      id: 18,
+      title: 'Weed bed',
+      description: 'Clear the north edge',
+      dueDate: selectedDate,
+      task_type: 'weed'
+    };
+
+    render(
+      <TrackingCalendar
+        selectedDate={selectedDate}
+        onDateSelect={vi.fn()}
+        taskData={{ [selectedDate]: [task] }}
+      />
+    );
+
+    expect(screen.getAllByText('Weed bed')).toHaveLength(1);
+    expect(screen.queryByText('Clear the north edge')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Tasks for/)).not.toBeInTheDocument();
+  });
 });

@@ -406,13 +406,13 @@ export const getGardenName = (gardenId) => {
 export const getPriorityColor = (priority) => {
   switch (priority) {
     case 'high':
-      return 'text-red-600 bg-red-50';
+      return 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-200';
     case 'medium':
-      return 'text-yellow-600 bg-yellow-50';
+      return 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-200';
     case 'low':
-      return 'text-green-600 bg-green-50';
+      return 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-200';
     default:
-      return 'text-gray-600 bg-gray-50';
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200';
   }
 };
 
