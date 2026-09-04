@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Sprout } from 'lucide-react';
+import { Plus, Sprout } from 'lucide-react';
 import GardenSelector from '@/components/Tracker/GardenSelector';
 import QuickActions from '@/components/Tracker/QuickActions';
 import TrackingCalendar from '@/components/Tracker/TrackingCalendar';
@@ -833,59 +833,69 @@ function TrackingPageContent() {
 
           {/* Right Sidebar */}
           <div className="w-full lg:w-80 space-y-4 sm:space-y-6">
-            <WeatherWidget
-              weatherState={weatherState}
-              onViewDetails={weatherData ? () => setShowDetailedWeather(true) : undefined}
-            />
-
-            <div className="rounded-lg bg-white p-4 text-gray-900 shadow-lg">
-              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="font-semibold text-gray-900">Care Tasks</h3>
+            <div className="rounded-lg bg-white p-4 text-gray-900 shadow-lg dark:bg-gray-800 dark:text-white">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Care Tasks</h3>
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {overdueTasks.length > 0
+                      ? `${overdueTasks.length} overdue ${overdueTasks.length === 1 ? 'task needs' : 'tasks need'} attention`
+                      : 'Your immediate garden work'}
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={handleTaskAdd}
                   disabled={!hasSelectedGardenPlants}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="touch-target inline-flex min-h-11 flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  <Plus className="h-4 w-4" aria-hidden="true" />
                   Create Task
                 </button>
               </div>
               {isSelectedGardenReady && !hasSelectedGardenPlants && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
                   <p>{taskHelperText}</p>
                   <Link
                     href={`/garden?id=${selectedGarden.id}`}
-                    className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800"
+                    className="mt-2 inline-flex font-medium text-green-700 hover:text-green-800 dark:text-green-300 dark:hover:text-green-200"
                   >
                     Manage Plants
                   </Link>
                 </div>
               )}
+
+              <div>
+                <TasksList
+                  title="Overdue"
+                  tasks={overdueTasks}
+                  onTaskComplete={handleTaskComplete}
+                  onTaskEdit={handleTaskEdit}
+                  emptyMessage="No overdue tasks"
+                  tone="urgent"
+                />
+                <TasksList
+                  title="Today"
+                  tasks={todayTasks}
+                  onTaskComplete={handleTaskComplete}
+                  onTaskEdit={handleTaskEdit}
+                  emptyMessage="Nothing due today"
+                />
+                <TasksList
+                  title="Upcoming"
+                  tasks={upcomingTasks}
+                  onTaskComplete={handleTaskComplete}
+                  onTaskEdit={handleTaskEdit}
+                  showCheckboxes
+                  emptyMessage="No upcoming tasks"
+                  collapsible
+                />
+              </div>
             </div>
-            <TasksList
-              title="Today Tasks"
-              tasks={todayTasks}
-              onTaskComplete={handleTaskComplete}
-              onTaskEdit={handleTaskEdit}
-              onTaskAdd={hasSelectedGardenPlants ? handleTaskAdd : null}
-              emptyMessage="No tasks for today"
-            />
-            <TasksList
-              title="Overdue Tasks"
-              tasks={overdueTasks}
-              onTaskComplete={handleTaskComplete}
-              onTaskEdit={handleTaskEdit}
-              onTaskAdd={null}
-              emptyMessage="No overdue tasks"
-            />
-            <TasksList
-              title="Upcoming Tasks"
-              tasks={upcomingTasks}
-              onTaskComplete={handleTaskComplete}
-              onTaskEdit={handleTaskEdit}
-              onTaskAdd={hasSelectedGardenPlants ? handleTaskAdd : null}
-              showCheckboxes={true}
-              emptyMessage="No upcoming tasks"
+
+            <WeatherWidget
+              weatherState={weatherState}
+              onViewDetails={weatherData ? () => setShowDetailedWeather(true) : undefined}
             />
           </div>
         </div>
