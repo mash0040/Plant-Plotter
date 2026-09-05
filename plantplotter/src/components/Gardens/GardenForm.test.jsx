@@ -134,4 +134,16 @@ describe('GardenForm validation', () => {
       }
     }));
   });
+
+  it('explains how to recover when a garden cannot be saved', async () => {
+    const onSave = vi.fn().mockRejectedValue(new Error());
+    const { user } = renderGardenForm({ onSave });
+
+    await fillRequiredFields(user);
+    await submitForm(user);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This garden could not be saved. Review your changes and try again.'
+    );
+  });
 });

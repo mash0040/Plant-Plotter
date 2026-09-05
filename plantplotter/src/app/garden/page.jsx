@@ -18,7 +18,7 @@ import RequestErrorNotice from '@/components/RequestErrorNotice';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
 import { snapToGrid, checkPlantOverlap, isWithinBounds, getPlantFootprint } from '@/components/Garden/Utils/GardenUtils';
 import apiClient from '@/lib/api';
-import { getUserFacingErrorMessage, isAuthenticationError } from '@/lib/apiErrors';
+import { getActionErrorMessage, isAuthenticationError } from '@/lib/apiErrors';
 
 const SAVE_MESSAGE_DURATION_MS = 6000;
 
@@ -334,7 +334,7 @@ function GardenPlannerPageContent() {
         setHasUnsavedChanges(false);
       } catch (error) {
         console.error('Failed to load garden:', error);
-        setPlannerLoadError(getUserFacingErrorMessage(error, 'Failed to load garden. Please try again.'));
+        setPlannerLoadError(getActionErrorMessage(error, 'This garden could not be loaded.', 'Try again.'));
         setCurrentGarden(null);
         setPlacedPlants([]);
       } finally {
@@ -360,7 +360,7 @@ function GardenPlannerPageContent() {
         if (isAuthenticationError(error)) {
           return;
         }
-        setGardenSummaryError(getUserFacingErrorMessage(error, 'Could not load your gardens. Please try again.'));
+        setGardenSummaryError(getActionErrorMessage(error, 'Your gardens could not be loaded.', 'Try again.'));
         setPlannerGardenSummaries([]);
       } finally {
         setIsLoadingGardenSummaries(false);
@@ -755,10 +755,14 @@ function GardenPlannerPageContent() {
       }));
       
       setHasUnsavedChanges(false);
-      setLayoutSaveMessage('Changes saved successfully.');
+      setLayoutSaveMessage('Layout saved.');
     } catch (error) {
       console.error('Garden layout save failed:', error);
-      setLayoutSaveError(getUserFacingErrorMessage(error, 'Failed to save layout. Please try again.'));
+      setLayoutSaveError(getActionErrorMessage(
+        error,
+        'Your layout could not be saved.',
+        'Your changes are still here; try again.'
+      ));
     } finally {
       setIsSavingLayout(false);
     }
@@ -1011,7 +1015,7 @@ function GardenPlannerPageContent() {
         <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 px-4 py-8">
           <div className="mx-auto w-full max-w-md rounded-2xl border border-green-100 bg-white/90 p-4 shadow-xl sm:p-6">
             <RequestErrorNotice
-              title="Could not load gardens"
+              title="Gardens unavailable"
               message={gardenSummaryError}
               onRetry={() => setGardenSummaryRetryKey(prevKey => prevKey + 1)}
             />
@@ -1043,7 +1047,7 @@ function GardenPlannerPageContent() {
 
               {gardenSummaryError && (
                 <RequestErrorNotice
-                  title="Could not refresh gardens"
+                  title="Gardens may be out of date"
                   message={gardenSummaryError}
                   onRetry={() => setGardenSummaryRetryKey(prevKey => prevKey + 1)}
                 />

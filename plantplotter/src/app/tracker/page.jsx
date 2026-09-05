@@ -213,7 +213,7 @@ function TrackingPageContent() {
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md rounded-2xl border border-green-100 bg-white/90 p-4 shadow-xl sm:p-6">
           <RequestErrorNotice
-            title="Could not load tracker"
+            title="Tracker unavailable"
             message={gardenLoadError}
             onRetry={loadGardens}
           />

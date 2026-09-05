@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api';
 import {
-  getUserFacingErrorMessage,
+  getActionErrorMessage,
   isAuthenticationError,
   shouldUseLocalReadFallback
 } from '@/lib/apiErrors';
@@ -39,7 +39,7 @@ export default function useTrackerGardens({ showError, showWarning, clearFeedbac
         return;
       }
 
-      const errorMessage = getUserFacingErrorMessage(error, 'Could not load your gardens. Please try again.');
+      const errorMessage = getActionErrorMessage(error, 'Your gardens could not be loaded.', 'Try again.');
 
       if (shouldUseLocalReadFallback(error)) {
         try {

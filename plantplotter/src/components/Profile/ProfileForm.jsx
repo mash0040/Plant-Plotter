@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { User, Mail, Save, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { getUserFacingErrorMessage } from '@/lib/apiErrors';
+import { getActionErrorMessage } from '@/lib/apiErrors';
 import { validateEmail } from '@/lib/emailValidation';
 
 export default function ProfileForm() {
@@ -66,7 +66,7 @@ export default function ProfileForm() {
     setMessage({ type: '', text: '' });
     
     if (!validateForm()) {
-      setMessage({ type: 'error', text: 'Please fix the errors below' });
+      setMessage({ type: 'error', text: 'Review the highlighted fields.' });
       return;
     }
     
@@ -78,14 +78,21 @@ export default function ProfileForm() {
         username: formData.username.trim(),
         email: formData.email.trim()
       });
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setMessage({ type: 'success', text: 'Profile updated.' });
       
       // Clear success message after 3 seconds
       setTimeout(() => {
         setMessage({ type: '', text: '' });
       }, 3000);
     } catch (error) {
-      setMessage({ type: 'error', text: getUserFacingErrorMessage(error, 'Failed to update profile') });
+      setMessage({
+        type: 'error',
+        text: getActionErrorMessage(
+          error,
+          'Your profile could not be updated.',
+          'Review your changes and try again.'
+        )
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -112,7 +119,7 @@ export default function ProfileForm() {
     try {
       await deleteAccount();
     } catch (error) {
-      setDeleteError(getUserFacingErrorMessage(error, 'Failed to delete account. Please try again.'));
+      setDeleteError(getActionErrorMessage(error, 'Your account could not be deleted.', 'No account data was removed.'));
       setIsDeletingAccount(false);
     }
   };

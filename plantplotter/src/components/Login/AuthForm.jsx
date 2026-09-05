@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, User, Info } from 'lucide-react';
 import { useAuth, SESSION_EXPIRED_FLAG } from '@/hooks/useAuth';
-import { getUserFacingErrorMessage } from '@/lib/apiErrors';
+import { getActionErrorMessage } from '@/lib/apiErrors';
 import { validateNewPassword, PASSWORD_RULES_HINT } from '@/lib/passwordValidation';
 import { validateEmail } from '@/lib/emailValidation';
 
@@ -100,7 +100,13 @@ export default function AuthForm({ initialMode = 'login' }) {
         router.push('/gardens');
       }
     } catch (err) {
-      setLocalError(getUserFacingErrorMessage(err, `${mode === 'login' ? 'Login' : 'Registration'} failed. Please try again.`));
+      const actionMessage = mode === 'login'
+        ? 'Sign in could not be completed.'
+        : 'Your account could not be created.';
+      const recoveryMessage = mode === 'login'
+        ? 'Check your details and try again.'
+        : 'Review your details and try again.';
+      setLocalError(getActionErrorMessage(err, actionMessage, recoveryMessage));
     } finally {
       setIsSubmitting(false);
     }
