@@ -169,9 +169,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
                       <Calendar className="w-3 h-3" />
                       {new Date(garden.updatedAt || garden.createdAt).toLocaleDateString()}
                     </div>
-                    {garden.location && (
-                      <span>📍 {garden.location}</span>
-                    )}
+                    <span>📍 {garden.location || 'No location set'}</span>
                     {garden.soilType && (
                       <span>🌱 {garden.soilType}</span>
                     )}

@@ -289,7 +289,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         width: savedWidth,
         height: savedHeight,
         soil_type: formData.soil_type, // Match DB field name
-        location: formData.location.trim() || 'Garden',
+        location: formData.location.trim() || null,
         status: formData.status,
         // Include these for frontend compatibility
         dimensions: {

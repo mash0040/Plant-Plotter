@@ -474,7 +474,7 @@ function GardenDetailPageContent() {
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
                   <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-600 min-w-0">
                     <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                    <span className="truncate">{garden.location}</span>
+                    <span className="truncate">{garden.location || 'No location set'}</span>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(garden.status)}`}>
                     {garden.status}
@@ -667,7 +667,9 @@ function GardenDetailPageContent() {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Location:</span>
-                            <span className="min-w-0 text-right text-gray-800 break-words">{garden.location}</span>
+                            <span className="min-w-0 text-right text-gray-800 break-words">
+                              {garden.location || 'No location set'}
+                            </span>
                           </div>
                           <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Status:</span>

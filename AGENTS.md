@@ -141,7 +141,7 @@ The goal is to make the project stable, functional, clean, and recruiter-ready w
 - Description is optional.
 - Description max length is `1000` characters.
 - Location is optional.
-- If location is empty, default to `Garden`.
+- Preserve an empty location as missing data and display `No location set` in the UI.
 - Soil type must be one of:
   - `Loamy`
   - `Clay`
@@ -196,7 +196,7 @@ Frontend tests should cover:
 - Metric validation messages using `m`
 - Imperial validation messages using `ft`
 - Valid form submission calls the expected create/update handler
-- Location can be empty and defaults correctly
+- Location can be empty and remains missing until the user supplies one
 
 Run frontend tests with:
 

@@ -108,7 +108,7 @@ export default function GardenList({
 
                   <div className="flex items-center gap-3 text-gray-700">
                     <MapPin className="w-4 h-4 text-green-600" />
-                    <span className="text-sm">{garden.location}</span>
+                    <span className="text-sm">{garden.location || 'No location set'}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-gray-700">

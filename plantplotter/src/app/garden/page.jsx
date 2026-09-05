@@ -734,7 +734,7 @@ function GardenPlannerPageContent() {
         width: dimensions.width,
         height: dimensions.height,
         soil_type: currentGarden.soil_type || currentGarden.soilType || 'Loamy',
-        location: currentGarden.location || 'Garden',
+        location: currentGarden.location || null,
         status: currentGarden.status || 'Planning'
       });
 

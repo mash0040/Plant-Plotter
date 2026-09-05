@@ -132,7 +132,7 @@ describe('GardenForm validation', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it('submits valid garden data and defaults an empty location to Garden', async () => {
+  it('submits valid garden data and preserves an empty location as missing', async () => {
     const { user, onSave } = renderGardenForm();
 
     await fillRequiredFields(user);
@@ -143,7 +143,7 @@ describe('GardenForm validation', () => {
       name: 'Kitchen Garden',
       width: 12,
       height: 8,
-      location: 'Garden',
+      location: null,
       dimensions: {
         width: 12,
         height: 8
