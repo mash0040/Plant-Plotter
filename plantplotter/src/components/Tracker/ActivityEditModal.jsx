@@ -2,8 +2,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Save, Trash2, Activity } from 'lucide-react';
-import { getUserFacingErrorMessage } from '@/lib/apiErrors';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
+import { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
 
 export default function ActivityEditModal({ 
   isOpen, 
@@ -106,7 +106,11 @@ export default function ActivityEditModal({
 
   useEffect(() => {
     if (error && errorRef.current) {
-      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+      errorRef.current.scrollIntoView({
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'start'
+      });
     }
   }, [error]);
 
@@ -114,7 +118,11 @@ export default function ActivityEditModal({
     if (Object.keys(fieldErrors).length === 0 || !formRef.current) return;
 
     const firstFieldError = formRef.current.querySelector('[data-field-error="true"]');
-    firstFieldError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    firstFieldError?.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'center'
+    });
   }, [fieldErrors]);
 
   useEffect(() => {
@@ -202,7 +210,7 @@ export default function ActivityEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to save activity:', error);
-      setError(getUserFacingErrorMessage(error, 'Failed to save activity'));
+      setError(getTrackerFailureMessage(error, 'The activity could not be saved. Review your changes and try again.'));
     } finally {
       setIsSaving(false);
     }
@@ -219,7 +227,7 @@ export default function ActivityEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to delete activity:', error);
-      setError(getUserFacingErrorMessage(error, 'Failed to delete activity'));
+      setError(getTrackerFailureMessage(error, 'The activity could not be deleted. It remains on the calendar.'));
     } finally {
       setIsDeleting(false);
     }
@@ -263,7 +271,12 @@ export default function ActivityEditModal({
         {/* Form */}
         <form ref={formRef} onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 space-y-4" noValidate>
           {error && (
-            <div ref={errorRef} className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800">
+            <div
+              ref={errorRef}
+              role="alert"
+              aria-atomic="true"
+              className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800"
+            >
               <span className="text-sm">{error}</span>
             </div>
           )}

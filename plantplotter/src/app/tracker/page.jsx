@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, Sprout } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Plus, Sprout, X } from 'lucide-react';
 import GardenSelector from '@/components/Tracker/GardenSelector';
 import QuickActions from '@/components/Tracker/QuickActions';
 import TrackingCalendar from '@/components/Tracker/TrackingCalendar';
@@ -14,9 +14,22 @@ import ActivityEditModal from '@/components/Tracker/ActivityEditModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import RequestErrorNotice from '@/components/RequestErrorNotice';
+import useTrackerFeedback, { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
 import { useWeather } from '@/hooks/useWeather'; 
 import apiClient from '@/lib/api';
 import { getUserFacingErrorMessage, isAuthenticationError, shouldUseLocalReadFallback } from '@/lib/apiErrors';
+
+const TRACKER_FEEDBACK_STYLES = {
+  error: 'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200',
+  warning: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200',
+  success: 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200'
+};
+
+const TRACKER_FEEDBACK_ICONS = {
+  error: AlertCircle,
+  warning: AlertTriangle,
+  success: CheckCircle2
+};
 
 function TrackingPageContent() {
   const [gardens, setGardens] = useState([]);
@@ -41,14 +54,19 @@ function TrackingPageContent() {
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [overdueTasks, setOverdueTasks] = useState([]);
   const [calendarTasks, setCalendarTasks] = useState({});
-  const [taskError, setTaskError] = useState('');
-  const [taskSuccess, setTaskSuccess] = useState('');
-  const [activityError, setActivityError] = useState('');
-  const [activitySuccess, setActivitySuccess] = useState('');
   const [gardenLoadError, setGardenLoadError] = useState('');
   const [taskPlantLibrary, setTaskPlantLibrary] = useState([]);
   const [isTaskPlantLibraryLoading, setIsTaskPlantLibraryLoading] = useState(false);
+  const [taskPlantLibraryError, setTaskPlantLibraryError] = useState('');
   const trackerMessageRef = useRef(null);
+  const {
+    feedback,
+    showError,
+    showWarning,
+    showSuccess,
+    clearFeedback,
+    dismissFeedback
+  } = useTrackerFeedback();
   
   // Edit modal states
   const [showTaskEditModal, setShowTaskEditModal] = useState(false);
@@ -66,27 +84,15 @@ function TrackingPageContent() {
   const { weatherData } = weatherState;
 
   useEffect(() => {
-    if (!taskSuccess) return undefined;
+    if (!feedback) return;
 
-    const timeoutId = setTimeout(() => setTaskSuccess(''), 4000);
-    return () => clearTimeout(timeoutId);
-  }, [taskSuccess]);
-
-  useEffect(() => {
-    if (!activitySuccess) return undefined;
-
-    const timeoutId = setTimeout(() => setActivitySuccess(''), 4000);
-    return () => clearTimeout(timeoutId);
-  }, [activitySuccess]);
-
-  useEffect(() => {
-    if (!taskError && !taskSuccess && !activityError && !activitySuccess) return;
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
     trackerMessageRef.current?.scrollIntoView({
-      behavior: 'smooth',
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
       block: 'start'
     });
-  }, [taskError, taskSuccess, activityError, activitySuccess]);
+  }, [feedback]);
 
   // Load gardens from the API
   useEffect(() => {
@@ -137,12 +143,13 @@ function TrackingPageContent() {
         setSelectedGarden(trackerGardens[0]);
       }
       setGardenLoadError('');
-      setActivityError('');
+      clearFeedback('gardens-load');
     } catch (error) {
       console.error('Failed to load gardens from API:', error);
       if (isAuthenticationError(error)) {
         setGardens([]);
         setGardenLoadError('');
+        clearFeedback('gardens-load');
         return;
       }
 
@@ -169,21 +176,21 @@ function TrackingPageContent() {
           }
           if (trackerGardens.length > 0) {
             setGardenLoadError('');
-            setActivityError(`Showing local garden data. ${errorMessage}`);
+            showWarning('gardens-load', `Showing saved garden data. ${errorMessage}`);
           } else {
             setGardenLoadError(errorMessage);
-            setActivityError('');
+            clearFeedback('gardens-load');
           }
         } catch (localError) {
           console.error('Failed to load from localStorage:', localError);
           setGardens([]);
           setGardenLoadError(errorMessage);
-          setActivityError('');
+          clearFeedback('gardens-load');
         }
       } else {
         setGardens([]);
         setGardenLoadError(errorMessage);
-        setActivityError('');
+        clearFeedback('gardens-load');
       }
     } finally {
       setIsLoadingGardens(false);
@@ -207,9 +214,13 @@ function TrackingPageContent() {
       setGardens(prevGardens => prevGardens.map(garden => (
         garden.id === gardenWithPlants.id ? gardenWithPlants : garden
       )));
+      clearFeedback('plants-load');
     } catch (error) {
       console.error('Failed to load selected garden plants:', error);
-      setActivityError(getUserFacingErrorMessage(error, 'Could not load plants for this garden. Please try again.'));
+      showError(
+        'plants-load',
+        getTrackerFailureMessage(error, 'Plants for this garden could not be loaded. Plant-based actions may be unavailable.')
+      );
       setSelectedGarden(prevGarden => prevGarden
         ? { ...prevGarden, hasLoadedPlants: true }
         : prevGarden
@@ -267,10 +278,14 @@ function TrackingPageContent() {
       });
       
       setCalendarData(calendarActivities);
+      clearFeedback('activities-load');
       
     } catch (error) {
       console.error('Failed to load activities:', error);
-      setActivityError(getUserFacingErrorMessage(error, 'Failed to load activities. Please try again.'));
+      showError(
+        'activities-load',
+        getTrackerFailureMessage(error, 'Activities could not be loaded. The calendar may be out of date.')
+      );
       // Keep existing calendar data or use empty
       setCalendarData({});
     }
@@ -377,7 +392,6 @@ function TrackingPageContent() {
     if (!selectedGarden) return;
 
     try {
-      setTaskError('');
       const backendTasks = await apiClient.getTasks(selectedGarden.id);
       const normalizedTasks = Array.isArray(backendTasks)
         ? backendTasks.map(normalizeTask)
@@ -407,6 +421,7 @@ function TrackingPageContent() {
       setUpcomingTasks(upcomingTasks);
       setOverdueTasks(overdueTasks);
       setCalendarTasks(calendarTaskData);
+      clearFeedback('tasks-load');
     } catch (error) {
       console.error('Failed to load tasks:', error);
       if (isAuthenticationError(error)) {
@@ -414,10 +429,14 @@ function TrackingPageContent() {
         setUpcomingTasks([]);
         setOverdueTasks([]);
         setCalendarTasks({});
+        clearFeedback('tasks-load');
         return;
       }
 
-      setTaskError(getUserFacingErrorMessage(error, 'Failed to load tasks. Please try again.'));
+      showError(
+        'tasks-load',
+        getTrackerFailureMessage(error, 'Tasks could not be loaded. The care queue may be out of date.')
+      );
       setTodayTasks([]);
       setUpcomingTasks([]);
       setOverdueTasks([]);
@@ -469,17 +488,19 @@ function TrackingPageContent() {
     try {
       await apiClient.updateTask(taskId, getTaskUpdatePayload(taskToComplete, { status: 'completed' }));
       await loadTasks();
+      showSuccess(`task-complete-${taskId}`, 'Task completed.');
     } catch (error) {
       console.error('Failed to complete task:', error);
-      setTaskError(getUserFacingErrorMessage(error, 'Failed to complete task. Please try again.'));
+      showError(
+        `task-complete-${taskId}`,
+        getTrackerFailureMessage(error, 'The task could not be completed and remains in your care queue.')
+      );
     }
   };
 
   const handleQuickAction = (action) => {
     if (!selectedGarden) return;
     if (isQuickLogDisabled) return;
-    setActivityError('');
-    setActivitySuccess('');
     
     setFormData({ 
       activity: action, 
@@ -494,8 +515,6 @@ function TrackingPageContent() {
     if (!selectedGarden) return;
     
     try {
-      setActivityError('');
-      setActivitySuccess('');
       // Try to add activity via API
       const newActivityData = {
         ...activityData,
@@ -527,11 +546,14 @@ function TrackingPageContent() {
       }
       updatedCalendarData[selectedDate].push(activityForCalendar);
       setCalendarData(updatedCalendarData);
-      setActivitySuccess('Activity logged.');
+      showSuccess('activity-create', 'Activity logged.');
       
     } catch (error) {
       console.error('Failed to add activity via API:', error);
-      setActivityError(getUserFacingErrorMessage(error, 'Failed to log activity. Please try again.'));
+      showError(
+        'activity-create',
+        getTrackerFailureMessage(error, 'The activity could not be logged. No calendar entry was added.')
+      );
     }
     
     setShowForm(false);
@@ -540,23 +562,17 @@ function TrackingPageContent() {
 
   // Activity management functions
   const handleActivityEdit = (activity) => {
-    setActivityError('');
-    setActivitySuccess('');
     setEditingActivity(activity);
     setShowActivityEditModal(true);
   };
 
   const handleActivityAdd = () => {
-    setActivityError('');
-    setActivitySuccess('');
     setEditingActivity(null);
     setShowActivityEditModal(true);
   };
 
   const handleActivitySave = async (activityData) => {
     try {
-      setActivityError('');
-      setActivitySuccess('');
       if (activityData.id) {
         // Update existing activity
         await apiClient.updateActivity(activityData.id, {
@@ -578,7 +594,10 @@ function TrackingPageContent() {
       
       // Reload activities to refresh calendar
       await loadActivities();
-      setActivitySuccess(activityData.id ? 'Activity updated.' : 'Activity logged.');
+      showSuccess(
+        activityData.id ? 'activity-update' : 'activity-create',
+        activityData.id ? 'Activity updated.' : 'Activity logged.'
+      );
       
     } catch (error) {
       console.error('Failed to save activity:', error);
@@ -592,7 +611,7 @@ function TrackingPageContent() {
     try {
       await apiClient.deleteActivity(activityId);
       await loadActivities();
-      setActivitySuccess('Activity deleted.');
+      showSuccess('activity-delete', 'Activity deleted.');
       
     } catch (error) {
       console.error('Failed to delete activity:', error);
@@ -609,11 +628,14 @@ function TrackingPageContent() {
 
     try {
       setIsTaskPlantLibraryLoading(true);
+      setTaskPlantLibraryError('');
       const plants = await apiClient.getPlantLibrary();
       setTaskPlantLibrary(Array.isArray(plants) ? plants : []);
     } catch (error) {
       console.error('Failed to load task plant library:', error);
-      setTaskError(getUserFacingErrorMessage(error, 'Plant library could not be loaded for planting tasks.'));
+      setTaskPlantLibraryError(
+        getTrackerFailureMessage(error, 'Plant options could not be loaded. Close and reopen the task editor to try again.')
+      );
     } finally {
       setIsTaskPlantLibraryLoading(false);
     }
@@ -624,12 +646,13 @@ function TrackingPageContent() {
 
     try {
       setIsDeletingActivity(true);
-      setActivityError('');
-      setActivitySuccess('');
       await handleActivityDelete(activityToDelete);
       setActivityToDelete(null);
     } catch (error) {
-      setActivityError(getUserFacingErrorMessage(error, 'Failed to delete activity. Please try again.'));
+      showError(
+        'activity-delete',
+        getTrackerFailureMessage(error, 'The activity could not be deleted and remains on the calendar.')
+      );
     } finally {
       setIsDeletingActivity(false);
     }
@@ -637,35 +660,31 @@ function TrackingPageContent() {
 
   // Task management functions
   const handleTaskEdit = (task) => {
-    setTaskError('');
-    setTaskSuccess('');
     setEditingTask(task);
+    setTaskPlantLibraryError('');
     setShowTaskEditModal(true);
     loadTaskPlantLibrary();
   };
 
   const handleTaskAdd = () => {
-    setTaskError('');
-    setTaskSuccess('');
     setEditingTask(null);
+    setTaskPlantLibraryError('');
     setShowTaskEditModal(true);
     loadTaskPlantLibrary();
   };
 
   const handleTaskSave = async (taskData) => {
     try {
-      setTaskError('');
-      setTaskSuccess('');
       if (taskData.id) {
         // Update existing task
         await apiClient.updateTask(taskData.id, getTaskUpdatePayload(taskData));
-        setTaskSuccess('Task updated.');
         await loadTasks();
+        showSuccess('task-update', 'Task updated.');
       } else {
         // Create new task
         const createPayload = getTaskCreatePayload(taskData);
         await apiClient.createTask(createPayload);
-        setTaskSuccess('Task created.');
+        showSuccess('task-create', 'Task created.');
         const targetGarden = gardens.find(garden => String(garden.id) === String(createPayload.garden_id));
         if (targetGarden && String(targetGarden.id) !== String(selectedGarden?.id)) {
           setSelectedGarden(targetGarden);
@@ -682,13 +701,11 @@ function TrackingPageContent() {
 
   const handleTaskDelete = async (taskId) => {
     try {
-      setTaskError('');
-      setTaskSuccess('');
       await apiClient.deleteTask(taskId);
       
       // Reload tasks
       await loadTasks();
-      setTaskSuccess('Task deleted.');
+      showSuccess('task-delete', 'Task deleted.');
       
     } catch (error) {
       console.error('Failed to delete task:', error);
@@ -698,6 +715,7 @@ function TrackingPageContent() {
 
   // Filter calendar data by selected garden
   const filteredCalendarData = selectedGarden ? calendarData : {};
+  const FeedbackIcon = feedback ? TRACKER_FEEDBACK_ICONS[feedback.type] : null;
 
   if (isLoadingGardens || isLoadingSelectedGardenPlants) {
     return (
@@ -769,36 +787,24 @@ function TrackingPageContent() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 dark:bg-gray-900">
       <div className="p-3 sm:p-6 max-w-7xl mx-auto">
-        {(taskError || taskSuccess || activityError || activitySuccess) && (
+        {feedback && (
           <div
             ref={trackerMessageRef}
-            className="mb-4 grid gap-2"
-            aria-live="polite"
+            role={feedback.type === 'error' ? 'alert' : 'status'}
+            aria-live={feedback.type === 'error' ? 'assertive' : 'polite'}
             aria-atomic="true"
+            className={`mb-4 flex items-start gap-3 rounded-lg border p-3 text-sm font-medium shadow-sm ${TRACKER_FEEDBACK_STYLES[feedback.type]}`}
           >
-            {taskError && (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 shadow-sm">
-                {taskError}
-              </div>
-            )}
-
-            {taskSuccess && (
-              <div role="status" className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700 shadow-sm">
-                {taskSuccess}
-              </div>
-            )}
-
-            {activityError && (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 shadow-sm">
-                {activityError}
-              </div>
-            )}
-
-            {activitySuccess && (
-              <div role="status" className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700 shadow-sm">
-                {activitySuccess}
-              </div>
-            )}
+            <FeedbackIcon className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
+            <p className="min-w-0 flex-1 leading-5">{feedback.message}</p>
+            <button
+              type="button"
+              onClick={dismissFeedback}
+              aria-label="Dismiss tracker message"
+              className="touch-target -m-2 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:hover:bg-white/10"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
         )}
 
@@ -927,6 +933,7 @@ function TrackingPageContent() {
         selectedGarden={selectedGarden}
         plantLibrary={taskPlantLibrary}
         isPlantLibraryLoading={isTaskPlantLibraryLoading}
+        plantLibraryError={taskPlantLibraryError}
       />
 
       {/* Activity Edit Modal */}
