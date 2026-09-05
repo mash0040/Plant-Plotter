@@ -14,10 +14,12 @@ import ActivityEditModal from '@/components/Tracker/ActivityEditModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import RequestErrorNotice from '@/components/RequestErrorNotice';
+import useTrackerActivities from '@/hooks/useTrackerActivities';
 import useTrackerFeedback, { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
+import useTrackerGardens from '@/hooks/useTrackerGardens';
+import useTrackerTasks from '@/hooks/useTrackerTasks';
 import { useWeather } from '@/hooks/useWeather'; 
-import apiClient from '@/lib/api';
-import { getUserFacingErrorMessage, isAuthenticationError, shouldUseLocalReadFallback } from '@/lib/apiErrors';
+import { getPlantedItemName, getTodayDateKey, isFutureDateKey } from '@/lib/trackerData';
 
 const TRACKER_FEEDBACK_STYLES = {
   error: 'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200',
@@ -32,32 +34,6 @@ const TRACKER_FEEDBACK_ICONS = {
 };
 
 function TrackingPageContent() {
-  const [gardens, setGardens] = useState([]);
-  const [selectedGarden, setSelectedGarden] = useState(null);
-  const [isLoadingGardens, setIsLoadingGardens] = useState(true);
-  const [isLoadingSelectedGardenPlants, setIsLoadingSelectedGardenPlants] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-  });
-  const [calendarData, setCalendarData] = useState({});
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    activity: '',
-    plant: '',
-    notes: '',
-    gardenId: null
-  });
-  
-  // Task state
-  const [todayTasks, setTodayTasks] = useState([]);
-  const [upcomingTasks, setUpcomingTasks] = useState([]);
-  const [overdueTasks, setOverdueTasks] = useState([]);
-  const [calendarTasks, setCalendarTasks] = useState({});
-  const [gardenLoadError, setGardenLoadError] = useState('');
-  const [taskPlantLibrary, setTaskPlantLibrary] = useState([]);
-  const [isTaskPlantLibraryLoading, setIsTaskPlantLibraryLoading] = useState(false);
-  const [taskPlantLibraryError, setTaskPlantLibraryError] = useState('');
   const trackerMessageRef = useRef(null);
   const {
     feedback,
@@ -67,16 +43,59 @@ function TrackingPageContent() {
     clearFeedback,
     dismissFeedback
   } = useTrackerFeedback();
-  
-  // Edit modal states
+  const {
+    gardens,
+    selectedGarden,
+    setSelectedGarden,
+    isLoadingGardens,
+    isLoadingSelectedGardenPlants,
+    gardenLoadError,
+    loadGardens,
+    loadSelectedGardenPlants
+  } = useTrackerGardens({ showError, showWarning, clearFeedback });
+  const {
+    calendarData,
+    loadActivities,
+    addQuickActivity,
+    saveActivity: handleActivitySave,
+    deleteActivity: handleActivityDelete
+  } = useTrackerActivities({ selectedGarden, showError, showSuccess, clearFeedback });
+  const {
+    todayTasks,
+    upcomingTasks,
+    overdueTasks,
+    calendarTasks,
+    taskPlantLibrary,
+    isTaskPlantLibraryLoading,
+    taskPlantLibraryError,
+    clearTaskPlantLibraryError,
+    loadTaskPlantLibrary,
+    loadTasks,
+    completeTask: handleTaskComplete,
+    saveTask: handleTaskSave,
+    deleteTask: handleTaskDelete
+  } = useTrackerTasks({
+    gardens,
+    selectedGarden,
+    setSelectedGarden,
+    showError,
+    showSuccess,
+    clearFeedback
+  });
+  const [selectedDate, setSelectedDate] = useState(getTodayDateKey);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    activity: '',
+    plant: '',
+    notes: '',
+    gardenId: null
+  });
   const [showTaskEditModal, setShowTaskEditModal] = useState(false);
   const [showActivityEditModal, setShowActivityEditModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
   const [activityToDelete, setActivityToDelete] = useState(null);
   const [isDeletingActivity, setIsDeletingActivity] = useState(false);
-  
-  // Weather modal state
   const [showDetailedWeather, setShowDetailedWeather] = useState(false);
   
   // Share one weather request between the card and detailed modal.
@@ -94,11 +113,6 @@ function TrackingPageContent() {
     });
   }, [feedback]);
 
-  // Load gardens from the API
-  useEffect(() => {
-    loadGardens();
-  }, []);
-
   // Load tasks and activities when garden changes
   useEffect(() => {
     if (selectedGarden?.hasLoadedPlants) {
@@ -107,239 +121,8 @@ function TrackingPageContent() {
     } else if (selectedGarden) {
       loadSelectedGardenPlants();
     }
-  }, [selectedGarden]);
+  }, [loadActivities, loadSelectedGardenPlants, loadTasks, selectedGarden]);
 
-  // Also load activities on initial page load
-  useEffect(() => {
-    if (selectedGarden) {
-      loadActivities();
-    }
-  }, []);
-
-  const loadGardens = async () => {
-    try {
-      setIsLoadingGardens(true);
-      setGardenLoadError('');
-      // Try to load from API first
-      const gardens = await apiClient.getGardenSummaries();
-      
-      // Transform gardens for tracker format
-      const trackerGardens = gardens.map(garden => {
-        const plantCount = garden.plantCount || garden.plant_count || 0;
-        return {
-          id: garden.id,
-          name: garden.name,
-          icon: getGardenIcon(garden),
-          plantCount,
-          status: garden.status || 'Active',
-          location: garden.location || 'Unknown',
-          plantedItems: [],
-          hasLoadedPlants: plantCount === 0
-        };
-      });
-      
-      setGardens(trackerGardens);
-      if (trackerGardens.length > 0 && !selectedGarden) {
-        setSelectedGarden(trackerGardens[0]);
-      }
-      setGardenLoadError('');
-      clearFeedback('gardens-load');
-    } catch (error) {
-      console.error('Failed to load gardens from API:', error);
-      if (isAuthenticationError(error)) {
-        setGardens([]);
-        setGardenLoadError('');
-        clearFeedback('gardens-load');
-        return;
-      }
-
-      const errorMessage = getUserFacingErrorMessage(error, 'Could not load your gardens. Please try again.');
-
-      if (shouldUseLocalReadFallback(error)) {
-        try {
-          const localGardens = JSON.parse(localStorage.getItem('gardens') || '[]');
-
-          const trackerGardens = localGardens.map(garden => ({
-            id: garden.id,
-            name: garden.name,
-            icon: getGardenIcon(garden),
-            plantCount: garden.plantCount || garden.plantedItems?.length || 0,
-            status: garden.status || 'Active',
-            location: garden.location || 'Unknown',
-            plantedItems: garden.plantedItems || [],
-            hasLoadedPlants: true
-          }));
-
-          setGardens(trackerGardens);
-          if (trackerGardens.length > 0 && !selectedGarden) {
-            setSelectedGarden(trackerGardens[0]);
-          }
-          if (trackerGardens.length > 0) {
-            setGardenLoadError('');
-            showWarning('gardens-load', `Showing saved garden data. ${errorMessage}`);
-          } else {
-            setGardenLoadError(errorMessage);
-            clearFeedback('gardens-load');
-          }
-        } catch (localError) {
-          console.error('Failed to load from localStorage:', localError);
-          setGardens([]);
-          setGardenLoadError(errorMessage);
-          clearFeedback('gardens-load');
-        }
-      } else {
-        setGardens([]);
-        setGardenLoadError(errorMessage);
-        clearFeedback('gardens-load');
-      }
-    } finally {
-      setIsLoadingGardens(false);
-    }
-  };
-
-  const loadSelectedGardenPlants = async () => {
-    if (!selectedGarden || selectedGarden.hasLoadedPlants) return;
-
-    try {
-      setIsLoadingSelectedGardenPlants(true);
-      const plantedItems = await apiClient.getGardenPlants(selectedGarden.id);
-      const gardenWithPlants = {
-        ...selectedGarden,
-        plantCount: plantedItems.length,
-        plantedItems,
-        hasLoadedPlants: true
-      };
-
-      setSelectedGarden(gardenWithPlants);
-      setGardens(prevGardens => prevGardens.map(garden => (
-        garden.id === gardenWithPlants.id ? gardenWithPlants : garden
-      )));
-      clearFeedback('plants-load');
-    } catch (error) {
-      console.error('Failed to load selected garden plants:', error);
-      showError(
-        'plants-load',
-        getTrackerFailureMessage(error, 'Plants for this garden could not be loaded. Plant-based actions may be unavailable.')
-      );
-      setSelectedGarden(prevGarden => prevGarden
-        ? { ...prevGarden, hasLoadedPlants: true }
-        : prevGarden
-      );
-    } finally {
-      setIsLoadingSelectedGardenPlants(false);
-    }
-  };
-
-  // Load activities from API
-  const loadActivities = async () => {
-    if (!selectedGarden) return;
-    
-    try {
-      const activities = await apiClient.getActivities(selectedGarden.id);
-      
-      // Transform activities to calendar format
-      const calendarActivities = {};
-      const currentPlantNames = new Set((selectedGarden.plantedItems || []).map(plant => (
-        plant?.name || plant?.plant_name || plant?.plantName || ''
-      )).filter(Boolean));
-      activities.forEach(activity => {
-        const dateKey = getDateKey(activity.activity_date || activity.created_at);
-        const plantName = activity.plant_name || 'Unknown Plant';
-        
-        if (!calendarActivities[dateKey]) {
-          calendarActivities[dateKey] = [];
-        }
-        
-        // Create time string from activity_time or created_at
-        let timeString;
-        if (activity.activity_time) {
-          // If activity_time is in HH:MM:SS format, convert to display format
-          timeString = activity.activity_time.substring(0, 5); // Get HH:MM
-        } else {
-          // Fallback to created_at time
-          timeString = new Date(activity.created_at).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-        }
-        
-        calendarActivities[dateKey].push({
-          id: activity.id,
-          activity: activity.activity_type,
-          plant: plantName,
-          notes: activity.notes || '',
-          time: timeString,
-          activity_date: dateKey,
-          activity_type: activity.activity_type,
-          plant_name: plantName,
-          garden_id: activity.garden_id,
-          plant_no_longer_planted: plantName !== 'Unknown Plant' && !currentPlantNames.has(plantName)
-        });
-      });
-      
-      setCalendarData(calendarActivities);
-      clearFeedback('activities-load');
-      
-    } catch (error) {
-      console.error('Failed to load activities:', error);
-      showError(
-        'activities-load',
-        getTrackerFailureMessage(error, 'Activities could not be loaded. The calendar may be out of date.')
-      );
-      // Keep existing calendar data or use empty
-      setCalendarData({});
-    }
-  };
-
-  // Helper function to get garden icon based on garden data
-  const getGardenIcon = (garden) => {
-    if (garden.plantedItems && garden.plantedItems.length > 0) {
-      // Get the most common plant category
-      const categories = garden.plantedItems.reduce((acc, plant) => {
-        const category = plant.category || plant.plantCategory || 'other';
-        acc[category] = (acc[category] || 0) + 1;
-        return acc;
-      }, {});
-      
-      const mostCommon = Object.keys(categories).reduce((a, b) => 
-        categories[a] > categories[b] ? a : b
-      );
-      
-      // Return icon based on most common category
-      switch (mostCommon) {
-        case 'vegetables': return 'Veg';
-        case 'fruits': return 'Fruit';
-        case 'herbs': return 'Herb';
-        case 'flowers': return 'Flower';
-        default: return 'Garden';
-      }
-    }
-    
-    // Default icon based on garden name or location
-    const name = garden.name?.toLowerCase() || '';
-    const location = garden.location?.toLowerCase() || '';
-    
-    if (name.includes('herb') || location.includes('herb')) return 'Herb';
-    if (name.includes('vegetable') || location.includes('vegetable')) return 'Veg';
-    if (name.includes('fruit') || location.includes('fruit')) return 'Fruit';
-    if (name.includes('flower') || location.includes('flower')) return 'Flower';
-    
-    return 'Garden';
-  };
-
-  const getDateKey = (value) => {
-    if (!value) return '';
-    if (typeof value === 'string') return value.split('T')[0];
-    return new Date(value).toISOString().split('T')[0];
-  };
-
-  const getTodayDateKey = () => {
-    const today = new Date();
-    return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-  };
-
-  const isFutureDateKey = (dateKey) => dateKey > getTodayDateKey();
-  const getPlantedItemName = (plant) => plant?.name || plant?.plant_name || plant?.plantName || '';
   const selectedGardenPlants = selectedGarden?.plantedItems || [];
   const hasSelectedGardenPlants = selectedGardenPlants.some(plant => getPlantedItemName(plant));
   const isSelectedGardenReady = Boolean(selectedGarden?.hasLoadedPlants) && !isLoadingSelectedGardenPlants;
@@ -348,155 +131,6 @@ function TrackingPageContent() {
     ? 'Quick Log is for completed care. Select today or a past date, or create a task for future work.'
     : 'Add plants to this garden before logging care activity.';
   const taskHelperText = 'Add plants to this garden before creating care tasks.';
-
-  const normalizeTask = (task) => {
-    const dueDate = getDateKey(task.due_date || task.dueDate);
-    const isRecurring = Boolean(task.is_recurring ?? task.isRecurring);
-    const recurringPattern = task.recurring_pattern || task.recurringPattern || 'none';
-    // 'overdue' is a derived state from due_date < today, not a stored status we expose.
-    // Treat any 'overdue' or 'in_progress' rows as pending so list filtering stays date-driven.
-    const rawStatus = task.status;
-    const backendSafeStatus = (rawStatus === 'in_progress' || rawStatus === 'overdue') ? 'pending' : rawStatus;
-
-    return {
-      ...task,
-      garden_id: task.garden_id ?? task.gardenId,
-      gardenId: task.gardenId ?? task.garden_id,
-      due_date: dueDate,
-      dueDate,
-      plant_name: task.plant_name || task.plant || '',
-      plant: task.plant || task.plant_name || '',
-      task_type: task.task_type || task.taskType || 'maintenance',
-      taskType: task.taskType || task.task_type || 'maintenance',
-      estimated_duration: task.estimated_duration ?? task.estimatedDuration ?? '',
-      estimatedDuration: task.estimatedDuration ?? task.estimated_duration,
-      is_recurring: isRecurring,
-      isRecurring,
-      recurring_pattern: recurringPattern,
-      recurringPattern,
-      priority: task.priority || 'medium',
-      status: backendSafeStatus || 'pending'
-    };
-  };
-
-  const isPendingTask = (task) => task.status === 'pending';
-  const sortTasksByDueDate = (tasks) => {
-    return [...tasks].sort((a, b) => {
-      const aDue = `${a.dueDate || ''} ${a.due_time || a.dueTime || ''}`;
-      const bDue = `${b.dueDate || ''} ${b.due_time || b.dueTime || ''}`;
-      return aDue.localeCompare(bDue) || Number(a.id || 0) - Number(b.id || 0);
-    });
-  };
-
-  const loadTasks = async () => {
-    if (!selectedGarden) return;
-
-    try {
-      const backendTasks = await apiClient.getTasks(selectedGarden.id);
-      const normalizedTasks = Array.isArray(backendTasks)
-        ? backendTasks.map(normalizeTask)
-        : [];
-
-      const today = getTodayDateKey();
-      const calendarTaskData = normalizedTasks
-        .filter(task => task.dueDate && isPendingTask(task))
-        .reduce((groupedTasks, task) => {
-          if (!groupedTasks[task.dueDate]) groupedTasks[task.dueDate] = [];
-          groupedTasks[task.dueDate].push(task);
-          return groupedTasks;
-        }, {});
-      Object.keys(calendarTaskData).forEach(dateKey => {
-        calendarTaskData[dateKey] = sortTasksByDueDate(calendarTaskData[dateKey]);
-      });
-
-      const todayTasks = sortTasksByDueDate(normalizedTasks.filter(task => task.dueDate === today && isPendingTask(task)));
-      const upcomingTasks = sortTasksByDueDate(normalizedTasks.filter(task => (
-        task.dueDate && isPendingTask(task) && task.dueDate > today
-      )));
-      const overdueTasks = sortTasksByDueDate(normalizedTasks.filter(task => (
-        task.dueDate && isPendingTask(task) && task.dueDate < today
-      )));
-
-      setTodayTasks(todayTasks);
-      setUpcomingTasks(upcomingTasks);
-      setOverdueTasks(overdueTasks);
-      setCalendarTasks(calendarTaskData);
-      clearFeedback('tasks-load');
-    } catch (error) {
-      console.error('Failed to load tasks:', error);
-      if (isAuthenticationError(error)) {
-        setTodayTasks([]);
-        setUpcomingTasks([]);
-        setOverdueTasks([]);
-        setCalendarTasks({});
-        clearFeedback('tasks-load');
-        return;
-      }
-
-      showError(
-        'tasks-load',
-        getTrackerFailureMessage(error, 'Tasks could not be loaded. The care queue may be out of date.')
-      );
-      setTodayTasks([]);
-      setUpcomingTasks([]);
-      setOverdueTasks([]);
-      setCalendarTasks({});
-    }
-  };
-
-  const getTaskUpdatePayload = (task, updates = {}) => {
-    const normalizedTask = normalizeTask({ ...task, ...updates });
-
-    return {
-      title: normalizedTask.title,
-      description: normalizedTask.description || '',
-      due_date: normalizedTask.dueDate || null,
-      priority: normalizedTask.priority || 'medium',
-      status: normalizedTask.status || 'pending',
-      plant_name: normalizedTask.plant_name || null,
-      task_type: normalizedTask.task_type || 'maintenance',
-      estimated_duration: normalizedTask.estimated_duration || null,
-      is_recurring: normalizedTask.is_recurring,
-      recurring_pattern: normalizedTask.recurring_pattern === 'none' ? null : normalizedTask.recurring_pattern,
-      notes: normalizedTask.notes || ''
-    };
-  };
-
-  const getTaskCreatePayload = (taskData) => {
-    const recurringPattern = taskData.recurring_pattern || 'none';
-
-    return {
-      title: taskData.title,
-      description: taskData.description || '',
-      garden_id: taskData.garden_id,
-      due_date: taskData.due_date,
-      priority: taskData.priority || 'medium',
-      status: 'pending',
-      plant_name: taskData.plant_name || null,
-      task_type: taskData.task_type || 'maintenance',
-      estimated_duration: taskData.estimated_duration || null,
-      is_recurring: recurringPattern !== 'none',
-      recurring_pattern: recurringPattern === 'none' ? null : recurringPattern,
-      notes: taskData.notes || ''
-    };
-  };
-
-  const handleTaskComplete = async (taskId) => {
-    const taskToComplete = [...todayTasks, ...upcomingTasks, ...overdueTasks].find(task => task.id === taskId);
-    if (!taskToComplete) return;
-
-    try {
-      await apiClient.updateTask(taskId, getTaskUpdatePayload(taskToComplete, { status: 'completed' }));
-      await loadTasks();
-      showSuccess(`task-complete-${taskId}`, 'Task completed.');
-    } catch (error) {
-      console.error('Failed to complete task:', error);
-      showError(
-        `task-complete-${taskId}`,
-        getTrackerFailureMessage(error, 'The task could not be completed and remains in your care queue.')
-      );
-    }
-  };
 
   const handleQuickAction = (action) => {
     if (!selectedGarden) return;
@@ -513,132 +147,19 @@ function TrackingPageContent() {
 
   const handleSubmitActivity = async (activityData) => {
     if (!selectedGarden) return;
-    
-    try {
-      // Try to add activity via API
-      const newActivityData = {
-        ...activityData,
-        gardenId: selectedGarden.id,
-        date: selectedDate
-      };
-      
-      const savedActivity = await apiClient.addActivity(newActivityData);
-      
-      // Add to local calendar data for immediate UI update
-      const activityForCalendar = {
-        id: savedActivity.id,
-        activity: activityData.activity,
-        plant: activityData.plant,
-        notes: activityData.notes,
-        time: new Date().toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        activity_date: selectedDate,
-        activity_type: activityData.activity,
-        plant_name: activityData.plant,
-        garden_id: selectedGarden.id
-      };
-      
-      const updatedCalendarData = { ...calendarData };
-      if (!updatedCalendarData[selectedDate]) {
-        updatedCalendarData[selectedDate] = [];
-      }
-      updatedCalendarData[selectedDate].push(activityForCalendar);
-      setCalendarData(updatedCalendarData);
-      showSuccess('activity-create', 'Activity logged.');
-      
-    } catch (error) {
-      console.error('Failed to add activity via API:', error);
-      showError(
-        'activity-create',
-        getTrackerFailureMessage(error, 'The activity could not be logged. No calendar entry was added.')
-      );
-    }
-    
+
+    await addQuickActivity(activityData, selectedDate);
     setShowForm(false);
     setFormData({ activity: '', plant: '', notes: '', gardenId: null });
   };
 
-  // Activity management functions
   const handleActivityEdit = (activity) => {
     setEditingActivity(activity);
     setShowActivityEditModal(true);
   };
 
-  const handleActivityAdd = () => {
-    setEditingActivity(null);
-    setShowActivityEditModal(true);
-  };
-
-  const handleActivitySave = async (activityData) => {
-    try {
-      if (activityData.id) {
-        // Update existing activity
-        await apiClient.updateActivity(activityData.id, {
-          activity_type: activityData.activity_type,
-          plant_name: activityData.plant_name,
-          notes: activityData.notes,
-          activity_date: activityData.activity_date
-        });
-      } else {
-        // Create new activity
-        await apiClient.addActivity({
-          gardenId: activityData.garden_id,
-          activity: activityData.activity_type,
-          plant: activityData.plant_name,
-          notes: activityData.notes,
-          date: activityData.activity_date
-        });
-      }
-      
-      // Reload activities to refresh calendar
-      await loadActivities();
-      showSuccess(
-        activityData.id ? 'activity-update' : 'activity-create',
-        activityData.id ? 'Activity updated.' : 'Activity logged.'
-      );
-      
-    } catch (error) {
-      console.error('Failed to save activity:', error);
-      throw error;
-    }
-  };
-
-  const handleActivityDelete = async (activityOrId) => {
-    const activityId = typeof activityOrId === 'object' ? activityOrId.id : activityOrId;
-
-    try {
-      await apiClient.deleteActivity(activityId);
-      await loadActivities();
-      showSuccess('activity-delete', 'Activity deleted.');
-      
-    } catch (error) {
-      console.error('Failed to delete activity:', error);
-      throw error;
-    }
-  };
-
   const handleActivityDeleteRequest = (activity) => {
     setActivityToDelete(activity);
-  };
-
-  const loadTaskPlantLibrary = async () => {
-    if (taskPlantLibrary.length > 0 || isTaskPlantLibraryLoading) return;
-
-    try {
-      setIsTaskPlantLibraryLoading(true);
-      setTaskPlantLibraryError('');
-      const plants = await apiClient.getPlantLibrary();
-      setTaskPlantLibrary(Array.isArray(plants) ? plants : []);
-    } catch (error) {
-      console.error('Failed to load task plant library:', error);
-      setTaskPlantLibraryError(
-        getTrackerFailureMessage(error, 'Plant options could not be loaded. Close and reopen the task editor to try again.')
-      );
-    } finally {
-      setIsTaskPlantLibraryLoading(false);
-    }
   };
 
   const handleConfirmActivityDelete = async () => {
@@ -658,59 +179,18 @@ function TrackingPageContent() {
     }
   };
 
-  // Task management functions
   const handleTaskEdit = (task) => {
     setEditingTask(task);
-    setTaskPlantLibraryError('');
+    clearTaskPlantLibraryError();
     setShowTaskEditModal(true);
     loadTaskPlantLibrary();
   };
 
   const handleTaskAdd = () => {
     setEditingTask(null);
-    setTaskPlantLibraryError('');
+    clearTaskPlantLibraryError();
     setShowTaskEditModal(true);
     loadTaskPlantLibrary();
-  };
-
-  const handleTaskSave = async (taskData) => {
-    try {
-      if (taskData.id) {
-        // Update existing task
-        await apiClient.updateTask(taskData.id, getTaskUpdatePayload(taskData));
-        await loadTasks();
-        showSuccess('task-update', 'Task updated.');
-      } else {
-        // Create new task
-        const createPayload = getTaskCreatePayload(taskData);
-        await apiClient.createTask(createPayload);
-        showSuccess('task-create', 'Task created.');
-        const targetGarden = gardens.find(garden => String(garden.id) === String(createPayload.garden_id));
-        if (targetGarden && String(targetGarden.id) !== String(selectedGarden?.id)) {
-          setSelectedGarden(targetGarden);
-          return;
-        }
-        await loadTasks();
-      }
-      
-    } catch (error) {
-      console.error('Failed to save task:', error);
-      throw error;
-    }
-  };
-
-  const handleTaskDelete = async (taskId) => {
-    try {
-      await apiClient.deleteTask(taskId);
-      
-      // Reload tasks
-      await loadTasks();
-      showSuccess('task-delete', 'Task deleted.');
-      
-    } catch (error) {
-      console.error('Failed to delete task:', error);
-      throw error;
-    }
   };
 
   // Filter calendar data by selected garden
