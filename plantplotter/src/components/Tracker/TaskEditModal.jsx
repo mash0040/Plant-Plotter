@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Save, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
-import { getUserFacingErrorMessage } from '@/lib/apiErrors';
+import { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
 
 const GENERAL_GARDEN_TASK_VALUE = '__whole_garden__';
 
@@ -16,7 +16,8 @@ export default function TaskEditModal({
   gardens = [],
   selectedGarden: currentGarden,
   plantLibrary = [],
-  isPlantLibraryLoading = false
+  isPlantLibraryLoading = false,
+  plantLibraryError = ''
 }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -126,6 +127,7 @@ export default function TaskEditModal({
   const isPlantingTask = formData.task_type === 'plant';
   const isOtherTask = formData.task_type === 'other';
   const selectedPlantValue = formData.plant_name || GENERAL_GARDEN_TASK_VALUE;
+  const displayedError = error || (isPlantingTask ? plantLibraryError : '');
 
   // Load task data when modal opens
   useEffect(() => {
@@ -166,10 +168,14 @@ export default function TaskEditModal({
   }, [isOpen, task, gardens, currentGarden]);
 
   useEffect(() => {
-    if (error && errorRef.current) {
-      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (displayedError && errorRef.current) {
+      const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+      errorRef.current.scrollIntoView({
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'start'
+      });
     }
-  }, [error]);
+  }, [displayedError]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -288,7 +294,7 @@ export default function TaskEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to save task:', error);
-      setError(getUserFacingErrorMessage(error, 'Failed to save task'));
+      setError(getTrackerFailureMessage(error, 'The task could not be saved. Review your changes and try again.'));
     } finally {
       setIsSaving(false);
     }
@@ -305,7 +311,7 @@ export default function TaskEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to delete task:', error);
-      setError(getUserFacingErrorMessage(error, 'Failed to delete task'));
+      setError(getTrackerFailureMessage(error, 'The task could not be deleted. It remains in your care queue.'));
     } finally {
       setIsDeleting(false);
     }
@@ -361,10 +367,15 @@ export default function TaskEditModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6" noValidate>
-          {error && (
-            <div ref={errorRef} className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
+          {displayedError && (
+            <div
+              ref={errorRef}
+              role="alert"
+              aria-atomic="true"
+              className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800"
+            >
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm">{error}</span>
+              <span className="text-sm">{displayedError}</span>
             </div>
           )}
           {isNoPlantGardenBlocked && (
