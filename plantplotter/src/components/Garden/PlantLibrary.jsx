@@ -3,7 +3,7 @@ import { ArrowLeft, X, Search, ChevronDown, ChevronUp, Heart, AlertTriangle, Inf
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import PlantLibraryItem from './PlantLibraryItem';
 import apiClient from '@/lib/api';
-import { getUserFacingErrorMessage } from '@/lib/apiErrors';
+import { getActionErrorMessage } from '@/lib/apiErrors';
 import { useAuth } from '@/hooks/useAuth';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 
@@ -130,7 +130,11 @@ export default function PlantLibrary({
       
     } catch (err) {
       console.error('Failed to load plant library:', err);
-      setError(getUserFacingErrorMessage(err, 'Failed to load plant library.'));
+      setError(getActionErrorMessage(
+        err,
+        'The plant library could not be loaded.',
+        'Refresh the page to try again.'
+      ));
       
       const fallbackPlants = [
         {

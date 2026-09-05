@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import apiClient from './api';
 import {
   API_ERROR_CODES,
+  getActionErrorMessage,
   NETWORK_ERROR_MESSAGE,
   SERVER_ERROR_MESSAGE,
   SERVICE_UNAVAILABLE_MESSAGE
@@ -58,6 +59,40 @@ describe('apiClient error handling', () => {
     });
   });
 
+  it.each([
+    {
+      status: 401,
+      endpoint: '/auth/login',
+      code: API_ERROR_CODES.AUTH_REQUIRED,
+      message: 'Please sign in to continue.'
+    },
+    {
+      status: 403,
+      endpoint: '/gardens',
+      code: API_ERROR_CODES.FORBIDDEN,
+      message: 'You do not have permission to do that.'
+    },
+    {
+      status: 404,
+      endpoint: '/gardens/missing',
+      code: API_ERROR_CODES.NOT_FOUND,
+      message: 'We could not find what you requested.'
+    }
+  ])('uses clear fallback copy for HTTP $status responses without a message', async ({
+    status,
+    endpoint,
+    code,
+    message
+  }) => {
+    fetch.mockResolvedValue(createJsonResponse({ status, body: {} }));
+
+    await expect(apiClient.request(endpoint)).rejects.toMatchObject({
+      status,
+      code,
+      message
+    });
+  });
+
   it('maps fetch failures to a network error instead of a service-unavailable error', async () => {
     fetch.mockRejectedValue(new TypeError('fetch failed'));
 
@@ -66,6 +101,22 @@ describe('apiClient error handling', () => {
       code: API_ERROR_CODES.NETWORK_ERROR,
       message: NETWORK_ERROR_MESSAGE
     });
+  });
+
+  it('keeps the failed action visible when shared recovery copy is used', () => {
+    expect(getActionErrorMessage(
+      { message: NETWORK_ERROR_MESSAGE, code: API_ERROR_CODES.NETWORK_ERROR },
+      'Your layout could not be saved.',
+      'Your changes are still here; try again.'
+    )).toBe(`Your layout could not be saved. ${NETWORK_ERROR_MESSAGE}`);
+  });
+
+  it('preserves a specific API message instead of replacing it with generic action copy', () => {
+    expect(getActionErrorMessage(
+      { message: 'Invalid credentials', status: 401 },
+      'Sign in could not be completed.',
+      'Check your details and try again.'
+    )).toBe('Invalid credentials');
   });
 
   it('clears the stored session and notifies listeners for protected-route 401 responses', async () => {

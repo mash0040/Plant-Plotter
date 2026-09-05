@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Calendar, MapPin, Ruler, Leaf, Eye, BarChart3, Settings, ChevronDown, Heart, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import {
-  getUserFacingErrorMessage,
+  getActionErrorMessage,
   isAuthenticationError,
   shouldUseLocalReadFallback
 } from '@/lib/apiErrors';
@@ -50,7 +50,7 @@ function GardenDetailPageContent() {
           return;
         }
 
-        const errorMessage = getUserFacingErrorMessage(error, 'Failed to load garden. Please try again.');
+        const errorMessage = getActionErrorMessage(error, 'This garden could not be loaded.', 'Try again.');
         
         if (shouldUseLocalReadFallback(error)) {
           try {
@@ -145,7 +145,7 @@ function GardenDetailPageContent() {
         localGardens[gardenIndex] = updatedGarden;
         localStorage.setItem('gardens', JSON.stringify(localGardens));
       }
-      setSuccessMessage('Garden updated successfully.');
+      setSuccessMessage('Garden updated.');
       setPageError('');
     } catch (error) {
       console.error('Failed to update garden:', error);
@@ -171,7 +171,7 @@ function GardenDetailPageContent() {
         return;
       }
 
-      setPageError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
+      setPageError(getActionErrorMessage(error, 'This garden could not be deleted.', 'It remains in your gardens.'));
     }
   };
 
@@ -393,7 +393,7 @@ function GardenDetailPageContent() {
         <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-2xl border border-green-100 bg-white/90 p-4 shadow-xl sm:p-6">
             <RequestErrorNotice
-              title="Could not load garden"
+              title="Garden unavailable"
               message={pageError}
               onRetry={() => setLoadRetryKey(prevKey => prevKey + 1)}
             />

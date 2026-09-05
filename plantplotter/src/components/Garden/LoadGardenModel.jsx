@@ -4,7 +4,7 @@ import { X, Calendar, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
-import { getUserFacingErrorMessage } from '@/lib/apiErrors';
+import { getActionErrorMessage } from '@/lib/apiErrors';
 
 export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
   const [gardens, setGardens] = useState([]);
@@ -31,7 +31,11 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
       setGardens(userGardens);
     } catch (error) {
       console.error('Failed to load gardens:', error);
-      setLoadError(getUserFacingErrorMessage(error, 'Failed to load gardens. Please check your connection and try again.'));
+      setLoadError(getActionErrorMessage(
+        error,
+        'Your gardens could not be loaded.',
+        'Check your connection and try again.'
+      ));
     } finally {
       setLoading(false);
     }
@@ -75,7 +79,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
       onClose();
     } catch (error) {
       console.error('Failed to load garden:', error);
-      setLoadError(getUserFacingErrorMessage(error, 'Failed to load garden. Please try again.'));
+      setLoadError(getActionErrorMessage(error, 'This garden could not be opened.', 'Try again.'));
     }
   };
 
@@ -95,7 +99,7 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
       setGardenPendingDelete(null);
     } catch (error) {
       console.error('Failed to delete garden:', error);
-      setDeleteError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
+      setDeleteError(getActionErrorMessage(error, 'This garden could not be deleted.', 'It remains in your gardens.'));
     }
   };
 

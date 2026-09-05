@@ -10,7 +10,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import RequestErrorNotice from '@/components/RequestErrorNotice';
 import { CheckCircle, X } from 'lucide-react';
 import {
-  getUserFacingErrorMessage,
+  getActionErrorMessage,
   isAuthenticationError,
   isValidationError,
   shouldUseLocalReadFallback
@@ -47,7 +47,7 @@ function AllGardensContent() {
     const gardenId = searchParams.get('gardenId');
     
     if (saved === 'true' && gardenId) {
-      setSuccessMessage('Garden saved successfully!');
+      setSuccessMessage('Garden saved.');
       setShowSuccessMessage(true);
       
       // Hide success message after 5 seconds
@@ -81,7 +81,7 @@ function AllGardensContent() {
       const isAuth = apiClient.isAuthenticated();
       
       if (!isAuth) {
-        setError('Not authenticated. Please log in.');
+        setError('Please sign in to view your gardens.');
         setGardens([]);
         setLoading(false);
         return;
@@ -103,7 +103,7 @@ function AllGardensContent() {
         return;
       }
 
-      const errorMessage = getUserFacingErrorMessage(error, 'Could not load your gardens. Please try again.');
+      const errorMessage = getActionErrorMessage(error, 'Your gardens could not be loaded.', 'Try again.');
 
       if (shouldUseLocalReadFallback(error)) {
         try {
@@ -173,7 +173,7 @@ function AllGardensContent() {
       // Reload gardens to reflect the deletion
       await loadGardens();
       
-      setSuccessMessage(`"${gardenToDelete.name}" deleted successfully!`);
+      setSuccessMessage(`"${gardenToDelete.name}" deleted.`);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
@@ -182,7 +182,7 @@ function AllGardensContent() {
         return;
       }
 
-      setError(getUserFacingErrorMessage(error, 'Failed to delete garden. Please try again.'));
+      setError(getActionErrorMessage(error, 'This garden could not be deleted.', 'It remains in your gardens.'));
     }
   };
 
@@ -229,7 +229,7 @@ function AllGardensContent() {
           throw error;
         }
         
-        setSuccessMessage('Garden updated successfully.');
+        setSuccessMessage('Garden updated.');
       } else {
         // Create new garden
         try {
@@ -267,7 +267,7 @@ function AllGardensContent() {
           throw error;
         }
         
-        setSuccessMessage('Garden created successfully.');
+        setSuccessMessage('Garden created.');
       }
       
       // Reload gardens to reflect the changes
@@ -308,7 +308,7 @@ function AllGardensContent() {
           <div className="w-full max-w-md rounded-2xl border border-green-100 bg-white/90 p-4 shadow-xl sm:p-6">
             <RequestErrorNotice
               noticeRef={messageRef}
-              title="Could not load gardens"
+              title="Gardens unavailable"
               message={error}
               onRetry={loadGardens}
             />

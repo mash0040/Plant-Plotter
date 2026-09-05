@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { X, Save, Trash2, Edit3, AlertCircle, Plus } from 'lucide-react';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
-import { getUserFacingErrorMessage } from '@/lib/apiErrors';
+import { getActionErrorMessage } from '@/lib/apiErrors';
 
 export default function PlantEditModal({ 
   isOpen, 
@@ -265,13 +265,18 @@ export default function PlantEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to save plant:', error);      
-      // Handle specific database errors
-      if (error.message.includes('Data truncated')) {
-        setError('One of the values is too long for the database. Please shorten your inputs.');
-      } else if (error.message.includes('Duplicate entry')) {
+      // Keep known persistence failures actionable without exposing implementation details.
+      const errorMessage = error?.message || '';
+      if (errorMessage.includes('Data truncated')) {
+        setError('One or more plant details are too long. Shorten them and try again.');
+      } else if (errorMessage.includes('Duplicate entry')) {
         setError('A plant with this name already exists. Please choose a different name.');
       } else {
-        setError(getUserFacingErrorMessage(error, 'Failed to save plant'));
+        setError(getActionErrorMessage(
+          error,
+          'This plant could not be saved.',
+          'Review your changes and try again.'
+        ));
       }
     } finally {
       setIsSaving(false);
@@ -289,7 +294,7 @@ export default function PlantEditModal({
       onClose();
     } catch (error) {
       console.error('Failed to delete plant:', error);
-      setError(getUserFacingErrorMessage(error, 'Failed to delete plant'));
+      setError(getActionErrorMessage(error, 'This plant could not be deleted.', 'It remains in your plant library.'));
       setShowDeleteConfirm(false);
     }
   };

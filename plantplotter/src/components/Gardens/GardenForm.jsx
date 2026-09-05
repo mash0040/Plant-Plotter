@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Save, Leaf } from 'lucide-react';
 import RequestErrorNotice from '@/components/RequestErrorNotice';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
-import { getUserFacingErrorMessage } from '@/lib/apiErrors';
+import { getActionErrorMessage } from '@/lib/apiErrors';
 
 const getDefaultFormData = () => ({
   name: '',
@@ -318,7 +318,11 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
         }));
         requestAnimationFrame(() => scrollToFirstError(apiErrors));
       } else {
-        setFormError(getUserFacingErrorMessage(error, 'Failed to save garden. Please try again.'));
+        setFormError(getActionErrorMessage(
+          error,
+          'This garden could not be saved.',
+          'Review your changes and try again.'
+        ));
       }
     }
   };

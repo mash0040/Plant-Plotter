@@ -2,7 +2,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 import {
   API_ERROR_CODES,
   ApiError,
+  AUTH_REQUIRED_MESSAGE,
+  FORBIDDEN_MESSAGE,
   NETWORK_ERROR_MESSAGE,
+  NOT_FOUND_MESSAGE,
+  RATE_LIMITED_MESSAGE,
   SERVER_ERROR_MESSAGE,
   SERVICE_UNAVAILABLE_MESSAGE,
   isServiceUnavailableError
@@ -55,46 +59,45 @@ class ApiClient {
     return isServiceUnavailableError(error);
   }
 
-  buildApiError(response, errorData, fallbackMessage) {
+  buildApiError(response, errorData) {
     const apiMessage = errorData?.message || errorData?.error;
-    const message = apiMessage || fallbackMessage;
     const errors = errorData?.errors || null;
     const code = errorData?.code || errorData?.error;
 
     switch (response.status) {
       case 400:
-        return new ApiError(message || 'Please check your information and try again.', {
+        return new ApiError(apiMessage || 'Please check your information and try again.', {
           status: 400,
           code: code || API_ERROR_CODES.VALIDATION_ERROR,
           errors
         });
       case 401:
-        return new ApiError(message || 'Authentication required.', {
+        return new ApiError(apiMessage || AUTH_REQUIRED_MESSAGE, {
           status: 401,
           code: code || API_ERROR_CODES.AUTH_REQUIRED,
           errors
         });
       case 403:
-        return new ApiError(message || 'Access forbidden. You do not have permission.', {
+        return new ApiError(apiMessage || FORBIDDEN_MESSAGE, {
           status: 403,
           code: code || API_ERROR_CODES.FORBIDDEN,
           errors
         });
       case 404:
-        return new ApiError(message || 'Resource not found.', {
+        return new ApiError(apiMessage || NOT_FOUND_MESSAGE, {
           status: 404,
           code: code || API_ERROR_CODES.NOT_FOUND,
           errors
         });
       case 429:
-        return new ApiError(message || 'Too many requests. Please try again later.', {
+        return new ApiError(apiMessage || RATE_LIMITED_MESSAGE, {
           status: 429,
           code: code || API_ERROR_CODES.RATE_LIMITED,
           errors,
           retryAfter: response.headers.get('Retry-After')
         });
       case 503:
-        return new ApiError(message || SERVICE_UNAVAILABLE_MESSAGE, {
+        return new ApiError(apiMessage || SERVICE_UNAVAILABLE_MESSAGE, {
           status: 503,
           code: code || API_ERROR_CODES.SERVICE_UNAVAILABLE,
           errors,
@@ -106,7 +109,7 @@ class ApiClient {
           code: code || API_ERROR_CODES.SERVER_ERROR
         });
       default:
-        return new ApiError(message || fallbackMessage, {
+        return new ApiError(apiMessage, {
           status: response.status,
           code: code || API_ERROR_CODES.UNEXPECTED_ERROR,
           errors
@@ -159,19 +162,12 @@ class ApiClient {
       const response = await fetch(url, config);
 
       if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
         let errorData = null;
 
         try {
           errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseError) {
-          try {
-            const textResponse = await response.text();
-            errorMessage = textResponse || errorMessage;
-          } catch (textError) {
-            // Use default error message
-          }
+        } catch {
+          // Status-specific safe copy is used when the response is not valid JSON.
         }
 
         // /auth/login and /auth/register can return 401 for "Invalid credentials".
@@ -179,7 +175,7 @@ class ApiClient {
         // and don't trigger the session-expired flow.
         const isAuthEntryEndpoint = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/register');
 
-        const apiError = this.buildApiError(response, errorData, errorMessage);
+        const apiError = this.buildApiError(response, errorData);
 
         if (response.status === 401 && !isAuthEntryEndpoint) {
           const authError = new ApiError('Your session expired. Please sign in again.', {

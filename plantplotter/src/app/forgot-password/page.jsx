@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, CheckCircle, Leaf, Mail } from 'lucide-react';
 import apiClient from '@/lib/api';
-import { getUserFacingErrorMessage } from '@/lib/apiErrors';
+import { getActionErrorMessage } from '@/lib/apiErrors';
 import { validateEmail } from '@/lib/emailValidation';
 
 const SUCCESS_MESSAGE = 'If an account exists, we sent password reset instructions.';
@@ -36,7 +36,11 @@ export default function ForgotPasswordPage() {
       await apiClient.forgotPassword(trimmedEmail);
       setSuccessMessage(SUCCESS_MESSAGE);
     } catch (requestError) {
-      setError(getUserFacingErrorMessage(requestError, 'Unable to request password reset. Please try again.'));
+      setError(getActionErrorMessage(
+        requestError,
+        'Reset instructions could not be sent.',
+        'Check your connection and try again.'
+      ));
     } finally {
       setIsSubmitting(false);
     }
