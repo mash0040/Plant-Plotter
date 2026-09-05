@@ -234,7 +234,7 @@ export default function ProfileForm() {
             <div>
               <span className="text-gray-700">Member since:</span>
               <span className="ml-2 font-medium">
-                {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
+                {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Join date not available'}
               </span>
             </div>
           </div>

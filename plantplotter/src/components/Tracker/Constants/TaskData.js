@@ -399,7 +399,7 @@ const createRecurringTask = (completedTask) => {
 // Get garden name for task display
 export const getGardenName = (gardenId) => {
   const garden = gardens.find(g => g.id === gardenId);
-  return garden ? garden.name : 'Unknown Garden';
+  return garden ? garden.name : 'Garden unavailable';
 };
 
 // Get task priority color

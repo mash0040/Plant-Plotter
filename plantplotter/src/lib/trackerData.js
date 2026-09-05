@@ -14,6 +14,8 @@ export const getPlantedItemName = (plant) => (
   plant?.name || plant?.plant_name || plant?.plantName || ''
 );
 
+export const MISSING_PLANT_LABEL = 'Plant not recorded';
+
 export const getGardenIcon = (garden) => {
   if (garden.plantedItems?.length > 0) {
     const categories = garden.plantedItems.reduce((counts, plant) => {
@@ -57,7 +59,7 @@ export const normalizeTrackerGarden = (garden, { fromLocalStorage = false } = {}
     icon: getGardenIcon(fromLocalStorage ? { ...garden, plantedItems } : garden),
     plantCount,
     status: garden.status || 'Active',
-    location: garden.location || 'Unknown',
+    location: String(garden.location || '').trim() || 'No location set',
     plantedItems,
     hasLoadedPlants: fromLocalStorage || plantCount === 0
   };
@@ -75,9 +77,13 @@ export const hydrateTrackerGarden = (garden, plantedItems) => ({
 });
 
 const formatActivityTime = (activity) => {
-  if (activity.activity_time) return activity.activity_time.substring(0, 5);
+  if (activity.activity_time) return String(activity.activity_time).substring(0, 5);
+  if (!activity.created_at) return '';
 
-  return new Date(activity.created_at).toLocaleTimeString('en-US', {
+  const createdAt = new Date(activity.created_at);
+  if (Number.isNaN(createdAt.getTime())) return '';
+
+  return createdAt.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   });
@@ -89,7 +95,9 @@ export const buildActivityCalendar = (activities, plantedItems = []) => {
 
   (Array.isArray(activities) ? activities : []).forEach(activity => {
     const dateKey = getDateKey(activity.activity_date || activity.created_at);
-    const plantName = activity.plant_name || 'Unknown Plant';
+    const recordedPlantName = String(activity.plant_name || '').trim();
+    const hasRecordedPlant = Boolean(recordedPlantName);
+    const plantName = recordedPlantName || MISSING_PLANT_LABEL;
 
     if (!calendar[dateKey]) calendar[dateKey] = [];
 
@@ -103,7 +111,7 @@ export const buildActivityCalendar = (activities, plantedItems = []) => {
       activity_type: activity.activity_type,
       plant_name: plantName,
       garden_id: activity.garden_id,
-      plant_no_longer_planted: plantName !== 'Unknown Plant' && !currentPlantNames.has(plantName)
+      plant_no_longer_planted: hasRecordedPlant && !currentPlantNames.has(recordedPlantName)
     });
   });
 

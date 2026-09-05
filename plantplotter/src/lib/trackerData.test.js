@@ -25,7 +25,7 @@ describe('tracker garden transformations', () => {
       icon: 'Herb',
       plantCount: 3,
       status: 'Active',
-      location: 'Unknown',
+      location: 'No location set',
       plantedItems: [],
       hasLoadedPlants: false
     });
@@ -89,6 +89,29 @@ describe('tracker activity transformations', () => {
     expect(calendar['2026-09-05']).toEqual([
       expect.objectContaining({ id: 1, time: '08:45', plant_no_longer_planted: false }),
       expect.objectContaining({ id: 2, time: '10:30', plant_no_longer_planted: true })
+    ]);
+  });
+
+  it('labels missing legacy activity data without treating it as a removed plant', () => {
+    const calendar = buildActivityCalendar([
+      {
+        id: 3,
+        garden_id: 9,
+        activity_type: 'watered',
+        plant_name: null,
+        activity_date: '2026-09-05',
+        activity_time: null,
+        created_at: null
+      }
+    ], []);
+
+    expect(calendar['2026-09-05']).toEqual([
+      expect.objectContaining({
+        plant: 'Plant not recorded',
+        plant_name: 'Plant not recorded',
+        time: '',
+        plant_no_longer_planted: false
+      })
     ]);
   });
 

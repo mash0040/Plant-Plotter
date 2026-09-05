@@ -561,9 +561,9 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
               <div className="text-sm text-green-700 space-y-1">
                 <p>• Plants: {garden.plantCount || garden.plant_count || 0} items</p>
                 <p>• Created: {garden.createdAt || garden.created_at ? 
-                    new Date(garden.createdAt || garden.created_at).toLocaleDateString() : 'Unknown'}</p>
+                    new Date(garden.createdAt || garden.created_at).toLocaleDateString() : 'Date not recorded'}</p>
                 <p>• Last Updated: {garden.updatedAt || garden.updated_at ? 
-                    new Date(garden.updatedAt || garden.updated_at).toLocaleDateString() : 'Unknown'}</p>
+                    new Date(garden.updatedAt || garden.updated_at).toLocaleDateString() : 'Date not recorded'}</p>
               </div>
             </div>
           )}

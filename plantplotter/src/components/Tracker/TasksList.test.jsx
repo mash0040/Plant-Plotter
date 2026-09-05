@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import TasksList from './TasksList';
+import { getGardenName } from './Constants/TaskData';
 
 const task = {
   id: 7,
@@ -9,6 +10,12 @@ const task = {
   priority: 'medium',
   dueDate: '2026-09-01'
 };
+
+describe('task display data', () => {
+  it('labels a missing garden reference contextually', () => {
+    expect(getGardenName(-1)).toBe('Garden unavailable');
+  });
+});
 
 describe('TasksList accessibility', () => {
   it('names checkbox and edit actions with their task', async () => {

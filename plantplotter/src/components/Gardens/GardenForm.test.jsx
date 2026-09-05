@@ -61,6 +61,22 @@ describe('GardenForm validation', () => {
     expect(screen.getByLabelText('Status')).toBeInTheDocument();
   });
 
+  it('uses contextual labels when legacy garden dates are missing', () => {
+    renderGardenForm({
+      garden: {
+        id: 3,
+        name: 'Legacy Garden',
+        width: 6,
+        height: 4,
+        soilType: 'Loamy',
+        status: 'Active'
+      }
+    });
+
+    expect(screen.getByText('Created: Date not recorded', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText('Last Updated: Date not recorded', { exact: false })).toBeInTheDocument();
+  });
+
   it('shows required messages for garden name, width, and height', async () => {
     const { user, onSave } = renderGardenForm();
 
