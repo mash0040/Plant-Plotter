@@ -608,7 +608,7 @@ function GardenDetailPageContent() {
               <div className="mb-2 sm:mb-0">
                 <p className="text-xs sm:text-sm text-gray-600">Created</p>
                 <p className="text-sm sm:text-lg font-bold text-gray-800">
-                  {garden.created_at ? new Date(garden.created_at).toLocaleDateString() : 'N/A'}
+                  {garden.created_at ? new Date(garden.created_at).toLocaleDateString() : 'Date not recorded'}
                 </p>
               </div>
               <div className="w-8 h-8 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center self-start sm:self-auto">
@@ -710,13 +710,13 @@ function GardenDetailPageContent() {
                           <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Created:</span>
                             <span className="text-right text-gray-800">
-                              {garden.created_at ? new Date(garden.created_at).toLocaleDateString() : 'Unknown'}
+                              {garden.created_at ? new Date(garden.created_at).toLocaleDateString() : 'Date not recorded'}
                             </span>
                           </div>
                           <div className="flex justify-between gap-3">
                             <span className="text-gray-600">Last Updated:</span>
                             <span className="text-right text-gray-800">
-                              {garden.updated_at ? new Date(garden.updated_at).toLocaleDateString() : 'Unknown'}
+                              {garden.updated_at ? new Date(garden.updated_at).toLocaleDateString() : 'Date not recorded'}
                             </span>
                           </div>
                           <div className="flex justify-between gap-3">
@@ -747,7 +747,9 @@ function GardenDetailPageContent() {
                           <div className="min-w-0">
                             <p className="font-medium text-gray-800 truncate">{plant.name}</p>
                             <p className="text-sm text-gray-600">
-                              Planted {plant.plantedDate ? new Date(plant.plantedDate).toLocaleDateString() : 'Unknown'}
+                              {plant.plantedDate
+                                ? `Planted ${new Date(plant.plantedDate).toLocaleDateString()}`
+                                : 'Planting date not recorded'}
                             </p>
                           </div>
                         </div>
@@ -786,7 +788,11 @@ function GardenDetailPageContent() {
                         </div>
                         <div className="space-y-1 text-sm text-gray-600 break-words">
                           <p>{getPlantPositionLabel(plant)}</p>
-                          <p>Planted: {plant.plantedDate ? new Date(plant.plantedDate).toLocaleDateString() : 'Unknown'}</p>
+                          <p>
+                            {plant.plantedDate
+                              ? `Planted: ${new Date(plant.plantedDate).toLocaleDateString()}`
+                              : 'Planting date not recorded'}
+                          </p>
                           {plant.notes && <p>Notes: {plant.notes}</p>}
                         </div>
                       </div>
@@ -890,7 +896,9 @@ function GardenDetailPageContent() {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-800 break-words">{plant.name}</p>
                               <p className="text-xs text-gray-600">
-                                {plant.plantedDate ? new Date(plant.plantedDate).toLocaleDateString() : 'Unknown date'}
+                                {plant.plantedDate
+                                  ? new Date(plant.plantedDate).toLocaleDateString()
+                                  : 'Planting date not recorded'}
                               </p>
                             </div>
                           </div>

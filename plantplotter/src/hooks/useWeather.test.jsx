@@ -5,6 +5,7 @@ import WeatherWidget from '@/components/Tracker/WeatherWidget';
 import {
   LOCATION_ACCESS_ERROR_MESSAGE,
   WEATHER_SERVICE_ERROR_MESSAGE,
+  getWeatherDescription,
   resolveWeatherLocation,
   useWeather
 } from './useWeather';
@@ -104,6 +105,16 @@ describe('weather location resolution', () => {
     mockGeolocationFailure();
 
     await expect(resolveWeatherLocation()).rejects.toThrow(LOCATION_ACCESS_ERROR_MESSAGE);
+  });
+});
+
+describe('weather descriptions', () => {
+  it('uses contextual copy when a weather code is unavailable', () => {
+    expect(getWeatherDescription(999)).toEqual({
+      description: 'Conditions unavailable',
+      icon: 'Weather',
+      condition: 'Unavailable'
+    });
   });
 });
 

@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, Edit3, Trash2 } from 'lucide-react';
+import { MISSING_PLANT_LABEL } from '@/lib/trackerData';
 
 export default function TrackingCalendar({ 
   selectedDate, 
@@ -90,9 +91,16 @@ export default function TrackingCalendar({
   };
 
   const truncatePlantName = (name, maxLength = 8) => {
-    if (!name) return 'Unknown';
+    if (!name) return MISSING_PLANT_LABEL;
     if (name.length <= maxLength) return name;
     return `${name.substring(0, maxLength - 3)}...`;
+  };
+
+  const getActivityTitle = (activityType, plantName, time) => {
+    const activityLabel = `${activityType.charAt(0).toUpperCase()}${activityType.slice(1)}`;
+    return time
+      ? `${activityLabel} ${plantName} at ${time}`
+      : `${activityLabel} ${plantName}; time not recorded`;
   };
 
   const getActivityIcon = (activity) => {
@@ -216,7 +224,7 @@ export default function TrackingCalendar({
           {calendarItemsCount > 0 && (
             <div className="pointer-events-none relative z-10 hidden space-y-1 sm:block">
               {activities.slice(0, 2).map((activity, idx) => {
-                const plantName = activity.plant || activity.plant_name || 'Unknown';
+                const plantName = activity.plant || activity.plant_name || MISSING_PLANT_LABEL;
                 const activityType = activity.activity || activity.activity_type || 'activity';
                 const plantLabel = activity.plant_no_longer_planted
                   ? `${plantName} (no longer planted)`
@@ -226,7 +234,7 @@ export default function TrackingCalendar({
                   <div
                     key={activity.id || `${dateStr}-${idx}`}
                     className={`text-xs px-1.5 py-0.5 rounded-md flex items-center gap-1 ${getActivityColorClass(activityType)} truncate group relative`}
-                    title={`${activityType} ${plantLabel} at ${activity.time || 'unknown time'}`}
+                    title={getActivityTitle(activityType, plantLabel, activity.time)}
                   >
                     <span className="text-[10px] font-semibold flex-shrink-0">{getActivityIcon(activityType)}</span>
                     <span className="truncate font-medium min-w-0">
@@ -451,7 +459,8 @@ export default function TrackingCalendar({
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-gray-900 dark:text-white break-words">
-                      <span className="capitalize">{activity.activity || activity.activity_type}</span> {activity.plant || activity.plant_name}
+                      <span className="capitalize">{activity.activity || activity.activity_type}</span>{' '}
+                      {activity.plant || activity.plant_name || MISSING_PLANT_LABEL}
                       {activity.plant_no_longer_planted && (
                         <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-300">
                           (no longer planted)
@@ -459,7 +468,7 @@ export default function TrackingCalendar({
                       )}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-300">
-                      {activity.time}
+                      {activity.time || 'Time not recorded'}
                     </div>
                     {activity.notes && (
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 italic break-words">
@@ -473,7 +482,7 @@ export default function TrackingCalendar({
                       <button
                         type="button"
                         onClick={(e) => handleActivityEdit(activity, e)}
-                        aria-label={`Edit ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || 'plant'}`}
+                        aria-label={`Edit ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || MISSING_PLANT_LABEL}`}
                         className="touch-target flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
                         title="Edit activity"
                       >
@@ -482,7 +491,7 @@ export default function TrackingCalendar({
                       <button
                         type="button"
                         onClick={(e) => handleActivityDelete(activity, e)}
-                        aria-label={`Delete ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || 'plant'}`}
+                        aria-label={`Delete ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || MISSING_PLANT_LABEL}`}
                         className="touch-target flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-red-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
                         title="Delete activity"
                       >

@@ -215,10 +215,10 @@ export const getWeatherDescription = (weatherCode, isDay = 1) => {
     };
   }
 
-  return { 
-    description: 'Unknown', 
-    icon: 'Weather', 
-    condition: 'Unknown' 
+  return {
+    description: 'Conditions unavailable',
+    icon: 'Weather',
+    condition: 'Unavailable'
   };
 };
 

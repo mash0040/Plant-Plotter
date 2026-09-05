@@ -67,6 +67,34 @@ describe('TrackingCalendar accessibility', () => {
     expect(onActivityDelete).toHaveBeenCalledWith(activity);
   });
 
+  it('describes missing activity details without vague unknown labels', () => {
+    const today = new Date();
+    const selectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+
+    render(
+      <TrackingCalendar
+        selectedDate={selectedDate}
+        onDateSelect={vi.fn()}
+        calendarData={{
+          [selectedDate]: [{
+            id: 13,
+            activity: 'watered',
+            plant: 'Plant not recorded',
+            time: ''
+          }]
+        }}
+        onActivityEdit={vi.fn()}
+        onActivityDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTitle('Watered Plant not recorded; time not recorded')).toBeInTheDocument();
+    expect(screen.getByText('Time not recorded')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', {
+      name: 'Edit watered activity for Plant not recorded'
+    })).not.toHaveLength(0);
+  });
+
   it('keeps tasks as calendar context without duplicating a selected-date task list', () => {
     const today = new Date();
     const selectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
