@@ -101,7 +101,7 @@ test('transforms full garden list rows with legacy aliases intact', () => {
   assert.deepEqual(transformedGarden.dimensions, { width: 10, height: 5 });
   assert.equal(transformedGarden.soil_type, 'Loamy');
   assert.equal(transformedGarden.soilType, 'Loamy');
-  assert.equal(transformedGarden.location, 'Backyard');
+  assert.equal(transformedGarden.location, null);
   assert.equal(transformedGarden.status, 'Active');
   assert.equal(transformedGarden.plant_count, 2);
   assert.equal(transformedGarden.plantCount, 2);
@@ -110,13 +110,13 @@ test('transforms full garden list rows with legacy aliases intact', () => {
   assert.equal(transformedGarden.plantedItems.length, 2);
 });
 
-test('transforms lightweight garden summaries with Garden location default', () => {
+test('preserves a missing location in lightweight garden summaries', () => {
   const transformedGarden = transformGardenSummary({
     ...garden,
     plant_count: '4'
   });
 
-  assert.equal(transformedGarden.location, 'Garden');
+  assert.equal(transformedGarden.location, null);
   assert.equal(transformedGarden.plant_count, 4);
   assert.equal(transformedGarden.plantCount, 4);
   assert.deepEqual(transformedGarden.dimensions, { width: 10, height: 5 });

@@ -1,6 +1,10 @@
 const DEFAULT_SOIL_TYPE = 'Loamy';
 const DEFAULT_STATUS = 'Active';
 
+const normalizeOptionalLocation = (location) => (
+  typeof location === 'string' && location.trim() ? location.trim() : null
+);
+
 const buildCompletePlantData = (gardenId, plant) => ({
   garden_id: parseInt(gardenId),
   plant_id: String(plant.plant_id || 'unknown').substring(0, 100),
@@ -150,7 +154,7 @@ const transformGardenForList = (garden, plantedItems = []) => ({
   },
   soil_type: garden.soil_type || DEFAULT_SOIL_TYPE,
   soilType: garden.soil_type || DEFAULT_SOIL_TYPE,
-  location: garden.location || 'Backyard',
+  location: normalizeOptionalLocation(garden.location),
   status: garden.status || DEFAULT_STATUS,
   plant_count: plantedItems.length,
   plantCount: plantedItems.length,
@@ -173,7 +177,7 @@ const transformGardenSummary = (garden) => ({
   },
   soil_type: garden.soil_type || DEFAULT_SOIL_TYPE,
   soilType: garden.soil_type || DEFAULT_SOIL_TYPE,
-  location: garden.location || 'Garden',
+  location: normalizeOptionalLocation(garden.location),
   status: garden.status || DEFAULT_STATUS,
   plant_count: Number(garden.plant_count) || 0,
   plantCount: Number(garden.plant_count) || 0,
@@ -190,7 +194,7 @@ const transformGardenWithSummary = (garden, plantedItems = []) => ({
   width: garden.width,
   height: garden.height,
   soil_type: garden.soil_type || DEFAULT_SOIL_TYPE,
-  location: garden.location || 'Backyard',
+  location: normalizeOptionalLocation(garden.location),
   status: garden.status || DEFAULT_STATUS,
   plant_count: plantedItems.length,
   created_at: garden.created_at,
@@ -230,7 +234,7 @@ const transformCreatedGarden = (garden) => ({
   dimensions: { width: garden.width, height: garden.height },
   soil_type: garden.soil_type,
   soilType: garden.soil_type,
-  location: garden.location,
+  location: normalizeOptionalLocation(garden.location),
   status: garden.status,
   plant_count: 0,
   plantCount: 0,
@@ -250,7 +254,7 @@ const transformUpdatedGarden = (garden) => ({
   dimensions: { width: garden.width, height: garden.height },
   soil_type: garden.soil_type,
   soilType: garden.soil_type,
-  location: garden.location,
+  location: normalizeOptionalLocation(garden.location),
   status: garden.status,
   plant_count: garden.plant_count || 0,
   plantCount: garden.plant_count || 0,

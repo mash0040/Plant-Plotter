@@ -12,6 +12,10 @@ import {
   isServiceUnavailableError
 } from './apiErrors';
 
+const normalizeOptionalLocation = (location) => (
+  typeof location === 'string' && location.trim() ? location.trim() : null
+);
+
 class ApiClient {
   constructor() {
     if (!API_BASE_URL) {
@@ -330,7 +334,7 @@ class ApiClient {
           height: garden.height || garden.dimensions?.height || 10,
           soilType: garden.soil_type || garden.soilType || 'Loamy',
           soil_type: garden.soil_type || garden.soilType || 'Loamy',
-          location: garden.location || 'Garden',
+          location: normalizeOptionalLocation(garden.location),
           status: garden.status || 'Active',
           plantCount: garden.plant_count || garden.plantCount || garden.plantedItems?.length || 0,
           plant_count: garden.plant_count || garden.plantCount || garden.plantedItems?.length || 0,
@@ -372,7 +376,7 @@ class ApiClient {
         height: garden.height || garden.dimensions?.height || 10,
         soilType: garden.soil_type || garden.soilType || 'Loamy',
         soil_type: garden.soil_type || garden.soilType || 'Loamy',
-        location: garden.location || 'Garden',
+        location: normalizeOptionalLocation(garden.location),
         status: garden.status || 'Active',
         plantCount: garden.plant_count || garden.plantCount || 0,
         plant_count: garden.plant_count || garden.plantCount || 0,
@@ -406,6 +410,7 @@ class ApiClient {
       // Combine garden data with planted items
       const completeGarden = {
         ...garden,
+        location: normalizeOptionalLocation(garden.location),
         plantedItems: transformedPlantedItems,
         plant_count: transformedPlantedItems.length
       };
@@ -436,7 +441,7 @@ class ApiClient {
           width: gardenData.width || gardenData.dimensions?.width,
           height: gardenData.height || gardenData.dimensions?.height,
           soil_type: gardenData.soil_type || gardenData.soilType || 'Loamy',
-          location: gardenData.location || 'Garden',
+          location: normalizeOptionalLocation(gardenData.location),
           status: gardenData.status || 'Planning'
         }),
       });
@@ -563,7 +568,7 @@ class ApiClient {
           width: gardenData.width || gardenData.dimensions?.width,
           height: gardenData.height || gardenData.dimensions?.height,
           soil_type: gardenData.soilType || gardenData.soil_type,
-          location: gardenData.location,
+          location: normalizeOptionalLocation(gardenData.location),
           status: gardenData.status
         });
         
@@ -584,7 +589,7 @@ class ApiClient {
           width: gardenData.width || gardenData.dimensions?.width,
           height: gardenData.height || gardenData.dimensions?.height,
           soil_type: gardenData.soilType || 'Loamy',
-          location: gardenData.location || 'Garden',
+          location: normalizeOptionalLocation(gardenData.location),
           status: gardenData.status || 'Active'
         });
       }

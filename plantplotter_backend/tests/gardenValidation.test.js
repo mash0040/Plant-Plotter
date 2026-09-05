@@ -32,20 +32,20 @@ test('accepts a valid garden payload and trims text fields', () => {
   });
 });
 
-test('defaults optional garden fields when they are missing or empty', () => {
+test('normalizes optional garden fields when they are missing or empty', () => {
   const result = validateGardenPayload({
     name: 'Defaulted Garden',
     width: 4,
     height: 5,
     description: '',
-    location: '',
+    location: '   ',
     soil_type: '',
     status: ''
   });
 
   assert.equal(result.isValid, true);
   assert.equal(result.data.description, '');
-  assert.equal(result.data.location, 'Garden');
+  assert.equal(result.data.location, null);
   assert.equal(result.data.soil_type, 'Loamy');
   assert.equal(result.data.status, 'Active');
 });

@@ -103,6 +103,36 @@ describe('apiClient error handling', () => {
     });
   });
 
+  it('sends an empty garden location as missing data', async () => {
+    fetch.mockResolvedValue(createJsonResponse({
+      status: 201,
+      body: { id: 4, name: 'Kitchen Garden', location: null },
+      headers: { 'content-type': 'application/json' }
+    }));
+
+    await apiClient.createGarden({
+      name: 'Kitchen Garden',
+      width: 8,
+      height: 6,
+      location: '   '
+    });
+
+    const requestOptions = fetch.mock.calls[0][1];
+    expect(JSON.parse(requestOptions.body)).toMatchObject({ location: null });
+  });
+
+  it('preserves missing locations in garden summaries', async () => {
+    fetch.mockResolvedValue(createJsonResponse({
+      status: 200,
+      body: [{ id: 4, name: 'Kitchen Garden', location: null }],
+      headers: { 'content-type': 'application/json' }
+    }));
+
+    await expect(apiClient.getGardenSummaries()).resolves.toEqual([
+      expect.objectContaining({ location: null })
+    ]);
+  });
+
   it('keeps the failed action visible when shared recovery copy is used', () => {
     expect(getActionErrorMessage(
       { message: NETWORK_ERROR_MESSAGE, code: API_ERROR_CODES.NETWORK_ERROR },

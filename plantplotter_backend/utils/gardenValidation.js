@@ -127,7 +127,7 @@ const validateGardenPayload = (rawData = {}) => {
     field: 'Location',
     required: false,
     maxLength: 100,
-    defaultValue: 'Garden'
+    defaultValue: null
   });
   if (location.error) errors.location = location.error;
 
