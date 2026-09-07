@@ -1,6 +1,43 @@
-'use client';
 import Link from 'next/link';
 import { Leaf, Sprout, TrendingUp, ArrowRight } from 'lucide-react';
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TITLE,
+  SOCIAL_IMAGE_PATH
+} from '@/lib/siteMetadata';
+
+export const metadata = {
+  alternates: {
+    canonical: '/'
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_CA',
+    url: '/',
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: SOCIAL_IMAGE_PATH,
+        width: 1200,
+        height: 630,
+        alt: 'PlantPlotter garden planning workspace'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [SOCIAL_IMAGE_PATH]
+  },
+  robots: {
+    index: true,
+    follow: true
+  }
+};
 
 const features = [
   {
