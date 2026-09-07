@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { Leaf, Sprout } from 'lucide-react';
+import { createNoIndexMetadata } from '@/lib/siteMetadata';
 
-export const metadata = {
-  title: 'Page not found | PlantPlotter'
-};
+export const metadata = createNoIndexMetadata(
+  'Page not found',
+  'The requested PlantPlotter page could not be found.'
+);
 
 export default function NotFound() {
   return (
