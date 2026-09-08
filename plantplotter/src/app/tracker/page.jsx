@@ -236,16 +236,16 @@ function TrackingPageContent() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Sprout className="w-8 h-8 text-green-600" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">No gardens found</h3>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">No gardens yet</h3>
           <p className="text-gray-600 mb-6">
-            You need to create at least one garden before you can start tracking activities.
+            Create a garden in My Gardens to start tracking care tasks and activities.
           </p>
           <Link
             href="/gardens"
             className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
           >
             <Sprout className="w-5 h-5" />
-            Create Your First Garden
+            Go to My Gardens
           </Link>
         </div>
       </div>

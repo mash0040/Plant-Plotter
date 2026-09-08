@@ -84,12 +84,13 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Leaf className="w-6 h-6 text-gray-500" />
           </div>
-          <p className="text-gray-500 text-sm">No gardens available</p>
+          <h4 className="text-sm font-medium text-gray-700">No gardens yet</h4>
+          <p className="mt-1 text-sm text-gray-500">Create a garden in My Gardens to start tracking care.</p>
           <Link
             href="/gardens" 
             className="text-green-600 hover:text-green-700 text-sm font-medium mt-2 inline-block"
           >
-            Create your first garden
+            Go to My Gardens
           </Link>
         </div>
       )}

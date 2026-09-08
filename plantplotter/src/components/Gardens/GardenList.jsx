@@ -77,7 +77,7 @@ export default function GardenList({
                 className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" />
-                Add New Garden
+                Create Garden
               </button>
             </div>
           </div>
@@ -193,14 +193,14 @@ export default function GardenList({
             </div>
             <h3 className="text-xl font-semibold text-gray-800 mb-2">No gardens yet</h3>
             <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Create your first garden space, then plan plants and track care from one place.
+              Create a garden to start planning plants and tracking care in one place.
             </p>
             <button
               onClick={onAddNew}
               className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
             >
               <Plus className="w-5 h-5" />
-              Create First Garden
+              Create Garden
             </button>
           </div>
         )}
