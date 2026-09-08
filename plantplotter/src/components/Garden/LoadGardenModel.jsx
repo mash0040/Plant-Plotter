@@ -145,8 +145,8 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🌱</span>
             </div>
-            <h4 className="text-lg font-semibold text-gray-800 mb-2">No saved gardens found</h4>
-            <p className="text-gray-600">Create your first garden to get started!</p>
+            <h4 className="text-lg font-semibold text-gray-800 mb-2">No gardens yet</h4>
+            <p className="text-gray-600">Create a garden before loading a saved layout.</p>
           </div>
         ) : (
           <div className="space-y-3">

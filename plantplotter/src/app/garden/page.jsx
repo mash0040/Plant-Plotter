@@ -1098,7 +1098,7 @@ function GardenPlannerPageContent() {
                 className="mx-auto flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-white px-4 py-3 text-sm font-semibold text-green-800 shadow-sm transition-colors hover:bg-green-50"
               >
                 <Plus className="w-4 h-4" />
-                Create Another Garden
+                Create Garden
               </button>
             </div>
           ) : (
@@ -1109,7 +1109,7 @@ function GardenPlannerPageContent() {
                 </div>
                 <h1 className="text-2xl font-semibold text-gray-900 mb-2">No gardens yet</h1>
                 <p className="text-gray-600 mb-6">
-                  Create your first garden space, then you can open the planner and start adding plants.
+                  Create a garden to open the planner and start adding plants.
                 </p>
                 <button
                   type="button"
