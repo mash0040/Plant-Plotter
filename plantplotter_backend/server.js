@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const { generalApiLimiter } = require('./middleware/rateLimiters');
+const { CSRF_HEADER_NAME, requireCsrfProtection } = require('./middleware/csrfProtection');
 const { sendDatabaseAwareErrorResponse } = require('./utils/databaseAvailability');
 const { sendErrorResponse } = require('./utils/apiErrorResponse');
 require('dotenv').config();
@@ -30,12 +32,13 @@ app.use(cors({
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', CSRF_HEADER_NAME]
 }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Request logging middleware (only log method and URL, not body)
 app.use((req, res, next) => {
@@ -44,6 +47,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/api', generalApiLimiter);
+app.use('/api', requireCsrfProtection);
 
 // Import routes
 const userRoutes = require('./routes/users');

@@ -1,26 +1,15 @@
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = require('../config/jwtSecret');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
+const { clearAuthCookie, getAuthCookieName } = require('../utils/authCookie');
 
 const verifyToken = (req, res, next) => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.header('Authorization');
+    const token = req.cookies?.[getAuthCookieName()];
     
-    if (!authHeader) {
-      return sendErrorResponse(res, 401, 'Access denied. No token provided.', {
-        code: 'NO_AUTH_HEADER'
-      });
-    }
-
-    // Extract token from "Bearer TOKEN" format
-    const token = authHeader.startsWith('Bearer ') 
-      ? authHeader.slice(7) 
-      : authHeader;
-
     if (!token) {
-      return sendErrorResponse(res, 401, 'Access denied. Invalid token format.', {
-        code: 'INVALID_TOKEN_FORMAT'
+      return sendErrorResponse(res, 401, 'Please sign in to continue.', {
+        code: 'AUTH_REQUIRED'
       });
     }
 
@@ -54,15 +43,16 @@ const verifyToken = (req, res, next) => {
 
   } catch (error) {
     console.error('Token verification failed:', error.message);
+    clearAuthCookie(res);
     
     if (error.name === 'JsonWebTokenError') {
-      return sendErrorResponse(res, 401, 'Invalid token.', {
+      return sendErrorResponse(res, 401, 'Your session is invalid. Please sign in again.', {
         code: 'INVALID_TOKEN'
       });
     }
     
     if (error.name === 'TokenExpiredError') {
-      return sendErrorResponse(res, 401, 'Token expired.', {
+      return sendErrorResponse(res, 401, 'Your session expired. Please sign in again.', {
         code: 'TOKEN_EXPIRED'
       });
     }

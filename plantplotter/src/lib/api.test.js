@@ -179,6 +179,28 @@ describe('apiClient error handling', () => {
     window.removeEventListener('plantplotter:auth-expired', authExpiredListener);
   });
 
+  it('treats the initial cookie check as anonymous without an expired-session event', async () => {
+    localStorage.setItem('gardens', JSON.stringify([{ id: 1 }]));
+    const authExpiredListener = vi.fn();
+    window.addEventListener('plantplotter:auth-expired', authExpiredListener);
+    fetch.mockResolvedValue(createJsonResponse({
+      status: 401,
+      body: {
+        message: 'Please sign in to continue.',
+        code: 'AUTH_REQUIRED'
+      }
+    }));
+
+    await expect(apiClient.getProfile({ suppressAuthExpired: true })).rejects.toMatchObject({
+      status: 401,
+      code: 'AUTH_REQUIRED'
+    });
+
+    expect(authExpiredListener).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem('gardens'))).toEqual([{ id: 1 }]);
+    window.removeEventListener('plantplotter:auth-expired', authExpiredListener);
+  });
+
   it('keeps login 401 responses as invalid-credentials errors', async () => {
     localStorage.setItem('token', 'existing-token');
 
@@ -198,11 +220,12 @@ describe('apiClient error handling', () => {
     expect(localStorage.getItem('token')).toBe('existing-token');
   });
 
-  it('stores successful login tokens only under the current token key', async () => {
+  it('uses cookie credentials for login without storing a browser-readable token', async () => {
+    localStorage.setItem('token', 'stale-token');
+    localStorage.setItem('authToken', 'older-stale-token');
     fetch.mockResolvedValue(createJsonResponse({
       status: 200,
       body: {
-        token: 'new-login-token',
         user: {
           id: 1,
           username: 'Demo User',
@@ -216,19 +239,23 @@ describe('apiClient error handling', () => {
 
     await apiClient.login('demo@example.com', 'password');
 
-    expect(localStorage.getItem('token')).toBe('new-login-token');
+    expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('authToken')).toBeNull();
-    expect(JSON.parse(localStorage.getItem('user'))).toMatchObject({
-      username: 'Demo User',
-      email: 'demo@example.com'
-    });
+    expect(localStorage.getItem('user')).toBeNull();
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/auth/login'), expect.objectContaining({
+      credentials: 'include',
+      headers: expect.objectContaining({
+        'X-CSRF-Protection': '1'
+      })
+    }));
   });
 
-  it('stores successful registration tokens only under the current token key', async () => {
+  it('uses cookie credentials for registration without storing a browser-readable token', async () => {
+    localStorage.setItem('token', 'stale-token');
+    localStorage.setItem('authToken', 'older-stale-token');
     fetch.mockResolvedValue(createJsonResponse({
       status: 201,
       body: {
-        token: 'new-register-token',
         user: {
           id: 2,
           username: 'New User',
@@ -242,15 +269,18 @@ describe('apiClient error handling', () => {
 
     await apiClient.register('New User', 'new@example.com', 'Password123');
 
-    expect(localStorage.getItem('token')).toBe('new-register-token');
+    expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('authToken')).toBeNull();
-    expect(JSON.parse(localStorage.getItem('user'))).toMatchObject({
-      username: 'New User',
-      email: 'new@example.com'
-    });
+    expect(localStorage.getItem('user')).toBeNull();
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/auth/register'), expect.objectContaining({
+      credentials: 'include',
+      headers: expect.objectContaining({
+        'X-CSRF-Protection': '1'
+      })
+    }));
   });
 
-  it('keeps reading the legacy authToken key for existing sessions', async () => {
+  it('uses the session cookie instead of legacy bearer headers on protected requests', async () => {
     localStorage.setItem('authToken', 'legacy-token');
 
     fetch.mockResolvedValue(createJsonResponse({
@@ -268,9 +298,81 @@ describe('apiClient error handling', () => {
     await apiClient.getProfile();
 
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/users/profile'), expect.objectContaining({
+      credentials: 'include'
+    }));
+    expect(fetch.mock.calls[0][1].headers.Authorization).toBeUndefined();
+  });
+
+  it('sends CSRF protection only for unsafe methods', async () => {
+    fetch.mockResolvedValue(createJsonResponse({
+      status: 200,
+      body: { id: 1 },
+      headers: { 'content-type': 'application/json' }
+    }));
+
+    await apiClient.getProfile();
+    expect(fetch.mock.calls[0][1].headers['X-CSRF-Protection']).toBeUndefined();
+
+    await apiClient.updateProfile({ username: 'Demo User', email: 'demo@example.com' });
+    expect(fetch.mock.calls[1][1].headers['X-CSRF-Protection']).toBe('1');
+  });
+
+  it('calls the logout endpoint and clears legacy browser session data', async () => {
+    localStorage.setItem('token', 'legacy-token');
+    localStorage.setItem('authToken', 'older-token');
+    localStorage.setItem('user', JSON.stringify({ username: 'Demo User' }));
+    localStorage.setItem('gardens', JSON.stringify([{ id: 1 }]));
+    fetch.mockResolvedValue(createJsonResponse({
+      status: 200,
+      body: { message: 'Signed out successfully' },
+      headers: { 'content-type': 'application/json' }
+    }));
+
+    await apiClient.logout();
+
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/auth/logout'), expect.objectContaining({
+      method: 'POST',
+      credentials: 'include',
       headers: expect.objectContaining({
-        Authorization: 'Bearer legacy-token'
+        'X-CSRF-Protection': '1'
       })
     }));
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(localStorage.getItem('authToken')).toBeNull();
+    expect(localStorage.getItem('user')).toBeNull();
+    expect(localStorage.getItem('gardens')).toBeNull();
+  });
+
+  it('sends account deletion with cookie credentials and clears local cached data', async () => {
+    localStorage.setItem('gardens', JSON.stringify([{ id: 1 }]));
+    fetch.mockResolvedValue(createJsonResponse({
+      status: 200,
+      body: { message: 'Account deleted successfully' },
+      headers: { 'content-type': 'application/json' }
+    }));
+
+    await apiClient.deleteAccount();
+
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/users/account'), expect.objectContaining({
+      method: 'DELETE',
+      credentials: 'include',
+      headers: expect.objectContaining({
+        'X-CSRF-Protection': '1'
+      })
+    }));
+    expect(localStorage.getItem('gardens')).toBeNull();
+  });
+
+  it('keeps local session context available when logout cannot reach the server', async () => {
+    localStorage.setItem('user', JSON.stringify({ username: 'Demo User' }));
+    localStorage.setItem('gardens', JSON.stringify([{ id: 1 }]));
+    fetch.mockRejectedValue(new TypeError('fetch failed'));
+
+    await expect(apiClient.logout()).rejects.toMatchObject({
+      code: API_ERROR_CODES.NETWORK_ERROR
+    });
+
+    expect(localStorage.getItem('user')).not.toBeNull();
+    expect(localStorage.getItem('gardens')).not.toBeNull();
   });
 });

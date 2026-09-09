@@ -4,6 +4,7 @@ const verifyToken = require('../middleware/verifyToken');
 const { validateEmail } = require('../utils/emailValidation');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
+const { clearAuthCookie } = require('../utils/authCookie');
 
 // GET /api/users/profile - Get user profile with preferences
 router.get('/profile', verifyToken, async (req, res) => {
@@ -128,6 +129,7 @@ router.delete('/account', verifyToken, async (req, res) => {
 
     if (user.length === 0) {
       await connection.rollback();
+      clearAuthCookie(res);
       return sendErrorResponse(res, 404, 'User not found', {
         code: 'USER_NOT_FOUND'
       });
@@ -139,6 +141,7 @@ router.delete('/account', verifyToken, async (req, res) => {
     );
 
     await connection.commit();
+    clearAuthCookie(res);
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
     if (connection) {
