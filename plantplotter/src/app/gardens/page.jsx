@@ -78,15 +78,6 @@ function AllGardensContent() {
       setLoading(true);
       setError(null);
       
-      const isAuth = apiClient.isAuthenticated();
-      
-      if (!isAuth) {
-        setError('Please sign in to view your gardens.');
-        setGardens([]);
-        setLoading(false);
-        return;
-      }
-
       const gardens = await apiClient.getGardenSummaries();
       
       if (!Array.isArray(gardens)) {

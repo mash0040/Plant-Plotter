@@ -15,22 +15,6 @@ const getUserWithDisplayName = (userData = {}) => ({
   username: userData.username || userData.name || 'User'
 });
 
-const getCachedAuthUser = () => {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const cachedUser = localStorage.getItem('user');
-    if (!cachedUser) return null;
-
-    const userData = JSON.parse(cachedUser);
-    if (!userData || typeof userData !== 'object') return null;
-
-    return getUserWithDisplayName(userData);
-  } catch (storageError) {
-    return null;
-  }
-};
-
 export const AuthProvider = ({ children }) => {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -38,28 +22,22 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   // Tracks whether the user was authenticated during this tab's lifetime.
   // We only show "Your session expired" if a real, established session was lost —
-  // not on initial token validation against a stale localStorage value.
+  // not on the initial cookie check for an anonymous visitor.
   const hadActiveSessionRef = useRef(false);
 
   // Function to fetch fresh user profile from API
-  const fetchUserProfile = useCallback(async (skipLoading = false) => {
+  const fetchUserProfile = useCallback(async (skipLoading = false, suppressAuthExpired = false) => {
     try {
       if (!skipLoading) {
         setLoading(true);
       }
       
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      if (!token) {
-        setLoading(false);
-        return null;
-      }
-
       // Check if getProfile method exists
       if (!apiClient.getProfile) {
         throw new Error('getProfile method not found in apiClient');
       }
       
-      const userData = await apiClient.getProfile();
+      const userData = await apiClient.getProfile({ suppressAuthExpired });
       
       if (!userData) {
         return null;
@@ -70,21 +48,20 @@ export const AuthProvider = ({ children }) => {
       
       setUser(userWithDisplayName);
       
-      // Update localStorage with fresh data
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(userWithDisplayName));
-      }
-      
       return userWithDisplayName;
       
     } catch (error) {
       // Handle authentication errors
       if (isAuthenticationError(error)) {
-        apiClient.logout();
+        if (suppressAuthExpired) {
+          apiClient.clearLegacyAuthStorage();
+        } else {
+          apiClient.clearUserSessionStorage();
+        }
         setUser(null);
         hadActiveSessionRef.current = false;
 
-        if (typeof window !== 'undefined') {
+        if (!suppressAuthExpired && typeof window !== 'undefined') {
           if (error.code === 'TOKEN_EXPIRED') {
             try {
               window.sessionStorage.setItem(SESSION_EXPIRED_FLAG, '1');
@@ -97,14 +74,12 @@ export const AuthProvider = ({ children }) => {
             router.replace('/login');
           }
         }
+
+        if (!suppressAuthExpired) {
+          throw error;
+        }
       }
 
-      const cachedUser = getCachedAuthUser();
-      if (cachedUser) {
-        setUser(cachedUser);
-        return cachedUser;
-      }
-      
       return null;
     } finally {
       if (!skipLoading) {
@@ -118,17 +93,12 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       try {
         if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-          
-          if (token) {
-            await fetchUserProfile();
-          } else {
-            setLoading(false);
-          }
+          apiClient.clearLegacyAuthStorage();
+          await fetchUserProfile(false, true);
         }
       } catch (err) {
         if (typeof window !== 'undefined') {
-          apiClient.logout();
+          apiClient.clearUserSessionStorage();
         }
         setUser(null);
         setLoading(false);
@@ -147,7 +117,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
 
       // Only flag "session expired" if the user actually had a live session.
-      // A 401 during initial token validation (stale localStorage on cold load)
+      // A 401 during the initial cookie check for an anonymous visitor
       // should NOT surface a session-expired banner.
       if (wasAuthenticated && typeof window !== 'undefined') {
         try {
@@ -262,7 +232,7 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setLoading(true);
       const response = await apiClient.deleteAccount();
-      apiClient.logout();
+      apiClient.clearUserSessionStorage();
       hadActiveSessionRef.current = false;
       setUser(null);
       if (typeof window !== 'undefined') {
@@ -282,9 +252,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     try {
-      apiClient.logout();
+      await apiClient.logout();
       hadActiveSessionRef.current = false;
       setUser(null);
       setError(null);
@@ -297,6 +267,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Logout error:', err);
+      setError(getUserFacingErrorMessage(err));
+      throw err;
     }
   };
 

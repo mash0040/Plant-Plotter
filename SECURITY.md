@@ -1,56 +1,58 @@
 # Security Notes
 
-Plant Plotter is a portfolio-ready application with a simple JWT authentication model. This file documents the current security posture and the safest incremental path for hardening it.
+Plant Plotter uses a signed JWT inside an httpOnly authentication cookie. The browser sends the cookie to the Express API, but client-side JavaScript cannot read the session credential.
 
-## Current JWT Lifecycle
+## Authentication Session
 
 - Login and registration are handled by the Express API in `plantplotter_backend/controllers/userController.js`.
-- On successful login or registration, the backend signs a JWT with `jsonwebtoken`.
-- The token payload includes the user id, email, username, and role.
-- Token lifetime is controlled by `JWT_EXPIRES_IN`; if unset, the backend defaults to `24h`.
-- The frontend stores the JWT in `localStorage` under `token`.
-- Older browser sessions may still have a legacy `authToken` key. The API client can read that key for compatibility, but new sessions do not write it.
-- API requests attach the JWT as `Authorization: Bearer <token>`.
-- Protected backend routes verify the JWT with `plantplotter_backend/middleware/verifyToken.js`.
-- Logout clears `token`, the legacy `authToken`, cached `user`, and cached `gardens` from `localStorage`.
-- Account deletion calls the backend delete endpoint, then clears the same local session state.
-- Protected-route `401` responses clear local session state and notify the app to redirect to login.
-- Login and registration `401` responses are treated as auth-entry errors, not expired-session events.
+- A successful login or registration signs a JWT with `jsonwebtoken` and sets it as an httpOnly cookie. The token is not included in the JSON response.
+- The JWT payload includes the user id, email, username, and role.
+- `JWT_EXPIRES_IN` controls both the JWT expiry and the cookie lifetime; the backend defaults to `24h` when it is unset.
+- Local development uses the host-only `plantplotter_session` cookie with `SameSite=Lax` and `Path=/`.
+- Production uses `__Host-plantplotter_session`, which is host-only, `Secure`, httpOnly, `SameSite=Lax`, and has `Path=/`.
+- Protected backend routes read and verify the cookie in `plantplotter_backend/middleware/verifyToken.js`.
+- The frontend uses `credentials: include` for API requests and never reads the authentication cookie.
+- Logout calls `POST /api/auth/logout`; logout and successful account deletion expire the authentication cookie in the backend response.
+- Invalid or expired cookies are also cleared when authentication verification fails.
+- Protected-route `401` responses notify the app and redirect an established session to login with user-friendly expired-session copy.
 
-## localStorage JWT Tradeoff
+The previous `localStorage` bearer-token model is no longer accepted by protected endpoints. The frontend removes stale `token`, `authToken`, and cached auth-user values left by earlier builds. Users with one of those older sessions must sign in once after this change is deployed.
 
-Storing JWTs in `localStorage` keeps the frontend/backend deployment simple and works with the current Render API plus Vercel frontend setup. The tradeoff is that any successful cross-site scripting issue on the Plant Plotter origin could read the JWT with JavaScript.
+## Cookie Policy
 
-This does not mean an XSS vulnerability is currently known. It means the impact of a future XSS bug would be higher than it would be with an httpOnly cookie session.
+The authentication cookie is strictly necessary for account login and protected application features. Plant Plotter does not currently set advertising or analytics cookies. The authentication cookie is not a consent or tracking cookie, and adding non-essential cookies in the future requires a separate privacy and consent review.
 
-## Current Low-Risk Hardening
+## SameSite And Deployment
 
-- New login and registration sessions now write only the `token` key instead of duplicating the JWT into both `token` and `authToken`.
-- The frontend still reads the old `authToken` key so existing browser sessions keep working.
-- Logout, account deletion, and session-expiry cleanup still remove both keys.
-- A broad frontend audit found no direct `dangerouslySetInnerHTML` or `innerHTML` usage.
-- No obvious token logging or user-facing token display was found in the frontend or backend code.
+Production uses `SameSite=Lax` because the canonical frontend (`https://www.plantplotter.me`) and API (`https://api.plantplotter.me`) are separate origins under the same HTTPS site. The cookie is not assigned a `Domain`, so it remains scoped to the API host instead of every `plantplotter.me` subdomain.
 
-## Future Migration Path
+Vercel must use `NEXT_PUBLIC_API_URL=https://api.plantplotter.me/api`. Render must set `NODE_ENV=production` and configure `FRONTEND_URL` with the exact canonical frontend origin. Credentialed CORS must never use a wildcard origin.
 
-A stronger session model should move authentication to secure, httpOnly cookies. That should be done as a dedicated feature because it touches backend CORS, cookie settings, CSRF protection, frontend request credentials, logout behavior, and production platform configuration.
+Vercel preview domains are cross-site with `api.plantplotter.me` and are not part of the production cookie contract. Test production authentication through the canonical custom domain.
 
-Recommended sequence:
+## CSRF Protection
 
-1. Add backend support for issuing an httpOnly, `Secure`, `SameSite` cookie on login and registration.
-2. Add CSRF protection for cookie-authenticated unsafe methods such as POST, PUT, PATCH, and DELETE.
-3. Update frontend requests to use credentialed fetch calls.
-4. Keep bearer-token auth temporarily during migration if needed.
-5. Update logout and account deletion to expire the auth cookie server-side.
-6. Add tests for login, registration, protected requests, logout, CSRF rejection, and expired sessions.
-7. Remove browser-accessible JWT storage once cookie auth is verified in local, preview, and production environments.
+- Every unsafe API method (`POST`, `PUT`, `PATCH`, and `DELETE`) requires `X-CSRF-Protection: 1`.
+- The shared frontend API client adds this header automatically.
+- The custom header forces browser cross-origin requests through CORS preflight.
+- Backend CORS allows credentials and only explicitly configured frontend origins.
+- Requests without the required header receive `403 CSRF_VALIDATION_FAILED` before route handlers can change data.
+- `SameSite=Lax` provides an additional browser-level restriction but is not treated as the only CSRF defense.
 
-Refresh tokens are a related but separate design decision. If added, refresh tokens should be stored only in httpOnly cookies and rotated or invalidated server-side.
+API tools used for manual testing must send both the authentication cookie and the CSRF header for unsafe endpoints. Safe methods such as `GET`, `HEAD`, and `OPTIONS` do not require the header.
+
+## Password Reset
+
+Password-reset tokens are separate from authentication sessions. They remain short-lived, single-use values delivered through the reset link and are not stored as browser authentication credentials.
+
+## Known Limitation
+
+Refresh tokens and server-side JWT revocation are not implemented. Session JWTs expire according to `JWT_EXPIRES_IN`; signing out removes the browser cookie, while changing `JWT_SECRET` invalidates all outstanding sessions.
 
 ## Developer Guidance
 
-- Do not log JWTs, password reset tokens, authorization headers, or raw credential payloads.
-- Do not display tokens or authorization headers in user-facing UI.
+- Do not log JWTs, password-reset tokens, cookies, authorization headers, or raw credential payloads.
+- Do not display session credentials in user-facing UI.
 - Avoid unsafe HTML injection. Prefer React text rendering for user-provided content.
 - Treat any future use of `dangerouslySetInnerHTML`, `innerHTML`, markdown rendering, rich text rendering, or third-party embeds as a security review point.
-- Keep real secrets in local/platform environment variables only. Do not commit `.env` or `.env.local` files.
+- Keep real secrets in local or platform environment variables only. Do not commit `.env` or `.env.local` files.

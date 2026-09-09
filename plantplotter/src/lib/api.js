@@ -16,6 +16,10 @@ const normalizeOptionalLocation = (location) => (
   typeof location === 'string' && location.trim() ? location.trim() : null
 );
 
+const UNSAFE_HTTP_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const CSRF_HEADER_NAME = 'X-CSRF-Protection';
+const CSRF_HEADER_VALUE = '1';
+
 class ApiClient {
   constructor() {
     if (!API_BASE_URL) {
@@ -28,19 +32,17 @@ class ApiClient {
 
   clearUserSessionStorage() {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      // Legacy key from earlier builds. Keep clearing it, but do not write it for new sessions.
-      localStorage.removeItem('authToken');
+      this.clearLegacyAuthStorage();
       localStorage.removeItem('user');
       localStorage.removeItem('gardens');
     }
   }
 
-  storeUserSession(token, user) {
+  clearLegacyAuthStorage() {
     if (typeof window !== 'undefined') {
-      this.clearUserSessionStorage();
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.removeItem('token');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
     }
   }
 
@@ -139,27 +141,24 @@ class ApiClient {
     };
   }
 
-  // Get auth token from localStorage. authToken is a legacy fallback for existing browser sessions.
-  getAuthToken() {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      return token;
-    }
-    return null;
-  }
-
   // Generic request method
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    const token = this.getAuthToken();
+    const {
+      headers: optionHeaders = {},
+      suppressAuthExpired = false,
+      ...requestOptions
+    } = options;
+    const method = (requestOptions.method || 'GET').toUpperCase();
 
     const config = {
+      ...requestOptions,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
+        ...(UNSAFE_HTTP_METHODS.has(method) && { [CSRF_HEADER_NAME]: CSRF_HEADER_VALUE }),
+        ...optionHeaders,
       },
-      ...options,
     };
 
     try {
@@ -181,7 +180,7 @@ class ApiClient {
 
         const apiError = this.buildApiError(response, errorData);
 
-        if (response.status === 401 && !isAuthEntryEndpoint) {
+        if (response.status === 401 && !isAuthEntryEndpoint && !suppressAuthExpired) {
           const authError = new ApiError('Your session expired. Please sign in again.', {
             status: 401,
             code: apiError.code || API_ERROR_CODES.AUTH_REQUIRED,
@@ -227,10 +226,7 @@ class ApiClient {
         body: JSON.stringify({ email, password }),
       });
 
-      if (response.token && typeof window !== 'undefined') {
-        this.storeUserSession(response.token, response.user);
-      }
-
+      this.clearLegacyAuthStorage();
       return response;
     } catch (error) {
       console.error('Login failed:', error);
@@ -238,8 +234,13 @@ class ApiClient {
     }
   }
 
-  logout() {
+  async logout() {
+    const response = await this.request('/auth/logout', {
+      method: 'POST',
+      suppressAuthExpired: true
+    });
     this.clearUserSessionStorage();
+    return response;
   }
 
   // Register new user
@@ -254,10 +255,7 @@ class ApiClient {
         }),
       });
 
-      if (response.token && typeof window !== 'undefined') {
-        this.storeUserSession(response.token, response.user);
-      }
-
+      this.clearLegacyAuthStorage();
       return response;
     } catch (error) {
       console.error('Registration failed:', error);
@@ -290,10 +288,11 @@ class ApiClient {
   }
 
   // Get user profile with preferences
-  async getProfile() {
+  async getProfile({ suppressAuthExpired = false } = {}) {
     try {
       const response = await this.request('/users/profile', {
-        method: 'GET'
+        method: 'GET',
+        suppressAuthExpired
       });
       
       return response;
@@ -842,20 +841,6 @@ class ApiClient {
     }
   }
 
-  // Helper methods
-  isAuthenticated() {
-    const token = this.getAuthToken();
-    return !!token;
-  }
-
-  getCurrentUser() {
-    if (typeof window !== 'undefined') {
-      const userStr = localStorage.getItem('user');
-      return userStr ? JSON.parse(userStr) : null;
-    }
-    return null;
-  }
-
   // Debug methods
   async testConnection() {
     try {
@@ -869,18 +854,8 @@ class ApiClient {
 
   async testGardensEndpoint() {
     try {
-      const response = await fetch(`${this.baseURL}/gardens`, {
-        headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        return true;
-      } else {
-        return false;
-      }
+      await this.request('/gardens');
+      return true;
     } catch (error) {
       console.error('Gardens endpoint test failed:', error);
       return false;

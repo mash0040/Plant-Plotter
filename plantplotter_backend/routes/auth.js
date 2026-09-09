@@ -10,6 +10,9 @@ router.post('/login', authLimiter, userController.loginUser);
 // POST /api/auth/register  
 router.post('/register', authLimiter, userController.registerUser);
 
+// POST /api/auth/logout
+router.post('/logout', userController.logoutUser);
+
 // POST /api/auth/forgot-password
 router.post('/forgot-password', passwordResetLimiter, userController.forgotPassword);
 

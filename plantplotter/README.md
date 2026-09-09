@@ -32,6 +32,8 @@ NEXT_PUBLIC_API_URL=https://api.plantplotter.me/api
 
 The GitHub Actions frontend build uses this production API URL. Vercel should also define `NEXT_PUBLIC_API_URL` for deployed builds.
 
+The API issues authentication through an httpOnly cookie. The shared API client uses credentialed fetch requests automatically, so feature code should continue using `src/lib/api.js` instead of calling protected backend endpoints directly. Unsafe API requests also receive the required CSRF protection header there.
+
 Use `plantplotter/.env.local` for local values. Keep `plantplotter/.env.local.example` safe for documented defaults. Do not commit real local environment files.
 Only `NEXT_PUBLIC_*` values should be placed in frontend environment files because they are exposed to browser code.
 

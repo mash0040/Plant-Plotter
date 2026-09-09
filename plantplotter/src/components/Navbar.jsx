@@ -66,11 +66,15 @@ export default function Navbar() {
     }
   }, [mounted, user, pathname, router, loading]);
 
-  const handleLogout = () => {
-    logout();
-    setShowUserMenu(false);
-    setMenuOpen(false);
-    router.replace('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setShowUserMenu(false);
+      setMenuOpen(false);
+      router.replace('/login');
+    } catch (error) {
+      // Keep the current page and menu available so the user can retry.
+    }
   };
 
   // Don't render anything during loading

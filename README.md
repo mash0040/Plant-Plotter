@@ -25,7 +25,7 @@ After the group project delivery, I independently improved and expanded the appl
 ## Current Features
 
 - Public landing page with dedicated login and create-account flows
-- User registration and login with JWT-protected routes
+- User registration and login with an httpOnly cookie-backed JWT session
 - Secure password reset via email
 - Garden create, edit, delete, and detail views
 - Visual garden planner with plant placement, footprint validation, row planting, and save flow
@@ -129,7 +129,7 @@ Only `NEXT_PUBLIC_*` values are exposed to the browser. Do not put private secre
 | --- | --- |
 | `PORT` | Local API port. Default local value is `5001`. |
 | `NODE_ENV` | Runtime mode, usually `development`, `test`, or `production`. |
-| `FRONTEND_URL` | Comma-separated list of allowed browser origins for CORS. Local value is `http://localhost:3000`. |
+| `FRONTEND_URL` | Comma-separated list of exact browser origins allowed to make credentialed CORS requests. Local value is `http://localhost:3000`; production uses `https://www.plantplotter.me`. |
 | `DB_HOST` | MySQL host. Use your local MySQL host locally and the Aiven host in production. |
 | `DB_PORT` | MySQL port. Default is `3306`. |
 | `DB_USER` | MySQL username. |
@@ -142,8 +142,8 @@ Only `NEXT_PUBLIC_*` values are exposed to the browser. Do not put private secre
 | `DB_SSL` | Enables MySQL TLS. Local default is `false`; production must be `true`. |
 | `DB_SSL_REJECT_UNAUTHORIZED` | Verifies the database certificate. Production must be `true`. |
 | `DB_SSL_CA_PATH` | Filesystem path to the trusted Aiven CA certificate in production. |
-| `JWT_SECRET` | Required signing secret for JWTs. Use a long private value. |
-| `JWT_EXPIRES_IN` | JWT lifetime, for example `1h` locally. |
+| `JWT_SECRET` | Required signing secret for the JWT stored in the httpOnly session cookie. Use a long private value. |
+| `JWT_EXPIRES_IN` | Session JWT and cookie lifetime, for example `1h` locally. |
 | `PASSWORD_RESET_BASE_URL` | Frontend password reset URL. Local value is `http://localhost:3000/reset-password`. |
 | `EMAIL_PROVIDER` | Email provider for password reset, currently `resend` or `sendgrid`. |
 | `EMAIL_FROM` | Verified sender address for password reset email. |
@@ -254,7 +254,7 @@ Try the app live at https://www.plantplotter.me
 
 ## Known Limitations
 
-- Authentication currently stores the access JWT in browser `localStorage`; the tradeoff and migration plan are documented in [SECURITY.md](./SECURITY.md).
+- Authentication uses a host-only, httpOnly JWT cookie. Production enables `Secure`; the session and CSRF model are documented in [SECURITY.md](./SECURITY.md).
 - Refresh tokens are not implemented yet; expired sessions redirect users to sign in again.
 - Tracker weather requires browser location access. When permission is denied or location cannot be resolved, the tracker does not substitute another location and instead provides a retryable message. Garden placement labels such as `Backyard` are not treated as geographic addresses.
 - Email reminders, weather alerts, public garden sharing, and public profiles are planned future improvements.

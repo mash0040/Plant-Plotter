@@ -7,6 +7,7 @@ const { validateEmail } = require('../utils/emailValidation');
 const { requestPasswordReset, resetPassword } = require('../utils/passwordResetService');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
+const { clearAuthCookie, setAuthCookie } = require('../utils/authCookie');
 
 const normalizeEmail = (email) => (
   typeof email === 'string' ? email.trim().toLowerCase() : ''
@@ -59,7 +60,7 @@ const registerUser = async (req, res) => {
 
     const userId = result.insertId;
 
-    // Generate JWT token for immediate login
+    // Generate the JWT stored in the httpOnly session cookie.
     const tokenPayload = { 
       id: userId, 
       email: trimmedEmail,
@@ -73,10 +74,10 @@ const registerUser = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
-    // Return success with token (for immediate login)
+    setAuthCookie(res, token);
+
     res.status(201).json({ 
       message: 'User registered successfully',
-      token: token,
       user: {
         id: userId,
         username: trimmedUsername,
@@ -126,7 +127,7 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Create a token
+    // Generate the JWT stored in the httpOnly session cookie.
     const tokenPayload = { 
       id: user.id, 
       email: user.email,
@@ -140,10 +141,10 @@ const loginUser = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
-    // Return token in response
+    setAuthCookie(res, token);
+
     res.json({
       message: 'Login successful',
-      token, 
       user: {
         id: user.id,
         username: user.username,
@@ -188,9 +189,15 @@ const resetUserPassword = async (req, res) => {
   }
 };
 
+const logoutUser = (req, res) => {
+  clearAuthCookie(res);
+  res.json({ message: 'Signed out successfully' });
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  logoutUser,
   forgotPassword,
   resetUserPassword
 };
