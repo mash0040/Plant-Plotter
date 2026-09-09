@@ -127,7 +127,8 @@ export default function GardenCanvas({
 
             {placementPreview && (
               <div
-                className={`absolute pointer-events-none rounded-xl border-2 border-dashed z-20 ${
+                aria-hidden="true"
+                className={`pointer-events-none absolute z-20 rounded-lg border-2 border-dashed transition-colors duration-100 motion-reduce:transition-none ${
                   placementPreview.isValid
                     ? 'border-green-500 bg-green-200/35'
                     : 'border-red-500 bg-red-200/35'

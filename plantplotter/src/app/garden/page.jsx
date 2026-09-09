@@ -42,6 +42,7 @@ function GardenPlannerPageContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isTouchPlanner, setIsTouchPlanner] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [plannerGardenSummaries, setPlannerGardenSummaries] = useState([]);
   const [isLoadingGardenSummaries, setIsLoadingGardenSummaries] = useState(false);
   const [gardenSummaryError, setGardenSummaryError] = useState('');
@@ -442,14 +443,14 @@ function GardenPlannerPageContent() {
   };
 
   const handleNewPlantPlacement = (newPlant, { allowDuplicate = false } = {}) => {
+    if (!validateNewPlantPlacement(newPlant)) return;
+
     const isDuplicate = checkForDuplicatePlant(newPlant, placedPlants);
 
     if (isDuplicate && !allowDuplicate) {
       setDuplicatePlantPending(newPlant);
       return;
     }
-
-    if (!validateNewPlantPlacement(newPlant)) return;
 
     addPlacedPlant(newPlant);
   };
@@ -530,8 +531,7 @@ function GardenPlannerPageContent() {
 
       if (!isOverGardenCanvas || outsideDistance > gridSize) {
         return {
-          isInsideCanvas: false,
-          message: 'Drop plants inside the garden canvas.'
+          isInsideCanvas: false
         };
       }
 
@@ -617,8 +617,6 @@ function GardenPlannerPageContent() {
       const placement = getLibraryPlantPlacement(event, draggedData);
 
       if (!placement?.isInsideCanvas) {
-        setLayoutSaveMessage('');
-        setLayoutSaveError(placement?.message || 'Drop plants inside the garden canvas.');
         return;
       }
 
@@ -812,6 +810,27 @@ function GardenPlannerPageContent() {
   const safeGardenName = getSafeGardenName(currentGarden);
   const activePlantFootprint = activePlant ? getPlantFootprint(activePlant) : 1;
   const isCompactDragOverlay = activePlantFootprint === 1 || gridSize < 48;
+  const isDraggingFromLibrary = typeof activeId === 'string' && activeId.startsWith('library-');
+  const dragPlacementState = placementPreview
+    ? (placementPreview.isValid ? 'valid' : 'invalid')
+    : 'neutral';
+  const dragIntentLabel = dragPlacementState === 'valid'
+    ? 'Ready to place'
+    : dragPlacementState === 'invalid'
+      ? 'Space blocked'
+      : isDraggingFromLibrary
+        ? 'Move onto garden'
+        : 'Move plant';
+  const dragOverlayTone = dragPlacementState === 'valid'
+    ? 'border-green-600 bg-green-50/95'
+    : dragPlacementState === 'invalid'
+      ? 'border-red-500 bg-red-50/95'
+      : 'border-green-700 bg-white/95';
+  const dragIntentTone = dragPlacementState === 'valid'
+    ? 'bg-green-600 text-white'
+    : dragPlacementState === 'invalid'
+      ? 'bg-red-600 text-white'
+      : 'bg-green-100 text-green-900';
 
   const getBestPlantCategory = (plant) => {
     const existingCategory = plant?.category || plant?.plant_category || plant?.type;
@@ -968,6 +987,18 @@ function GardenPlannerPageContent() {
     mediaQuery.addEventListener('change', updateTouchPlanner);
 
     return () => mediaQuery.removeEventListener('change', updateTouchPlanner);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updateMotionPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    updateMotionPreference();
+    mediaQuery.addEventListener('change', updateMotionPreference);
+
+    return () => mediaQuery.removeEventListener('change', updateMotionPreference);
   }, []);
 
   if (loading) {
@@ -1236,9 +1267,9 @@ function GardenPlannerPageContent() {
         {/* DragOverlay with enhanced visibility */}
         {!isTouchPlanner && (
         <DragOverlay
-          dropAnimation={{
-            duration: 200,
-            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+          dropAnimation={prefersReducedMotion ? null : {
+            duration: 180,
+            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
           }}
           style={{
             zIndex: 999999,
@@ -1251,40 +1282,24 @@ function GardenPlannerPageContent() {
                 height: activePlantFootprint * gridSize,
                 pointerEvents: 'none',
               }}
-              className="relative flex flex-col items-center justify-center overflow-visible border-4 border-green-500 rounded-xl bg-white shadow-2xl transform scale-125"
+              className={`relative flex items-center justify-center overflow-visible rounded-lg border-2 shadow-[0_12px_28px_-12px_rgba(20,83,45,0.55)] transition-[border-color,background-color,box-shadow] duration-150 motion-reduce:transition-none ${dragOverlayTone}`}
             >
-              {/* Glow effect background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-green-400/30 to-blue-400/30 rounded-xl blur-lg -z-10"></div>
-              
-              {/* Pulsing ring effect */}
-              <div className="absolute -inset-4 border-2 border-dashed border-green-400 rounded-xl opacity-60 animate-ping"></div>
-              
-              {/* Plant emoji - large and prominent */}
-              <div className={`${isCompactDragOverlay ? 'text-2xl' : 'text-5xl mb-2'} filter drop-shadow-2xl animate-bounce`}>
+              <div aria-hidden="true" className={`${isCompactDragOverlay ? 'text-lg' : 'text-4xl'} drop-shadow-sm`}>
                 {activePlant.emoji}
               </div>
-              
-              {/* Plant name with high contrast */}
-              <div className={`text-center font-bold text-gray-900 bg-white rounded-full border-2 border-green-500 shadow-lg ${
-                isCompactDragOverlay
-                  ? 'absolute -bottom-6 max-w-28 truncate px-2 py-0.5 text-[10px]'
-                  : 'px-3 py-1 text-sm'
-              }`}>
-                {activePlant.name}
-              </div>
-              
-              {/* Size indicator */}
-              {!isCompactDragOverlay && (
-                <div className="text-xs text-gray-700 mt-2 font-medium bg-green-100 px-2 py-1 rounded border border-green-300">
-                  {activePlantFootprint}x{activePlantFootprint} units
+
+              <div className="absolute left-1/2 top-full z-10 mt-2 w-max max-w-48 -translate-x-1/2 rounded-lg bg-white px-2.5 py-2 text-center shadow-[0_10px_24px_-12px_rgba(17,24,39,0.6)]">
+                <p className="truncate text-xs font-semibold text-green-950">
+                  {activePlant.name}
+                </p>
+                <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[10px] font-semibold">
+                  <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-green-900">
+                    {activePlantFootprint}x{activePlantFootprint} units
+                  </span>
+                  <span className={`rounded px-1.5 py-0.5 ${dragIntentTone}`}>
+                    {dragIntentLabel}
+                  </span>
                 </div>
-              )}
-              
-              {/* Drop zone indicator */}
-              <div className={`absolute text-green-600 font-medium bg-green-50 px-2 py-1 rounded border border-green-200 ${
-                isCompactDragOverlay ? '-bottom-12 text-[10px]' : '-bottom-6 text-xs'
-              }`}>
-                Drop on canvas
               </div>
             </div>
           ) : null}
