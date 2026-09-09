@@ -509,7 +509,7 @@ export default function PlantLibrary({
 
   if (loading) {
     return (
-      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white text-gray-900 border-r border-gray-200 flex items-center justify-center">
+      <div className="fixed left-0 top-0 flex h-dvh w-[85vw] max-w-80 items-center justify-center border-r border-gray-200 bg-white text-gray-900 lg:relative lg:w-64 lg:max-w-none">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading plants...</p>
@@ -520,7 +520,7 @@ export default function PlantLibrary({
 
   if (error) {
     return (
-      <div className="fixed lg:relative top-0 left-0 h-screen w-[85vw] max-w-80 lg:w-64 lg:max-w-none bg-white text-gray-900 border-r border-gray-200 flex flex-col">
+      <div className="fixed left-0 top-0 flex h-dvh w-[85vw] max-w-80 flex-col border-r border-gray-200 bg-white text-gray-900 lg:relative lg:w-64 lg:max-w-none">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -581,17 +581,17 @@ export default function PlantLibrary({
       <div className={`
         fixed lg:relative 
         top-0 left-0 
-        h-screen overflow-hidden
+        h-dvh overflow-hidden
         bg-white text-gray-900
-        border-r border-gray-200 
+        border-r border-green-200
         transform transition-transform duration-300 ease-in-out
         w-[85vw] max-w-80 lg:w-64 lg:max-w-none
         z-50 lg:z-auto
-        shadow-lg lg:shadow-none
+        shadow-lg lg:shadow-[6px_0_24px_-20px_rgba(20,83,45,0.8)]
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         flex flex-col
       `}>
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-green-100 bg-gradient-to-r from-emerald-50 to-white p-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
               <span className="text-green-600 text-sm font-bold">🌱</span>
@@ -626,7 +626,7 @@ export default function PlantLibrary({
           </div>
         </div>
         
-        <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
+        <div className="flex-shrink-0 border-b border-green-100 bg-white p-4">
           <div className="relative">
             <label htmlFor="plant-library-search" className="sr-only">Search plants</label>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />

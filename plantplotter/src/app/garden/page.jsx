@@ -1135,7 +1135,7 @@ function GardenPlannerPageContent() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-dvh overflow-hidden bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -1167,7 +1167,10 @@ function GardenPlannerPageContent() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-full min-h-0 min-w-0 relative">
+        <main
+          aria-label="Garden planner workspace"
+          className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col bg-emerald-50/40"
+        >
           <ControlPanel
             dimensions={dimensions}
             gridSize={gridSize}
@@ -1188,7 +1191,10 @@ function GardenPlannerPageContent() {
             saveError={layoutSaveError}
           />
 
-          <div className="flex-1 min-h-0 relative overflow-hidden">
+          <section
+            aria-label="Garden layout workspace"
+            className="relative min-h-0 flex-1 overflow-hidden border-t border-green-100 bg-emerald-100/50"
+          >
             <GardenCanvas
               dimensions={dimensions}
               gridSize={gridSize}
@@ -1200,8 +1206,8 @@ function GardenPlannerPageContent() {
               isPlantLibraryOpen={sidebarOpen}
               disablePlantDragging={isTouchPlanner}
             />
-          </div>
-        </div>
+          </section>
+        </main>
 
         {/* DragOverlay with enhanced visibility */}
         {!isTouchPlanner && (
