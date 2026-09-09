@@ -34,6 +34,7 @@ After the group project delivery, I independently improved and expanded the appl
 - Companion planting guidance based on the app’s plant dataset
 - Garden tracker with activity logs and planned care tasks
 - Today, upcoming, and overdue task organization
+- Recurring care tasks with daily, every-two-days, weekly, and monthly schedules
 - Task types for planting, watering, fertilizing, pruning, weeding, harvesting, inspection, treatment, and general tasks
 - Location-based tracker weather using browser coordinates and Open-Meteo
 - Profile settings and account deletion
@@ -194,7 +195,9 @@ mysql -u <user> -p < data_instance.sql
 ```
 
 The active database name is `garden_plotter`. The seed file is intended for local/demo setup only.
-Some features may include additional migration scripts in plantplotter_db/, such as password reset, task type updates, and performance indexes. Apply those after the base schema if needed.
+Some features include additional migration scripts in `plantplotter_db/`, such as password reset, task type updates, recurring-task integrity, and performance indexes. Apply the relevant migrations after the base schema. Existing databases must apply `task_recurrence_migration.sql` before relying on the recurring-task constraint.
+
+Recurring tasks support `daily`, `every-2-days`, `weekly`, and `monthly` schedules. Completing one atomically marks the current occurrence complete and creates exactly one pending occurrence. When the original schedule is overdue, missed occurrences are skipped and the next task keeps the original cadence after the completion date. Monthly schedules retain their calendar day when possible and otherwise use the target month's last day.
 
 ## Running Locally
 

@@ -32,7 +32,7 @@ The project is organized as a monorepo with `plantplotter/` for the Next.js fron
 
 ## Capabilities and Constraints
 
-Confirmed capabilities include public landing, account creation, login, httpOnly cookie-backed JWT sessions, password reset by email, garden create/edit/delete/detail flows, visual garden planning, plant placement, footprint validation, row planting, save flows, plant library categories and details, companion planting guidance, tracker activity logs, planned care tasks, today/upcoming/overdue organization, profile settings, and account deletion.
+Confirmed capabilities include public landing, account creation, login, httpOnly cookie-backed JWT sessions, password reset by email, garden create/edit/delete/detail flows, visual garden planning, plant placement, footprint validation, row planting, save flows, plant library categories and details, companion planting guidance, tracker activity logs, planned and recurring care tasks, today/upcoming/overdue organization, profile settings, and account deletion.
 
 The existing stack is binding unless a change is explicitly justified: Next.js, React, Tailwind CSS, Express.js, and MySQL. The backend stores garden dimensions internally in meters. The frontend may display dimensions in meters or feet, but conversion to meters happens before saving to the backend.
 

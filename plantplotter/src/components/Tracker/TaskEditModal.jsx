@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { X, Save, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 import { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
+import { TASK_RECURRENCE_OPTIONS } from '@/lib/taskRecurrence';
 
 const GENERAL_GARDEN_TASK_VALUE = '__whole_garden__';
 
@@ -71,13 +72,6 @@ export default function TaskEditModal({
     { value: 'other', label: 'Other', titleVerb: 'Plan' }
   ];
 
-  const recurringOptions = [
-    { value: 'none', label: 'None' },
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' }
-  ];
-
   const getDateKey = (value) => {
     if (!value) return '';
     if (typeof value === 'string') return value.split('T')[0];
@@ -142,7 +136,7 @@ export default function TaskEditModal({
         task_type: task.task_type || task.taskType || 'water',
         status: getBackendSafeStatus(task.status) || 'pending',
         estimated_duration: task.estimated_duration || '',
-        recurring_pattern: task.recurring_pattern || 'none',
+        recurring_pattern: task.recurring_pattern || task.recurringPattern || 'none',
         notes: task.notes || ''
       });
       setError('');
@@ -608,7 +602,7 @@ export default function TaskEditModal({
               onChange={(e) => handleInputChange('recurring_pattern', e.target.value)}
               className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
             >
-              {recurringOptions.map(option => (
+              {TASK_RECURRENCE_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

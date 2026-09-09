@@ -157,6 +157,28 @@ describe('tracker task transformations', () => {
     });
   });
 
+  it('repairs a supported legacy pattern whose recurring flag was dropped', () => {
+    const legacyTask = {
+      id: 8,
+      title: 'Water peppers',
+      due_date: '2026-09-10',
+      is_recurring: false,
+      recurring_pattern: 'every-2-days',
+      status: 'pending'
+    };
+
+    expect(normalizeTask(legacyTask)).toMatchObject({
+      is_recurring: true,
+      isRecurring: true,
+      recurring_pattern: 'every-2-days',
+      recurringPattern: 'every-2-days'
+    });
+    expect(getTaskUpdatePayload(legacyTask)).toMatchObject({
+      is_recurring: true,
+      recurring_pattern: 'every-2-days'
+    });
+  });
+
   it('splits pending tasks into deterministic queues and calendar groups', () => {
     const collections = buildTaskCollections([
       { id: 3, title: 'Later', due_date: '2026-09-06', status: 'pending' },
@@ -220,6 +242,19 @@ describe('tracker task transformations', () => {
       is_recurring: false,
       recurring_pattern: null,
       notes: ''
+    });
+  });
+
+  it('maps every-2-days creation to a consistent recurring payload', () => {
+    expect(getTaskCreatePayload({
+      title: 'Water peppers',
+      garden_id: 3,
+      due_date: '2026-09-10',
+      task_type: 'water',
+      recurring_pattern: 'every-2-days'
+    })).toMatchObject({
+      is_recurring: true,
+      recurring_pattern: 'every-2-days'
     });
   });
 });
