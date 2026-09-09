@@ -2,6 +2,7 @@
 import React from 'react';
 import { AlertCircle, Check, CheckCircle, ChevronDown, Clock, Edit3 } from 'lucide-react';
 import { formatTaskDate, getPriorityColor } from './Constants/TaskData';
+import { getTaskRecurrenceLabel } from '@/lib/taskRecurrence';
 
 export default function TasksList({
   title,
@@ -91,7 +92,7 @@ export default function TasksList({
 
                     {task.isRecurring && (
                       <div className="mt-1 break-words text-xs text-blue-600 dark:text-blue-400">
-                        Recurring ({task.recurringPattern?.replace('-', ' ')})
+                        Recurring ({getTaskRecurrenceLabel(task.recurringPattern)})
                       </div>
                     )}
                   </div>

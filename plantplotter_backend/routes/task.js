@@ -4,6 +4,11 @@ const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
+const {
+  getNextOccurrenceDate,
+  shouldScheduleNextOccurrence,
+  validateTaskRecurrence
+} = require('../utils/taskRecurrence');
 
 const allowedTaskTypes = ['water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'treat', 'other', 'maintenance'];
 
@@ -69,6 +74,17 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
+    const recurrence = validateTaskRecurrence({
+      isRecurring: is_recurring,
+      recurringPattern: recurring_pattern
+    });
+    if (!recurrence.isValid) {
+      return sendErrorResponse(res, 400, recurrence.error, {
+        code: 'VALIDATION_ERROR',
+        errors: { recurring_pattern: recurrence.error }
+      });
+    }
+
     // Verify garden belongs to user
     const [garden] = await db.execute(
       'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
@@ -98,8 +114,8 @@ router.post('/', verifyToken, async (req, res) => {
         plant_name || null,
         task_type || 'maintenance',
         estimated_duration || null,
-        is_recurring || false,
-        recurring_pattern || null
+        recurrence.isRecurring,
+        recurrence.recurringPattern
       ]
     );
 
@@ -117,6 +133,8 @@ router.post('/', verifyToken, async (req, res) => {
 
 // PUT /api/tasks/:id
 router.put('/:id', verifyToken, async (req, res) => {
+  let connection;
+
   try {
     const { 
       title, 
@@ -154,18 +172,51 @@ router.put('/:id', verifyToken, async (req, res) => {
       });
     }
 
-    const [existingTask] = await db.execute(
-      'SELECT id FROM garden_tasks WHERE id = ? AND user_id = ?',
+    const recurrence = validateTaskRecurrence({
+      isRecurring: is_recurring,
+      recurringPattern: recurring_pattern
+    });
+    if (!recurrence.isValid) {
+      return sendErrorResponse(res, 400, recurrence.error, {
+        code: 'VALIDATION_ERROR',
+        errors: { recurring_pattern: recurrence.error }
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const [existingTask] = await connection.execute(
+      'SELECT * FROM garden_tasks WHERE id = ? AND user_id = ? FOR UPDATE',
       [req.params.id, req.user.id]
     );
 
     if (existingTask.length === 0) {
+      await connection.rollback();
       return sendErrorResponse(res, 404, 'Task not found', {
         code: 'TASK_NOT_FOUND'
       });
     }
-    
-    await db.execute(
+
+    const nextStatus = status || 'pending';
+    const shouldCreateNextOccurrence = shouldScheduleNextOccurrence({
+      previousStatus: existingTask[0].status,
+      nextStatus,
+      isRecurring: recurrence.isRecurring
+    });
+    const nextOccurrenceDate = shouldCreateNextOccurrence
+      ? getNextOccurrenceDate(due_date, recurrence.recurringPattern)
+      : null;
+
+    if (shouldCreateNextOccurrence && !nextOccurrenceDate) {
+      await connection.rollback();
+      return sendErrorResponse(res, 400, 'Enter a valid due date before completing this recurring task.', {
+        code: 'VALIDATION_ERROR',
+        errors: { due_date: 'Enter a valid due date.' }
+      });
+    }
+
+    await connection.execute(
       `UPDATE garden_tasks
        SET title = ?, description = ?, due_date = ?, priority = ?, status = ?,
            plant_name = ?, task_type = ?, estimated_duration = ?, is_recurring = ?,
@@ -176,26 +227,62 @@ router.put('/:id', verifyToken, async (req, res) => {
         description ?? null,
         due_date,
         priority || 'medium',
-        status || 'pending',
+        nextStatus,
         plant_name ?? null,
         task_type || 'maintenance',
         estimated_duration ?? null,
-        is_recurring ?? false,
-        recurring_pattern ?? null,
+        recurrence.isRecurring,
+        recurrence.recurringPattern,
         req.params.id,
         req.user.id
       ]
     );
 
-    const [updatedTask] = await db.execute(
+    if (nextOccurrenceDate) {
+      await connection.execute(
+        `INSERT INTO garden_tasks (
+          user_id, garden_id, title, description, due_date, priority, plant_name,
+          task_type, status, estimated_duration, is_recurring, recurring_pattern,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW())`,
+        [
+          req.user.id,
+          existingTask[0].garden_id,
+          title,
+          description ?? null,
+          nextOccurrenceDate,
+          priority || 'medium',
+          plant_name ?? null,
+          task_type || 'maintenance',
+          estimated_duration ?? null,
+          recurrence.isRecurring,
+          recurrence.recurringPattern
+        ]
+      );
+    }
+
+    const [updatedTask] = await connection.execute(
       'SELECT * FROM garden_tasks WHERE id = ? AND user_id = ?',
       [req.params.id, req.user.id]
     );
 
+    await connection.commit();
     res.json(updatedTask[0]);
   } catch (error) {
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Task update rollback error:', rollbackError.message);
+      }
+    }
     console.error('Error updating task:', error);
     sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to update task' });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 });
 

@@ -1,3 +1,8 @@
+import {
+  getTaskRecurrencePayload,
+  normalizeTaskRecurrence
+} from './taskRecurrence';
+
 export const getDateKey = (value) => {
   if (!value) return '';
   if (typeof value === 'string') return value.split('T')[0];
@@ -141,8 +146,7 @@ export const createCalendarActivity = ({
 
 export const normalizeTask = (task) => {
   const dueDate = getDateKey(task.due_date || task.dueDate);
-  const isRecurring = Boolean(task.is_recurring ?? task.isRecurring);
-  const recurringPattern = task.recurring_pattern || task.recurringPattern || 'none';
+  const { isRecurring, recurringPattern } = normalizeTaskRecurrence(task);
   const backendSafeStatus = task.status === 'in_progress' || task.status === 'overdue'
     ? 'pending'
     : task.status;
@@ -198,6 +202,7 @@ export const buildTaskCollections = (tasks, today = new Date()) => {
 
 export const getTaskUpdatePayload = (task, updates = {}) => {
   const normalizedTask = normalizeTask({ ...task, ...updates });
+  const recurrence = getTaskRecurrencePayload(normalizedTask.recurring_pattern);
 
   return {
     title: normalizedTask.title,
@@ -208,14 +213,14 @@ export const getTaskUpdatePayload = (task, updates = {}) => {
     plant_name: normalizedTask.plant_name || null,
     task_type: normalizedTask.task_type || 'maintenance',
     estimated_duration: normalizedTask.estimated_duration || null,
-    is_recurring: normalizedTask.is_recurring,
-    recurring_pattern: normalizedTask.recurring_pattern === 'none' ? null : normalizedTask.recurring_pattern,
+    ...recurrence,
     notes: normalizedTask.notes || ''
   };
 };
 
 export const getTaskCreatePayload = (taskData) => {
   const recurringPattern = taskData.recurring_pattern || 'none';
+  const recurrence = getTaskRecurrencePayload(recurringPattern);
 
   return {
     title: taskData.title,
@@ -227,8 +232,7 @@ export const getTaskCreatePayload = (taskData) => {
     plant_name: taskData.plant_name || null,
     task_type: taskData.task_type || 'maintenance',
     estimated_duration: taskData.estimated_duration || null,
-    is_recurring: recurringPattern !== 'none',
-    recurring_pattern: recurringPattern === 'none' ? null : recurringPattern,
+    ...recurrence,
     notes: taskData.notes || ''
   };
 };

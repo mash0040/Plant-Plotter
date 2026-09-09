@@ -104,4 +104,21 @@ describe('TasksList accessibility', () => {
     expect(screen.queryByRole('button', { name: 'Add new task' })).not.toBeInTheDocument();
     expect(screen.queryByText('All Done!')).not.toBeInTheDocument();
   });
+
+  it('uses the same readable label for legacy every-2-days tasks', () => {
+    render(
+      <TasksList
+        title="Today"
+        tasks={[{
+          ...task,
+          isRecurring: true,
+          recurringPattern: 'every-2-days'
+        }]}
+        onTaskComplete={vi.fn()}
+        onTaskEdit={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Recurring (Every 2 days)')).toBeInTheDocument();
+  });
 });

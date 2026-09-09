@@ -113,12 +113,17 @@ CREATE TABLE garden_tasks (
     due_date DATE NOT NULL,
     completed_at TIMESTAMP NULL,
     estimated_duration INT, -- in minutes
-    is_recurring BOOLEAN DEFAULT FALSE,
-    recurring_pattern VARCHAR(50), -- 'daily', 'weekly', 'monthly', etc.
+    is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
+    recurring_pattern VARCHAR(50), -- 'daily', 'every-2-days', 'weekly', or 'monthly'
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (garden_id) REFERENCES gardens(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT chk_task_recurrence CHECK (
+        (is_recurring = FALSE AND recurring_pattern IS NULL)
+        OR
+        (is_recurring = TRUE AND recurring_pattern IN ('daily', 'every-2-days', 'weekly', 'monthly'))
+    ),
     INDEX idx_garden_tasks (garden_id, due_date),
     INDEX idx_user_tasks (user_id, status, due_date),
     INDEX idx_task_status (status),
