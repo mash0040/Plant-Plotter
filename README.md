@@ -82,6 +82,8 @@ The Next.js frontend applies its browser security-header baseline in `plantplott
 
 The policy is enforced rather than report-only. Production builds also upgrade insecure subresource requests. Development permits WebSocket connections for Next.js Fast Refresh and `unsafe-eval` for React development diagnostics; neither exception is included in production.
 
+Authentication cookie, session, and CSRF details are documented in [SECURITY.md](./SECURITY.md).
+
 ## Project Structure
 
 ```text
@@ -269,7 +271,6 @@ Try the app live at https://www.plantplotter.me
 
 ## Known Limitations
 
-- Authentication uses a host-only, httpOnly JWT cookie. Production enables `Secure`; the session and CSRF model are documented in [SECURITY.md](./SECURITY.md).
 - Refresh tokens are not implemented yet; expired sessions redirect users to sign in again.
 - Tracker weather requires browser location access. When permission is denied or location cannot be resolved, the tracker does not substitute another location and instead provides a retryable message. Garden placement labels such as `Backyard` are not treated as geographic addresses.
 - Email reminders, weather alerts, public garden sharing, and public profiles are planned future improvements.
