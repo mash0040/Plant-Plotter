@@ -151,50 +151,50 @@ export default function ControlPanel({
   };
 
   return (
-    <div className="border-b border-green-100 bg-white">
-      <div className="bg-green-50/70 p-3 sm:p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-            <div
-              role="group"
-              aria-label="Planner navigation"
-              className="flex flex-shrink-0 flex-wrap items-center gap-2"
-            >
-              {onBackClick && (
-                <button
-                  type="button"
-                  onClick={onBackClick}
-                  className="touch-target flex min-h-10 min-w-10 flex-shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-gray-700 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
-                  title={backLabel}
-                  aria-label={backLabel}
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                  <span className="hidden whitespace-nowrap sm:inline">{backLabel}</span>
-                </button>
-              )}
+    <div className="relative z-20 flex-shrink-0 bg-white shadow-[0_10px_28px_-22px_rgba(20,83,45,0.75)]">
+      <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-lime-50 p-3 sm:p-4">
+        <div className="grid gap-3">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-center">
+              <div
+                role="group"
+                aria-label="Planner navigation"
+                className="flex flex-shrink-0 flex-wrap items-center gap-2"
+              >
+                {onBackClick && (
+                  <button
+                    type="button"
+                    onClick={onBackClick}
+                    className="touch-target flex min-h-10 min-w-10 flex-shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-gray-700 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+                    title={backLabel}
+                    aria-label={backLabel}
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                    <span className="hidden whitespace-nowrap sm:inline">{backLabel}</span>
+                  </button>
+                )}
 
-              {onToggleSidebar && (
-                <button
-                  type="button"
-                  onClick={onToggleSidebar}
-                  className="touch-target flex min-h-10 flex-shrink-0 items-center gap-2 rounded-lg border border-green-200 bg-white px-3 py-2 text-sm font-semibold text-green-800 transition-colors hover:bg-green-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 lg:hidden"
-                  title="Open plant library"
-                  aria-label="Open plant library"
-                  data-menu-button
-                >
-                  <Sprout className="h-4 w-4" />
-                  <span>Plants</span>
-                </button>
-              )}
+                {onToggleSidebar && (
+                  <button
+                    type="button"
+                    onClick={onToggleSidebar}
+                    className="touch-target flex min-h-10 flex-shrink-0 items-center gap-2 rounded-lg border border-green-200 bg-white px-3 py-2 text-sm font-semibold text-green-800 transition-colors hover:bg-green-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 lg:hidden"
+                    title="Open plant library"
+                    aria-label="Open plant library"
+                    data-menu-button
+                  >
+                    <Sprout className="h-4 w-4" />
+                    <span>Plants</span>
+                  </button>
+                )}
+              </div>
+
+              <h1 className="min-w-0 break-words text-lg font-semibold leading-tight text-green-950 sm:text-xl lg:text-2xl">
+                {gardenName || 'Garden Planner'}
+              </h1>
             </div>
 
-            <h1 className="min-w-0 truncate text-lg font-semibold text-gray-900 sm:text-xl lg:text-2xl">
-              {gardenName || 'Garden Planner'}
-            </h1>
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-2 lg:min-w-64 lg:items-end">
-            <div className="flex w-full items-center justify-between gap-3 lg:justify-end">
+            <div className="flex flex-shrink-0 items-center gap-3 sm:justify-end">
               {hasUnsavedChanges && (
                 <span role="status" className="flex-shrink-0 rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
                   Unsaved
@@ -215,31 +215,31 @@ export default function ControlPanel({
                 <span className="whitespace-nowrap">{saveLabel}</span>
               </button>
             </div>
-
-            {(saveMessage || saveError) && (
-              <div
-                role={saveError ? 'alert' : 'status'}
-                aria-live="polite"
-                className={`w-full rounded-md border px-3 py-2 text-sm font-medium ${
-                  saveError
-                    ? 'border-red-200 bg-red-50 text-red-700'
-                    : 'border-green-200 bg-green-100 text-green-800'
-                }`}
-              >
-                {saveError || saveMessage}
-              </div>
-            )}
           </div>
+
+          {(saveMessage || saveError) && (
+            <div
+              role={saveError ? 'alert' : 'status'}
+              aria-live="polite"
+              className={`w-full rounded-md border px-3 py-2 text-sm font-medium leading-5 ${
+                saveError
+                  ? 'border-red-200 bg-red-50 text-red-700'
+                  : 'border-green-200 bg-green-100 text-green-800'
+              }`}
+            >
+              {saveError || saveMessage}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="border-t border-green-100 bg-gray-50/80 px-3 py-3 sm:px-4">
-        <div className="grid gap-2 text-sm xl:grid-cols-[auto_minmax(0,1fr)]">
+      <div className="border-t border-green-100 bg-white/95 px-3 py-3 sm:px-4">
+        <div className="grid gap-2 text-sm">
           <div className="grid gap-2 sm:grid-cols-2 xl:flex">
             <div
               role="group"
               aria-label="View controls"
-              className="flex items-center justify-between gap-1 rounded-lg border border-gray-200 bg-white p-1 sm:justify-start"
+              className="flex items-center justify-between gap-1 rounded-lg border border-green-100 bg-emerald-50/60 p-1 sm:justify-start"
             >
               <button
                 type="button"
@@ -277,7 +277,7 @@ export default function ControlPanel({
             <div
               role="group"
               aria-label="Dimension unit"
-              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-1"
+              className="flex items-center gap-2 rounded-lg border border-green-100 bg-emerald-50/60 p-1"
             >
               <span className="pl-2 text-xs font-medium text-gray-600">Unit</span>
               <div className="ml-auto grid flex-1 grid-cols-2 rounded-md bg-gray-100 p-0.5">
@@ -315,11 +315,11 @@ export default function ControlPanel({
             <div
               role="group"
               aria-label="Garden size controls"
-              className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-2 sm:p-1 xl:flex-row xl:items-center"
+              className="flex flex-col gap-2 rounded-lg border border-green-100 bg-emerald-50/40 p-2 sm:p-1 xl:flex-row xl:items-center"
             >
               <span className="px-1 text-xs font-semibold text-gray-700">Size</span>
 
-              <div role="group" aria-label="Width controls" className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 xl:flex-1">
+              <div role="group" aria-label="Width controls" className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 xl:grid-cols-[auto_auto] xl:gap-1">
                 <span className="text-xs font-medium text-gray-700">Width</span>
                 <div className="grid grid-cols-[2.25rem_3.5rem_1.5rem_2.25rem] items-center justify-self-end gap-1">
                   <button
@@ -354,7 +354,7 @@ export default function ControlPanel({
                 </div>
               </div>
 
-              <div role="group" aria-label="Height controls" className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 xl:flex-1">
+              <div role="group" aria-label="Height controls" className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 xl:ml-4 xl:grid-cols-[auto_auto] xl:gap-1">
                 <span className="text-xs font-medium text-gray-700">Height</span>
                 <div className="grid grid-cols-[2.25rem_3.5rem_1.5rem_2.25rem] items-center justify-self-end gap-1">
                   <button
@@ -393,7 +393,7 @@ export default function ControlPanel({
             <div
               role="group"
               aria-label="Zoom controls"
-              className="grid w-full grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 rounded-lg border border-gray-200 bg-white p-2 sm:p-1 md:w-auto"
+              className="grid w-full grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 rounded-lg border border-green-100 bg-emerald-50/40 p-2 sm:p-1 md:w-auto"
             >
               <span className="text-xs font-semibold text-gray-700">Zoom</span>
               <div className="grid grid-cols-[2.25rem_3.5rem_1.5rem_2.25rem] items-center justify-self-end gap-1">
