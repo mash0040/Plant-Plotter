@@ -69,6 +69,18 @@ After the group project delivery, I independently improved and expanded the appl
 - Open-Meteo API for weather data
 - Resend for transactional password reset emails
 
+### Browser Security Headers
+
+The Next.js frontend applies its browser security-header baseline in `plantplotter/next.config.js` so the same policy is used locally and on Vercel:
+
+- Content Security Policy restricts content to the app origin and permits browser connections only to the configured `NEXT_PUBLIC_API_URL` origin and Open-Meteo.
+- `X-Content-Type-Options: nosniff` prevents MIME-type sniffing.
+- `Referrer-Policy: strict-origin-when-cross-origin` limits cross-origin referrer details.
+- `Permissions-Policy` keeps same-origin geolocation available for tracker weather while disabling camera and microphone access.
+- CSP `frame-ancestors` and `X-Frame-Options` prevent the app from being embedded by another site.
+
+The policy is enforced rather than report-only. Production builds also upgrade insecure subresource requests. Development permits WebSocket connections for Next.js Fast Refresh and `unsafe-eval` for React development diagnostics; neither exception is included in production.
+
 ## Project Structure
 
 ```text

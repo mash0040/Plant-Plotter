@@ -56,3 +56,20 @@ Refresh tokens and server-side JWT revocation are not implemented. Session JWTs 
 - Avoid unsafe HTML injection. Prefer React text rendering for user-provided content.
 - Treat any future use of `dangerouslySetInnerHTML`, `innerHTML`, markdown rendering, rich text rendering, or third-party embeds as a security review point.
 - Keep real secrets in local or platform environment variables only. Do not commit `.env` or `.env.local` files.
+
+## Browser Security Headers
+
+The frontend security headers are defined in `plantplotter/next.config.js` and applied to every frontend route. The enforced Content Security Policy uses these browser origins:
+
+- `'self'` for scripts, styles, images, fonts, media, workers, manifests, forms, and other application resources.
+- The origin from `NEXT_PUBLIC_API_URL` for PlantPlotter API requests.
+- `https://api.open-meteo.com` for tracker weather requests.
+- WebSocket origins in development only for Next.js Fast Refresh.
+
+The policy blocks plugins and objects, framing, cross-origin frames, base URL changes, and inline script event handlers. It also includes `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, and a `Permissions-Policy` that disables camera and microphone access while preserving same-origin geolocation.
+
+Next.js currently requires inline framework scripts for hydration, and the planner uses React inline style attributes for dynamic dimensions and plant placement. The policy therefore permits inline scripts and styles, while separately blocking inline script attributes with `script-src-attr 'none'`. Development additionally requires `unsafe-eval` for React diagnostics. These exceptions must not be expanded to third-party origins without review.
+
+A nonce-based CSP is intentionally deferred. Next.js requires nonce-protected pages to be dynamically rendered, which disables static optimization and normal CDN caching. Revisit nonces, CSP hashes, or stable Subresource Integrity support if the app's rendering strategy changes or stricter compliance requirements justify that performance tradeoff.
+
+After changing frontend dependencies or external services, run a production build and manually test login, gardens, planner, tracker weather, profile, and password-reset flows with the browser console open for CSP violations. Confirm the response headers on the page's document request in DevTools Network.
