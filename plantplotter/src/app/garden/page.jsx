@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, MouseSensor, TouchSensor} from '@dnd-kit/core';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowRight, Plus, Ruler, Sprout } from 'lucide-react';
 import PlantLibrary from '@/components/Garden/PlantLibrary';
 import GardenCanvas from '@/components/Garden/GardenCanvas';
 import ControlPanel from '@/components/Garden/ControlPanel';
@@ -21,6 +21,11 @@ import apiClient from '@/lib/api';
 import { getActionErrorMessage, isAuthenticationError } from '@/lib/apiErrors';
 
 const SAVE_MESSAGE_DURATION_MS = 6000;
+const GARDEN_STATUS_STYLES = {
+  Active: 'bg-green-100 text-green-800',
+  Planning: 'bg-amber-100 text-amber-800',
+  Dormant: 'bg-gray-100 text-gray-700'
+};
 
 function GardenPlannerPageContent() {
   const searchParams = useSearchParams();
@@ -1031,18 +1036,26 @@ function GardenPlannerPageContent() {
     }
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 px-4 py-8">
-        <div className="mx-auto w-full max-w-5xl">
+      <main className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mx-auto w-full max-w-6xl">
           {hasGardenSummaries ? (
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <Plus className="w-7 h-7 text-green-700" />
+            <div className="space-y-8">
+              <div className="flex flex-col gap-5 border-b border-green-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+                <div className="max-w-2xl">
+                  <h1 className="text-2xl font-semibold text-green-950 sm:text-3xl">Choose a garden to plan</h1>
+                  <p className="mt-2 text-base leading-7 text-green-950/70">
+                    Compare your garden spaces, then open one to arrange plants and refine its layout.
+                  </p>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">Choose a garden to plan</h1>
-                <p className="mx-auto max-w-2xl text-gray-600">
-                  Select one of your gardens to open its planner. Garden details and saved plants will load after you choose.
-                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setShowCreateGardenForm(true)}
+                  className="touch-target inline-flex min-h-11 w-full flex-shrink-0 items-center justify-center gap-2 rounded-lg border border-green-200 bg-white px-4 py-2.5 text-sm font-semibold text-green-800 shadow-sm transition-colors hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:w-auto"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create Garden
+                </button>
               </div>
 
               {gardenSummaryError && (
@@ -1053,74 +1066,85 @@ function GardenPlannerPageContent() {
                 />
               )}
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {plannerGardenSummaries.map((gardenSummary) => (
-                  <div
-                    key={gardenSummary.id}
-                    className="rounded-2xl border border-green-100 bg-white/90 p-5 shadow-lg backdrop-blur-sm"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <h2 className="text-lg font-semibold text-gray-900 break-words">{gardenSummary.name}</h2>
-                      <span className="flex-shrink-0 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
-                        {gardenSummary.status || 'Planning'}
-                      </span>
-                    </div>
+              <div className={`grid w-full grid-cols-1 items-stretch gap-5 ${
+                plannerGardenSummaries.length === 1
+                  ? 'mx-auto max-w-md'
+                  : plannerGardenSummaries.length === 2
+                    ? 'mx-auto max-w-3xl sm:grid-cols-2'
+                    : 'sm:grid-cols-2 lg:grid-cols-3'
+              }`}>
+                {plannerGardenSummaries.map((gardenSummary) => {
+                  const status = gardenSummary.status || 'Planning';
+                  const plantCount = gardenSummary.plantCount || gardenSummary.plant_count || 0;
+                  const width = gardenSummary.dimensions?.width || gardenSummary.width;
+                  const height = gardenSummary.dimensions?.height || gardenSummary.height;
 
-                    <div className="mt-4 space-y-2 text-sm text-gray-700">
-                      <div className="flex justify-between gap-3">
-                        <span>Size</span>
-                        <span className="font-medium text-gray-900">
-                          {gardenSummary.dimensions?.width || gardenSummary.width}m x {gardenSummary.dimensions?.height || gardenSummary.height}m
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span>Plants</span>
-                        <span className="font-medium text-gray-900">
-                          {gardenSummary.plantCount || gardenSummary.plant_count || 0}
-                        </span>
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/garden?id=${gardenSummary.id}`}
-                      className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+                  return (
+                    <article
+                      key={gardenSummary.id}
+                      className="flex h-full flex-col rounded-xl bg-white p-5 shadow-[0_12px_30px_-20px_rgba(20,83,45,0.55)] transition-shadow hover:shadow-[0_16px_36px_-20px_rgba(20,83,45,0.7)] sm:p-6"
                     >
-                      Plan
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  </div>
-                ))}
-              </div>
+                      <span className={`self-start rounded-full px-3 py-1 text-xs font-semibold ${GARDEN_STATUS_STYLES[status] || GARDEN_STATUS_STYLES.Planning}`}>
+                        {status}
+                      </span>
 
+                      <h2 className="mt-4 break-words text-xl font-semibold leading-7 text-green-950">
+                        {gardenSummary.name}
+                      </h2>
+
+                      <dl className="mt-6 grid grid-cols-2 gap-4 border-y border-green-100 py-4">
+                        <div className="min-w-0">
+                          <dt className="flex items-center gap-2 text-xs font-medium text-green-900/70">
+                            <Ruler className="h-4 w-4 flex-shrink-0 text-green-700" />
+                            Size
+                          </dt>
+                          <dd className="mt-1 break-words text-base font-semibold text-gray-900">
+                            {width}m x {height}m
+                          </dd>
+                        </div>
+                        <div className="min-w-0">
+                          <dt className="flex items-center gap-2 text-xs font-medium text-green-900/70">
+                            <Sprout className="h-4 w-4 flex-shrink-0 text-green-700" />
+                            Plants
+                          </dt>
+                          <dd className="mt-1 text-base font-semibold text-gray-900">
+                            {plantCount}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div className="mt-auto pt-6">
+                        <Link
+                          href={`/garden?id=${gardenSummary.id}`}
+                          className="touch-target inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+                        >
+                          Plan Garden
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <section className="mx-auto flex w-full max-w-3xl flex-col items-center border-y border-green-200 py-12 text-center sm:py-16">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-green-100 text-green-700">
+                <Sprout className="h-7 w-7" />
+              </div>
+              <h1 className="mt-5 text-2xl font-semibold text-green-950 sm:text-3xl">Start your first garden plan</h1>
+              <p className="mt-3 max-w-xl text-base leading-7 text-green-950/70">
+                Create a garden with its dimensions, then open the planner to arrange plants in the space.
+              </p>
               <button
                 type="button"
                 onClick={() => setShowCreateGardenForm(true)}
-                className="mx-auto flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-white px-4 py-3 text-sm font-semibold text-green-800 shadow-sm transition-colors hover:bg-green-50"
+                className="touch-target mt-7 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:w-auto"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="h-4 w-4" />
                 Create Garden
               </button>
-            </div>
-          ) : (
-            <div className="mx-auto w-full max-w-lg text-center">
-              <div className="bg-white/90 border border-green-100 rounded-2xl shadow-xl p-6 sm:p-8">
-                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <Plus className="w-7 h-7 text-green-700" />
-                </div>
-                <h1 className="text-2xl font-semibold text-gray-900 mb-2">No gardens yet</h1>
-                <p className="text-gray-600 mb-6">
-                  Create a garden to open the planner and start adding plants.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateGardenForm(true)}
-                  className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create Garden
-                </button>
-              </div>
-            </div>
+            </section>
           )}
         </div>
 
@@ -1130,7 +1154,7 @@ function GardenPlannerPageContent() {
           onClose={() => setShowCreateGardenForm(false)}
           isOpen={showCreateGardenForm}
         />
-      </div>
+      </main>
     );
   }
 
