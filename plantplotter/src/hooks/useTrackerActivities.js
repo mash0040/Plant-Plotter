@@ -54,10 +54,11 @@ export default function useTrackerActivities({
       if (!scope.isActive()) return;
       const calendarActivity = createCalendarActivity({
         savedActivity,
-        activityData,
-        selectedDate,
-        gardenId: selectedGarden.id
+        plantedItems: selectedGarden.plantedItems
       });
+      const savedDate = calendarActivity.activity_date;
+      // A read begun before this save must not overwrite its confirmed result.
+      scope.startRequest();
 
       setCalendarState(currentState => {
         const currentCalendarData = currentState?.scope === scope ? currentState.calendarData : {};
@@ -65,20 +66,22 @@ export default function useTrackerActivities({
           scope,
           calendarData: {
             ...currentCalendarData,
-            [selectedDate]: [...(currentCalendarData[selectedDate] || []), calendarActivity]
+            [savedDate]: [
+              ...(currentCalendarData[savedDate] || []).filter(activity => activity.id !== calendarActivity.id),
+              calendarActivity
+            ]
           }
         };
       });
       showSuccess('activity-create', 'Activity logged.');
+      return savedActivity;
     } catch (error) {
       if (!scope.isActive()) return;
       console.error('Failed to add activity via API:', error);
-      showError(
-        'activity-create',
-        getTrackerFailureMessage(error, 'The activity could not be logged. No calendar entry was added.')
-      );
+      // The open Quick Log dialog owns save errors and preserves the draft.
+      throw error;
     }
-  }, [scope, selectedGarden, showError, showSuccess]);
+  }, [scope, selectedGarden, showSuccess]);
 
   const saveActivity = useCallback(async (activityData) => {
     try {

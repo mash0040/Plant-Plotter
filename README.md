@@ -40,6 +40,8 @@ After the group project delivery, I independently improved and expanded the appl
 - Profile settings and account deletion
 - Responsive mobile layout improvements across planner, tracker, garden details, forms, and modals
 
+Quick Log records completed care for an explicitly selected plant; whole-garden logging is not currently offered. The Planted action records planting history for a plant already in the garden, while the planner manages plant placement. Failed saves keep the modal and draft open with an explicit retry action. Successful saves use the returned activity's date, time, and identifiers, and activity mutations are never retried automatically.
+
 ## Tech Stack
 
 ### Frontend

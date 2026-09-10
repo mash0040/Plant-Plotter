@@ -4,6 +4,7 @@ const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
+const allowedActivityTypes = ['planted', 'watered', 'fertilized', 'harvested', 'pruned', 'weeded'];
 
 // GET /api/activities
 router.get('/', verifyToken, async (req, res) => {
@@ -53,6 +54,12 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
+    if (!allowedActivityTypes.includes(activity_type)) {
+      return sendErrorResponse(res, 400, 'Invalid activity type', {
+        code: 'VALIDATION_ERROR'
+      });
+    }
+
     // Verify garden belongs to user
     const [garden] = await db.execute(
       'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
@@ -93,7 +100,6 @@ router.put('/:id', verifyToken, async (req, res) => {
   try {
     const activityId = req.params.id;
     const { activity_type, plant_name, notes, activity_date } = req.body;
-    const allowedActivityTypes = ['planted', 'watered', 'fertilized', 'harvested', 'pruned', 'weeded'];
 
     if (!activity_type || !activity_date) {
       return sendErrorResponse(res, 400, 'activity_type and activity_date are required', {
