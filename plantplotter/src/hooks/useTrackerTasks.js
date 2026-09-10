@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api';
 import { isAuthenticationError } from '@/lib/apiErrors';
 import {
@@ -8,6 +8,7 @@ import {
   getTaskUpdatePayload
 } from '@/lib/trackerData';
 import { getTrackerFailureMessage } from './useTrackerFeedback';
+import useTrackerRequestScope from './useTrackerRequestScope';
 
 const EMPTY_TASK_COLLECTIONS = {
   todayTasks: [],
@@ -24,23 +25,32 @@ export default function useTrackerTasks({
   showSuccess,
   clearFeedback
 }) {
-  const [taskCollections, setTaskCollections] = useState(EMPTY_TASK_COLLECTIONS);
+  const scope = useTrackerRequestScope(selectedGarden?.id);
+  const [taskState, setTaskState] = useState(null);
+  const taskCollections = taskState?.scope === scope ? taskState.collections : EMPTY_TASK_COLLECTIONS;
   const [taskPlantLibrary, setTaskPlantLibrary] = useState([]);
   const [isTaskPlantLibraryLoading, setIsTaskPlantLibraryLoading] = useState(false);
   const [taskPlantLibraryError, setTaskPlantLibraryError] = useState('');
 
   const clearTaskCollections = useCallback(() => {
-    setTaskCollections(EMPTY_TASK_COLLECTIONS);
+    setTaskState(null);
   }, []);
 
+  useEffect(() => {
+    clearFeedback('tasks-load');
+  }, [clearFeedback, scope]);
+
   const loadTasks = useCallback(async () => {
-    if (!selectedGarden) return;
+    if (!selectedGarden || !scope.isActive()) return;
+    const isCurrentRequest = scope.startRequest();
 
     try {
       const backendTasks = await apiClient.getTasks(selectedGarden.id);
-      setTaskCollections(buildTaskCollections(backendTasks));
+      if (!isCurrentRequest()) return;
+      setTaskState({ scope, collections: buildTaskCollections(backendTasks) });
       clearFeedback('tasks-load');
     } catch (error) {
+      if (!isCurrentRequest()) return;
       console.error('Failed to load tasks:', error);
       if (isAuthenticationError(error)) {
         clearTaskCollections();
@@ -54,7 +64,7 @@ export default function useTrackerTasks({
       );
       clearTaskCollections();
     }
-  }, [clearFeedback, clearTaskCollections, selectedGarden, showError]);
+  }, [clearFeedback, clearTaskCollections, scope, selectedGarden, showError]);
 
   const completeTask = useCallback(async (taskId) => {
     const allTasks = [
@@ -70,16 +80,19 @@ export default function useTrackerTasks({
         taskId,
         getTaskUpdatePayload(taskToComplete, { status: 'completed' })
       );
+      if (!scope.isActive()) return;
       await loadTasks();
+      if (!scope.isActive()) return;
       showSuccess(`task-complete-${taskId}`, 'Task completed.');
     } catch (error) {
+      if (!scope.isActive()) return;
       console.error('Failed to complete task:', error);
       showError(
         `task-complete-${taskId}`,
         getTrackerFailureMessage(error, 'The task could not be completed and remains in your care queue.')
       );
     }
-  }, [loadTasks, showError, showSuccess, taskCollections]);
+  }, [loadTasks, scope, showError, showSuccess, taskCollections]);
 
   const loadTaskPlantLibrary = useCallback(async () => {
     if (taskPlantLibrary.length > 0 || isTaskPlantLibraryLoading) return;
@@ -107,13 +120,16 @@ export default function useTrackerTasks({
     try {
       if (taskData.id) {
         await apiClient.updateTask(taskData.id, getTaskUpdatePayload(taskData));
+        if (!scope.isActive()) return;
         await loadTasks();
+        if (!scope.isActive()) return;
         showSuccess('task-update', 'Task updated.');
         return;
       }
 
       const createPayload = getTaskCreatePayload(taskData);
       await apiClient.createTask(createPayload);
+      if (!scope.isActive()) return;
       showSuccess('task-create', 'Task created.');
       const targetGarden = gardens.find(garden => String(garden.id) === String(createPayload.garden_id));
       if (targetGarden && String(targetGarden.id) !== String(selectedGarden?.id)) {
@@ -122,21 +138,25 @@ export default function useTrackerTasks({
       }
       await loadTasks();
     } catch (error) {
+      if (!scope.isActive()) return;
       console.error('Failed to save task:', error);
       throw error;
     }
-  }, [gardens, loadTasks, selectedGarden, setSelectedGarden, showSuccess]);
+  }, [gardens, loadTasks, scope, selectedGarden, setSelectedGarden, showSuccess]);
 
   const deleteTask = useCallback(async (taskId) => {
     try {
       await apiClient.deleteTask(taskId);
+      if (!scope.isActive()) return;
       await loadTasks();
+      if (!scope.isActive()) return;
       showSuccess('task-delete', 'Task deleted.');
     } catch (error) {
+      if (!scope.isActive()) return;
       console.error('Failed to delete task:', error);
       throw error;
     }
-  }, [loadTasks, showSuccess]);
+  }, [loadTasks, scope, showSuccess]);
 
   return {
     ...taskCollections,

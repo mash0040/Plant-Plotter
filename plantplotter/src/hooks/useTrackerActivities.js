@@ -1,11 +1,12 @@
 'use client';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api';
 import {
   buildActivityCalendar,
   createCalendarActivity
 } from '@/lib/trackerData';
 import { getTrackerFailureMessage } from './useTrackerFeedback';
+import useTrackerRequestScope from './useTrackerRequestScope';
 
 export default function useTrackerActivities({
   selectedGarden,
@@ -13,27 +14,36 @@ export default function useTrackerActivities({
   showSuccess,
   clearFeedback
 }) {
-  const [calendarData, setCalendarData] = useState({});
+  const scope = useTrackerRequestScope(selectedGarden?.id);
+  const [calendarState, setCalendarState] = useState(null);
+  const calendarData = calendarState?.scope === scope ? calendarState.calendarData : {};
+
+  useEffect(() => {
+    clearFeedback('activities-load');
+  }, [clearFeedback, scope]);
 
   const loadActivities = useCallback(async () => {
-    if (!selectedGarden) return;
+    if (!selectedGarden || !scope.isActive()) return;
+    const isCurrentRequest = scope.startRequest();
 
     try {
       const activities = await apiClient.getActivities(selectedGarden.id);
-      setCalendarData(buildActivityCalendar(activities, selectedGarden.plantedItems));
+      if (!isCurrentRequest()) return;
+      setCalendarState({ scope, calendarData: buildActivityCalendar(activities, selectedGarden.plantedItems) });
       clearFeedback('activities-load');
     } catch (error) {
+      if (!isCurrentRequest()) return;
       console.error('Failed to load activities:', error);
       showError(
         'activities-load',
         getTrackerFailureMessage(error, 'Activities could not be loaded. The calendar may be out of date.')
       );
-      setCalendarData({});
+      setCalendarState(null);
     }
-  }, [clearFeedback, selectedGarden, showError]);
+  }, [clearFeedback, scope, selectedGarden, showError]);
 
   const addQuickActivity = useCallback(async (activityData, selectedDate) => {
-    if (!selectedGarden) return;
+    if (!selectedGarden || !scope.isActive()) return;
 
     try {
       const savedActivity = await apiClient.addActivity({
@@ -41,6 +51,7 @@ export default function useTrackerActivities({
         gardenId: selectedGarden.id,
         date: selectedDate
       });
+      if (!scope.isActive()) return;
       const calendarActivity = createCalendarActivity({
         savedActivity,
         activityData,
@@ -48,22 +59,26 @@ export default function useTrackerActivities({
         gardenId: selectedGarden.id
       });
 
-      setCalendarData(currentCalendarData => ({
-        ...currentCalendarData,
-        [selectedDate]: [
-          ...(currentCalendarData[selectedDate] || []),
-          calendarActivity
-        ]
-      }));
+      setCalendarState(currentState => {
+        const currentCalendarData = currentState?.scope === scope ? currentState.calendarData : {};
+        return {
+          scope,
+          calendarData: {
+            ...currentCalendarData,
+            [selectedDate]: [...(currentCalendarData[selectedDate] || []), calendarActivity]
+          }
+        };
+      });
       showSuccess('activity-create', 'Activity logged.');
     } catch (error) {
+      if (!scope.isActive()) return;
       console.error('Failed to add activity via API:', error);
       showError(
         'activity-create',
         getTrackerFailureMessage(error, 'The activity could not be logged. No calendar entry was added.')
       );
     }
-  }, [selectedGarden, showError, showSuccess]);
+  }, [scope, selectedGarden, showError, showSuccess]);
 
   const saveActivity = useCallback(async (activityData) => {
     try {
@@ -84,29 +99,35 @@ export default function useTrackerActivities({
         });
       }
 
+      if (!scope.isActive()) return;
       await loadActivities();
+      if (!scope.isActive()) return;
       showSuccess(
         activityData.id ? 'activity-update' : 'activity-create',
         activityData.id ? 'Activity updated.' : 'Activity logged.'
       );
     } catch (error) {
+      if (!scope.isActive()) return;
       console.error('Failed to save activity:', error);
       throw error;
     }
-  }, [loadActivities, showSuccess]);
+  }, [loadActivities, scope, showSuccess]);
 
   const deleteActivity = useCallback(async (activityOrId) => {
     const activityId = typeof activityOrId === 'object' ? activityOrId.id : activityOrId;
 
     try {
       await apiClient.deleteActivity(activityId);
+      if (!scope.isActive()) return;
       await loadActivities();
+      if (!scope.isActive()) return;
       showSuccess('activity-delete', 'Activity deleted.');
     } catch (error) {
+      if (!scope.isActive()) return;
       console.error('Failed to delete activity:', error);
       throw error;
     }
-  }, [loadActivities, showSuccess]);
+  }, [loadActivities, scope, showSuccess]);
 
   return {
     calendarData,

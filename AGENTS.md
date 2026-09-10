@@ -1,250 +1,114 @@
-# Plant Plotter Project Guidelines
+# Plant Plotter Agent Guidelines
 
-Plant Plotter is a portfolio-ready full-stack garden planning application.
+Plant Plotter is a portfolio-ready full-stack garden planning and tracking application.
 
-The goal is to make the project stable, functional, clean, and recruiter-ready while keeping the existing stack.
+The goal is to keep the application stable, polished, maintainable, and recruiter-ready without adding unnecessary complexity.
 
-## Stack
+## Repository Structure
 
-- Frontend: Next.js, React, Tailwind CSS
-- Backend: Express.js
-- Database: MySQL
-- Backend stores garden dimensions internally in meters
-- Frontend may display dimensions in either meters or feet
+- `plantplotter/` — Next.js / React frontend
+- `plantplotter_backend/` — Express API
+- `plantplotter_db/` — MySQL schema and migrations
+
+Read these when relevant:
+
+- `README.md` — current features, setup, deployment, and limitations
+- `PRODUCT.md` — product purpose, constraints, and principles
+- `DESIGN.md` — UI and design-system direction
+- `SECURITY.md` — authentication and security architecture
+
+Do not duplicate or contradict those documents here.
 
 ## Working Rules
 
-- Never work on main branch
-- Keep the existing stack unless a change is absolutely necessary.
-- Prefer small, scoped changes.
-- Analyze before editing.
+- Never work directly on `main`.
+- Prefer small, focused changes.
+- Inspect relevant code before editing.
 - Do not refactor unrelated code.
-- Do not change the database schema unless explicitly requested.
-- Keep `.env.example` files safe and documented.
+- Preserve the existing stack unless the requested work clearly justifies a change.
+- Do not change database schema unless the task requires it.
+- Do not introduce new dependencies or UI libraries without a clear need.
+- Keep API payloads compatible unless the issue explicitly changes the contract.
 - Do not remove files unless they are confirmed unused.
-- After any code change, explain what changed and how to test it.
+- Do not expose developer/debug information or sensitive implementation details to users.
 
-## Environment Files
+## Issue Workflow
 
-- Never commit real environment files that contain local secrets.
-- Keep these files ignored:
-  - `.env`
-  - `.env.local`
-  - `.env.*.local`
-- Commit safe example files only:
-  - `plantplotter/.env.local.example`
-  - `plantplotter_backend/.env.example`
-- Example files must use placeholder values only.
-- Do not include real database passwords, JWT secrets, API keys, or personal credentials in example files.
+- GitHub Issues are the source of truth for implementation work.
+- Read the entire issue and acceptance criteria before making changes.
+- Inspect the current implementation before deciding on a solution.
+- Keep work within issue scope.
+- If the issue is stale or conflicts with the current repository state, report that before implementing speculative changes.
 
-## Local Development
+## Branch Rules
 
-- Frontend runs on `http://localhost:3000`.
-- Backend runs on `http://localhost:5001`.
-- Frontend API calls should use `NEXT_PUBLIC_API_URL`.
-- Backend CORS should use `FRONTEND_URL`.
-- Real `.env` and `.env.local` files must stay local and ignored by Git.
-- Safe example files should be committed:
-  - `plantplotter/.env.local.example`
-  - `plantplotter_backend/.env.example`
+- Confirm the current branch before editing.
+- Never implement issue work on `main`.
+- Use:
+  `<issue-number>-<short-description>`
+- Keep the description to roughly two or three words where practical.
 
-## Naming Conventions
+Examples:
 
-### General
+- `80-frontend-ci-tests`
+- `53-stale-tracker-data`
+- `59-mobile-modal-fix`
 
-- Use clear, descriptive names.
-- Avoid vague names like `data`, `stuff`, `temp`, `thing`, or `newFile`.
-- Prefer names that explain purpose, not just type.
+## Frontend
 
-### Frontend
+- Keep behavior consistent across related flows.
+- Keep validation messages clear and user-facing.
+- Preserve useful native HTML validation while using predictable application validation where needed.
+- Maintain loading, error, empty, and success states.
+- Preserve accessibility and responsive behavior.
+- Follow `DESIGN.md` for visual changes.
 
-- React components should use `PascalCase`.
-  - Example: `GardenForm.jsx`, `DashboardCard.jsx`
-- Hooks should use `camelCase` and start with `use`.
-  - Example: `useGardens.js`, `useAuth.js`
-- Utility files should use `camelCase`.
-  - Example: `gardenValidation.js`, `formatDimensions.js`
-- Event handlers should start with `handle`.
-  - Example: `handleSubmit`, `handleUnitChange`
-- Boolean values should read naturally.
-  - Example: `isLoading`, `hasError`, `canSubmit`
+## Backend
 
-### Backend
+- Backend validation is the source of truth for persisted data.
+- User-input validation failures should use appropriate `4xx` responses rather than generic `500` errors.
+- Return clear JSON errors without exposing implementation details.
+- Preserve API contracts unless intentionally changing them.
 
-- Route files should use plural resource names where practical.
-  - Example: `gardens.js`, `plants.js`, `auth.js`
-- Validation helpers should clearly describe the validated resource.
-  - Example: `gardenValidation.js`
-- Controller/helper functions should use `camelCase`.
-  - Example: `createGarden`, `updateGarden`, `validateGardenPayload`
-- Constants should use `UPPER_SNAKE_CASE`.
-  - Example: `MAX_GARDEN_NAME_LENGTH`
+## Security and Environment
 
-### Database
-
-- Do not rename database tables or columns unless explicitly requested.
-- If existing database names are unclear, add comments in code rather than changing schema immediately.
-- Garden dimensions are stored internally in meters.
-
-## Frontend Guidelines
-
-- Keep UI behavior consistent between create and edit flows.
-- Show clear validation messages near the related field.
-- Avoid relying only on native browser validation messages for important form behavior.
-- Keep native HTML attributes like `required`, `min`, and `max` as backup when useful.
-- Use custom validation for important forms so behavior is predictable and testable.
-- Do not show developer/debug information in the user-facing UI.
-- Do not display text like `Database values` to normal users.
-- Loading, error, empty, and success states should be clear.
-- Keep styling consistent with the current Tailwind-based design.
-- Do not introduce a new UI library unless explicitly requested.
-
-## Backend Guidelines
-
-- Backend validation is the source of truth.
-- User validation errors should return HTTP `400`.
-- Do not return generic `500` errors for user input mistakes.
-- Error responses should be clear JSON.
-- Do not expose sensitive implementation details in API responses.
-- Keep API payload shapes stable unless a change is explicitly requested.
-- Avoid silent fallbacks for invalid required fields.
-- Defaults are okay only when they are intentional and documented.
-
-## Garden Dimension Rules
-
-- Users may enter dimensions in Metric `m` or Imperial `ft`.
-- Validate dimensions using the unit selected by the user.
-- Store dimensions internally in meters.
-- Conversion to meters should happen before saving to the backend.
-- Do not show database/storage values in the user-facing UI.
-
-### Current Dimension Validation
-
-- Metric mode:
-  - Minimum: `1 m`
-  - Maximum: `100 m`
-- Imperial mode:
-  - Minimum should reflect the backend minimum meter value.
-  - Since `1 m` is about `3.3 ft`, imperial values below `3.3 ft` should not be accepted if the backend stores integer meters.
-  - Since `100 m` is about `328 ft`, imperial values above `328 ft` should not be accepted.
-- Validation messages should match the selected unit.
-  - Metric messages should mention meters.
-  - Imperial messages should mention feet.
-
-## Garden Validation Rules
-
-- Garden name is required after trimming.
-- Garden name max length is `50` characters.
-- Garden name may include letters, numbers, spaces, and normal punctuation.
-- Garden name should not be limited to letters only.
-- Reject empty strings and invalid values like `[object Object]`.
-- Description is optional.
-- Description max length is `1000` characters.
-- Location is optional.
-- Preserve an empty location as missing data and display `No location set` in the UI.
-- Soil type must be one of:
-  - `Loamy`
-  - `Clay`
-  - `Sandy`
-  - `Silt`
-  - `Peat`
-  - `Chalk`
-- Status must be one of:
-  - `Planning`
-  - `Active`
-  - `Dormant`
+- Never commit real secrets or local environment files.
+- Keep `.env`, `.env.local`, and `.env.*.local` ignored.
+- Commit safe example environment files only.
+- Follow `SECURITY.md` for authentication, cookies, CSRF, CORS, and security-header behavior.
 
 ## Testing
 
-### Backend Tests
+Run the checks relevant to the files changed.
 
-- Backend validation tests use Node’s built-in test runner.
-- Prefer database-free tests for validation helpers and pure logic.
-- Do not require MySQL for validation unit tests.
-- Run backend tests with:
-
-  `npm test --workspace=plantplotter_backend`
-
-- Backend tests should cover:
-  - valid payloads
-  - trimming behavior
-  - optional defaults
-  - missing required fields
-  - empty strings
-  - invalid width and height
-  - invalid enum values
-  - overlong text fields
-
-### Frontend Tests
-
-- Frontend automated tests should be added for important form behavior.
-- Use Vitest and React Testing Library unless another tool is already configured.
-- Frontend tests should focus on user behavior, not implementation details.
-- Prefer queries users would understand, such as labels, roles, and visible text.
-- Avoid testing Tailwind class names unless the class directly controls required behavior.
-
-Frontend tests should cover:
-
-- Garden name required message
-- Spaces-only garden name validation
-- Width required message
-- Height required message
-- Width below allowed range
-- Height below allowed range
-- Width above allowed range
-- Height above allowed range
-- Metric validation messages using `m`
-- Imperial validation messages using `ft`
-- Valid form submission calls the expected create/update handler
-- Location can be empty and remains missing until the user supplies one
-
-Run frontend tests with:
+Frontend:
 
 `npm test --workspace=plantplotter`
 
-Frontend tests are configured with Vitest and React Testing Library. Keep additions focused on user-visible behavior.
+`npm run lint --workspace=plantplotter`
 
-### Linting
+Backend:
 
-- Frontend lint should continue to pass.
-- Run frontend lint with:
+`npm test --workspace=plantplotter_backend`
 
-  `npm run lint --workspace=plantplotter`
+For changes that can affect production builds:
 
-- Existing React hook dependency warnings should not be fixed casually.
-- Only fix hook dependency warnings when the behavior is understood and tested.
+`npm run build --workspace=plantplotter`
 
-## Validation Implementation Guidelines
+Do not modify or weaken tests merely to make them pass.
 
-- Keep validation rules consistent between frontend and backend.
-- Backend validation protects data integrity.
-- Frontend validation improves user experience.
-- Do not rely only on frontend validation.
-- Do not rely only on HTML validation bubbles.
-- Avoid duplicating complex validation logic when a shared helper is practical.
-- Keep error messages clear, short, and user-friendly.
+## Git Safety
 
-## Git Guidelines
+- Check `git status` before and after changes.
+- Avoid staging unrelated files.
+- Do not use `git add .` when unrelated or local files may be present.
+- Do not commit, push, merge, or close issues unless explicitly asked.
 
-- Do not commit real `.env` files.
-- Commit small, focused changes.
-- Use clear commit messages.
-- Before committing, run relevant checks.
-- For backend validation changes, run backend tests.
-- For frontend changes, run frontend lint and any available frontend tests.
-- Do not use `git add .` if there is a risk of staging unrelated or local files.
-- Check `git status` before every commit.
+## Completion / Handoff
 
-## Current Project Direction
+After implementation, report:
 
-The goal is to make Plant Plotter stable, functional, and portfolio-ready.
-
-Priorities:
-
-1. Fix broken behavior.
-2. Improve validation and error handling.
-3. Add automated tests for important backend and frontend behavior.
-4. Keep frontend/backend behavior consistent.
-5. Remove unnecessary or duplicate code carefully.
-6. Improve README and demo readiness.
-7. Make the app easy to run, explain, and demonstrate.
+1. What changed.
+2. Tests/checks run and their results.
+3. Remaining concerns or follow-up work.
+4. A suggested concise commit message.
