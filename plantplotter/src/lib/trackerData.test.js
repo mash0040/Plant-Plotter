@@ -115,21 +115,24 @@ describe('tracker activity transformations', () => {
     ]);
   });
 
-  it('creates the immediate calendar entry used by Quick Log', () => {
+  it('normalizes the saved Quick Log response with the same fields as a calendar reload', () => {
+    const savedActivity = {
+      id: 12, activity_type: 'weeded', plant_name: 'Basil', notes: 'Around the edge',
+      activity_date: '2026-09-05T00:00:00.000Z', activity_time: '23:59:12', garden_id: 3
+    };
     expect(createCalendarActivity({
-      savedActivity: { id: 12 },
-      activityData: { activity: 'weeded', plant: 'Basil', notes: 'Around the edge' },
-      selectedDate: '2026-09-05',
-      gardenId: 3,
-      now: new Date('2026-09-05T14:30:00')
-    })).toMatchObject({
-      id: 12,
-      activity: 'weeded',
-      plant: 'Basil',
-      notes: 'Around the edge',
-      activity_date: '2026-09-05',
-      garden_id: 3
+      savedActivity, plantedItems: [{ name: 'Basil' }]
+    })).toEqual(buildActivityCalendar([savedActivity], [{ name: 'Basil' }])['2026-09-05'][0]);
+    expect(createCalendarActivity({ savedActivity })).toMatchObject({
+      id: 12, time: '23:59', activity_date: '2026-09-05', garden_id: 3
     });
+  });
+
+  it('does not invent a plant or time when the saved response has neither', () => {
+    expect(createCalendarActivity({ savedActivity: {
+      id: 12, activity_type: 'weeded', activity_date: '2026-09-05', garden_id: 3,
+      activity_time: null, created_at: null, plant_name: null
+    } })).toMatchObject({ plant: 'Plant not recorded', time: '' });
   });
 });
 

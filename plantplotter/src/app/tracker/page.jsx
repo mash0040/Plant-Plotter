@@ -149,7 +149,8 @@ function TrackingPageContent() {
   const handleSubmitActivity = async (activityData) => {
     if (!selectedGarden) return;
 
-    await addQuickActivity(activityData, selectedDate);
+    const savedActivity = await addQuickActivity(activityData, selectedDate);
+    if (!savedActivity) return;
     setShowForm(false);
     setFormData({ activity: '', plant: '', notes: '', gardenId: null });
   };

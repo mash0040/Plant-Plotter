@@ -125,24 +125,8 @@ export const buildActivityCalendar = (activities, plantedItems = []) => {
 
 export const createCalendarActivity = ({
   savedActivity,
-  activityData,
-  selectedDate,
-  gardenId,
-  now = new Date()
-}) => ({
-  id: savedActivity.id,
-  activity: activityData.activity,
-  plant: activityData.plant,
-  notes: activityData.notes,
-  time: now.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  }),
-  activity_date: selectedDate,
-  activity_type: activityData.activity,
-  plant_name: activityData.plant,
-  garden_id: gardenId
-});
+  plantedItems = []
+}) => Object.values(buildActivityCalendar([savedActivity], plantedItems))[0][0];
 
 export const normalizeTask = (task) => {
   const dueDate = getDateKey(task.due_date || task.dueDate);

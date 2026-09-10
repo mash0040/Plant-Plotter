@@ -1,7 +1,8 @@
 'use client';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
+import { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
 
 export default function ActivityModal({
   isOpen,
@@ -12,6 +13,9 @@ export default function ActivityModal({
   selectedGarden
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const submissionRef = useRef(false);
+  const errorRef = useRef(null);
   const plantSelectRef = useRef(null);
   const { dialogProps, titleId } = useAccessibleDialog({
     isOpen,
@@ -19,6 +23,10 @@ export default function ActivityModal({
     canDismiss: !isSubmitting,
     initialFocusRef: plantSelectRef
   });
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   if (!isOpen) return null;
 
@@ -39,9 +47,11 @@ export default function ActivityModal({
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (isSubmitting || !formData.plant || !formData.activity || gardenPlantOptions.length === 0) return;
+    if (submissionRef.current || !gardenPlantOptions.includes(formData.plant) || !formData.activity) return;
 
+    submissionRef.current = true;
     setIsSubmitting(true);
+    setError('');
 
     try {
       await onSubmit({
@@ -49,7 +59,10 @@ export default function ActivityModal({
         plant: formData.plant,
         notes: formData.notes
       });
+    } catch (saveError) {
+      setError(getTrackerFailureMessage(saveError, 'The activity could not be logged. Your selections and notes are still here. Try again.'));
     } finally {
+      submissionRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -71,6 +84,17 @@ export default function ActivityModal({
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
           <div className="space-y-4 overflow-y-auto p-4 sm:p-5">
+            {error && (
+              <div ref={errorRef} role="alert" tabIndex={-1}
+                className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 focus:outline-none focus:ring-2 focus:ring-red-600">
+                {error}
+              </div>
+            )}
+            {formData.activity === 'planted' && (
+              <p className="text-sm text-gray-700">
+                Record when you planted a plant already in this garden. To add a plant to your layout, use the garden planner.
+              </p>
+            )}
             <div>
               <label htmlFor="quick-activity-plant" className="block text-sm font-medium text-gray-700 mb-2">
                 Plant
@@ -82,7 +106,7 @@ export default function ActivityModal({
                 onChange={(event) => onFormDataChange({ ...formData, plant: event.target.value })}
                 className="w-full min-h-11 rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 required
-                disabled={gardenPlantOptions.length === 0}
+                disabled={isSubmitting || gardenPlantOptions.length === 0}
               >
                 <option value="">Select a plant</option>
                 {gardenPlantOptions.map(plantName => (
@@ -91,6 +115,7 @@ export default function ActivityModal({
                   </option>
                 ))}
               </select>
+              <p className="mt-2 text-sm text-gray-600">Quick Log records care for a selected plant.</p>
 
               {gardenPlantOptions.length === 0 && (
                 <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
@@ -112,6 +137,7 @@ export default function ActivityModal({
               <textarea
                 id="quick-activity-notes"
                 value={formData.notes}
+                disabled={isSubmitting}
                 onChange={(event) => onFormDataChange({ ...formData, notes: event.target.value })}
                 className="w-full rounded border border-gray-300 bg-white p-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 rows="3"
@@ -123,10 +149,11 @@ export default function ActivityModal({
           <div className="flex flex-col sm:flex-row gap-3 border-t border-gray-200 bg-gray-50 p-4 sm:p-5">
             <button
               type="submit"
-              disabled={isSubmitting || !formData.plant || !formData.activity || gardenPlantOptions.length === 0}
+              disabled={isSubmitting || !gardenPlantOptions.includes(formData.plant) || !formData.activity}
+              aria-busy={isSubmitting}
               className="min-h-11 flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isSubmitting ? 'Adding...' : 'Add Activity'}
+              {isSubmitting ? 'Adding...' : error ? 'Try again' : 'Add Activity'}
             </button>
             <button
               type="button"

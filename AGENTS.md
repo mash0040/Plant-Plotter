@@ -110,7 +110,8 @@ After implementation, report:
 
 1. What changed.
 2. Tests, lint, or builds run and their results.
-3. Manual UI tests I should perform to verify the change.
+3. List the manual UI tests I should perform myself to verify the change.
+Even if you cannot run browser/manual tests yourself, you must still provide a concrete manual UI checklist for me to execute. Do not replace the checklist with a statement that manual verification is unavailable.
 4. Remaining concerns, limitations, or follow-up work.
 5. A suggested concise commit message.
 

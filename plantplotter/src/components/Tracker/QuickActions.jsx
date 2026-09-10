@@ -74,7 +74,12 @@ export default function QuickActions({
               ) : (
                 <IconComponent className={`w-4 h-4 ${action.color}`} />
               )}
-              <span className="text-gray-900">{action.label}</span>
+              <span className="text-gray-900">
+                {action.label}
+                {action.id === 'planted' && (
+                  <span className="block text-xs text-gray-600">Record planting history</span>
+                )}
+              </span>
             </button>
           );
         })}

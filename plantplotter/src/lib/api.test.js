@@ -55,6 +55,35 @@ describe('apiClient error handling', () => {
     }));
   });
 
+  it('returns the saved Quick Log activity without changing persisted fields', async () => {
+    const saved = { id: 15, garden_id: 7, activity_type: 'planted', plant_name: 'Basil',
+      notes: 'Near the fence', activity_date: '2026-09-04', activity_time: '23:58:00' };
+    fetch.mockResolvedValue(createJsonResponse({ status: 201, body: saved,
+      headers: { 'content-type': 'application/json' } }));
+    await expect(apiClient.addActivity({ gardenId: 7, activity: 'planted', plant: 'Basil',
+      notes: 'Near the fence', date: '2026-09-05' })).resolves.toEqual(saved);
+    expect(fetch).toHaveBeenCalledExactlyOnceWith(expect.stringMatching(/\/activities$/), expect.objectContaining({
+      method: 'POST', credentials: 'include',
+      body: JSON.stringify({ garden_id: 7, activity_type: 'planted', plant_name: 'Basil',
+        notes: 'Near the fence', activity_date: '2026-09-05' }),
+      headers: expect.objectContaining({ 'X-CSRF-Protection': '1' })
+    }));
+  });
+
+  it.each([400, 500, 503])('does not retry a failed Quick Log mutation (%s)', async status => {
+    fetch.mockResolvedValue(createJsonResponse({ status, body: { message: 'Request failed' } }));
+    await expect(apiClient.addActivity({ activity: 'watered' })).rejects.toMatchObject({ status });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry a Quick Log mutation after losing the network connection', async () => {
+    fetch.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(apiClient.addActivity({ activity: 'watered' })).rejects.toMatchObject({
+      code: API_ERROR_CODES.NETWORK_ERROR
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it.each([400, 401, 404, 500, 503])('does not retry a failed task status mutation (%s)', async status => {
     fetch.mockResolvedValue(createJsonResponse({ status, body: { message: 'Request failed' } }));
     await expect(apiClient.updateTaskStatus(9, 'completed')).rejects.toMatchObject({ status });
