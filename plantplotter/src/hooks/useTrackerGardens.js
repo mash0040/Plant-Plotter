@@ -11,19 +11,25 @@ import {
   normalizeTrackerGardens
 } from '@/lib/trackerData';
 import { getTrackerFailureMessage } from './useTrackerFeedback';
+import useTrackerRequestScope from './useTrackerRequestScope';
 
 export default function useTrackerGardens({ showError, showWarning, clearFeedback }) {
   const [gardens, setGardens] = useState([]);
   const [selectedGarden, setSelectedGarden] = useState(null);
   const [isLoadingGardens, setIsLoadingGardens] = useState(true);
-  const [isLoadingSelectedGardenPlants, setIsLoadingSelectedGardenPlants] = useState(false);
+  const [loadingPlantsScope, setLoadingPlantsScope] = useState(null);
   const [gardenLoadError, setGardenLoadError] = useState('');
+  const gardensScope = useTrackerRequestScope('gardens');
+  const plantsScope = useTrackerRequestScope(selectedGarden?.id);
 
   const loadGardens = useCallback(async () => {
+    if (!gardensScope.isActive()) return;
+    const isCurrentRequest = gardensScope.startRequest();
     try {
       setIsLoadingGardens(true);
       setGardenLoadError('');
       const gardenSummaries = await apiClient.getGardenSummaries();
+      if (!isCurrentRequest()) return;
       const trackerGardens = normalizeTrackerGardens(gardenSummaries);
 
       setGardens(trackerGardens);
@@ -31,6 +37,7 @@ export default function useTrackerGardens({ showError, showWarning, clearFeedbac
       setGardenLoadError('');
       clearFeedback('gardens-load');
     } catch (error) {
+      if (!isCurrentRequest()) return;
       console.error('Failed to load gardens from API:', error);
       if (isAuthenticationError(error)) {
         setGardens([]);
@@ -67,36 +74,47 @@ export default function useTrackerGardens({ showError, showWarning, clearFeedbac
         clearFeedback('gardens-load');
       }
     } finally {
-      setIsLoadingGardens(false);
+      if (isCurrentRequest()) setIsLoadingGardens(false);
     }
-  }, [clearFeedback, showWarning]);
+  }, [clearFeedback, gardensScope, showWarning]);
 
   const loadSelectedGardenPlants = useCallback(async () => {
-    if (!selectedGarden || selectedGarden.hasLoadedPlants) return;
+    if (!selectedGarden || selectedGarden.hasLoadedPlants || !plantsScope.isActive()) return;
+    const isCurrentRequest = plantsScope.startRequest();
 
     try {
-      setIsLoadingSelectedGardenPlants(true);
+      setLoadingPlantsScope(plantsScope);
       const plantedItems = await apiClient.getGardenPlants(selectedGarden.id);
+      if (!isCurrentRequest()) return;
       const gardenWithPlants = hydrateTrackerGarden(selectedGarden, plantedItems);
 
-      setSelectedGarden(gardenWithPlants);
+      setSelectedGarden(currentGarden => (
+        currentGarden?.id === selectedGarden.id ? gardenWithPlants : currentGarden
+      ));
       setGardens(currentGardens => currentGardens.map(garden => (
         garden.id === gardenWithPlants.id ? gardenWithPlants : garden
       )));
       clearFeedback('plants-load');
     } catch (error) {
+      if (!isCurrentRequest()) return;
       console.error('Failed to load selected garden plants:', error);
       showError(
         'plants-load',
         getTrackerFailureMessage(error, 'Plants for this garden could not be loaded. Plant-based actions may be unavailable.')
       );
       setSelectedGarden(currentGarden => (
-        currentGarden ? { ...currentGarden, hasLoadedPlants: true } : currentGarden
+        currentGarden?.id === selectedGarden.id
+          ? { ...currentGarden, hasLoadedPlants: true }
+          : currentGarden
       ));
     } finally {
-      setIsLoadingSelectedGardenPlants(false);
+      if (isCurrentRequest()) setLoadingPlantsScope(null);
     }
-  }, [clearFeedback, selectedGarden, showError]);
+  }, [clearFeedback, plantsScope, selectedGarden, showError]);
+
+  useEffect(() => {
+    clearFeedback('plants-load');
+  }, [clearFeedback, plantsScope]);
 
   useEffect(() => {
     loadGardens();
@@ -107,7 +125,7 @@ export default function useTrackerGardens({ showError, showWarning, clearFeedbac
     selectedGarden,
     setSelectedGarden,
     isLoadingGardens,
-    isLoadingSelectedGardenPlants,
+    isLoadingSelectedGardenPlants: loadingPlantsScope === plantsScope,
     gardenLoadError,
     loadGardens,
     loadSelectedGardenPlants
