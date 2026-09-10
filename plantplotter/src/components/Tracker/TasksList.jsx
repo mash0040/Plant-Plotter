@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { AlertCircle, Check, CheckCircle, ChevronDown, Clock, Edit3 } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle, ChevronDown, Clock, Edit3, LoaderCircle } from 'lucide-react';
 import { formatTaskDate, getPriorityColor } from './Constants/TaskData';
 import { getTaskRecurrenceLabel } from '@/lib/taskRecurrence';
 
@@ -9,7 +9,7 @@ export default function TasksList({
   tasks,
   onTaskComplete,
   onTaskEdit,
-  showCheckboxes = false,
+  pendingTaskIds = new Set(),
   emptyMessage = 'No tasks',
   showEditButtons = true,
   collapsible = false,
@@ -33,29 +33,25 @@ export default function TasksList({
       <div className="space-y-1">
         {tasks.map(task => {
           const taskName = task.title || task.task || 'task';
+          const isPending = pendingTaskIds.has(task.id);
 
           return (
             <div key={task.id} className="group flex items-start gap-3 rounded-md p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
-              {showCheckboxes ? (
-                <label className="touch-target flex flex-shrink-0 items-start justify-center pt-0.5">
-                  <input
-                    type="checkbox"
-                    aria-label={`Complete ${taskName}`}
-                    className="h-6 w-6 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    onChange={() => onTaskComplete && onTaskComplete(task.id)}
-                  />
-                </label>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => onTaskComplete && onTaskComplete(task.id)}
-                  className="touch-target group mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded border-2 border-gray-300 transition-colors hover:border-green-500 hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 dark:border-gray-500 dark:hover:border-green-500 dark:hover:bg-green-900"
-                  title="Complete task"
-                  aria-label={`Complete ${taskName}`}
-                >
-                  <Check className="h-3 w-3 text-green-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => onTaskComplete && onTaskComplete(task.id)}
+                disabled={isPending}
+                aria-busy={isPending}
+                className="touch-target group mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded border-2 border-gray-300 transition-colors enabled:hover:border-green-500 enabled:hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 disabled:cursor-wait dark:border-gray-500 dark:enabled:hover:border-green-500 dark:enabled:hover:bg-green-900"
+                title="Complete task"
+                aria-label={`Complete ${taskName}`}
+              >
+                {isPending ? (
+                  <LoaderCircle className="h-4 w-4 text-green-700 motion-safe:animate-spin dark:text-green-300" aria-hidden="true" />
+                ) : (
+                  <Check className="h-3 w-3 text-green-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
+                )}
+              </button>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
@@ -63,6 +59,9 @@ export default function TasksList({
                     <div className="break-words text-sm font-medium text-gray-900 dark:text-white">
                       {task.title || task.task}
                     </div>
+                    {isPending && (
+                      <p role="status" className="mt-1 text-sm text-gray-600 dark:text-gray-300">Completing task...</p>
+                    )}
                     {(task.plant || task.description) && (
                       <div className="mt-1 break-words text-xs text-gray-500 dark:text-gray-400">
                         {[task.plant, task.description].filter(Boolean).join(' - ')}
@@ -102,6 +101,7 @@ export default function TasksList({
                       <button
                         type="button"
                         onClick={() => onTaskEdit(task)}
+                        disabled={isPending}
                         className="touch-target touch-reveal flex h-9 w-9 items-center justify-center rounded bg-gray-100 opacity-100 transition-colors hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 dark:bg-gray-700 dark:hover:bg-gray-600 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                         title="Edit task"
                         aria-label={`Edit ${taskName}`}

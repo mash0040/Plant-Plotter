@@ -18,32 +18,52 @@ describe('task display data', () => {
 });
 
 describe('TasksList accessibility', () => {
-  it('names checkbox and edit actions with their task', async () => {
+  it.each(['Today', 'Overdue', 'Upcoming'])('uses named completion and edit buttons in %s', async title => {
     const onTaskComplete = vi.fn();
     const onTaskEdit = vi.fn();
     const user = userEvent.setup();
 
     render(
       <TasksList
-        title="Upcoming"
+        title={title}
         tasks={[task]}
         onTaskComplete={onTaskComplete}
         onTaskEdit={onTaskEdit}
-        showCheckboxes
       />
     );
 
-    const completeCheckbox = screen.getByRole('checkbox', { name: 'Complete Water tomatoes' });
+    const completeButton = screen.getByRole('button', { name: 'Complete Water tomatoes' });
     const editButton = screen.getByRole('button', { name: 'Edit Water tomatoes' });
 
-    expect(completeCheckbox.closest('label')).toHaveClass('touch-target');
+    expect(completeButton).toHaveClass('touch-target');
     expect(editButton).toHaveClass('touch-target', 'touch-reveal');
 
-    await user.click(completeCheckbox);
+    await user.click(completeButton);
     await user.click(editButton);
 
     expect(onTaskComplete).toHaveBeenCalledWith(7);
     expect(onTaskEdit).toHaveBeenCalledWith(task);
+  });
+
+  it.each(['Today', 'Overdue', 'Upcoming'])('disables only the pending task in %s and allows retry after failure', async title => {
+    const user = userEvent.setup();
+    const onTaskComplete = vi.fn();
+    const props = { title, tasks: [task, { ...task, id: 8, title: 'Weed beds' }],
+      onTaskComplete, onTaskEdit: vi.fn() };
+    const { rerender } = render(<TasksList {...props} pendingTaskIds={new Set([7])} />);
+    const button = screen.getByRole('button', { name: 'Complete Water tomatoes' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('Completing task...');
+    expect(screen.getByRole('button', { name: 'Edit Water tomatoes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Complete Weed beds' })).toBeEnabled();
+    await user.dblClick(button);
+    expect(onTaskComplete).not.toHaveBeenCalled();
+    rerender(<TasksList {...props} pendingTaskIds={new Set()} />);
+    expect(button).toBeEnabled();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    await user.click(button);
+    expect(onTaskComplete).toHaveBeenCalledExactlyOnceWith(7);
   });
 
   it('names the icon-only complete button with its task', () => {

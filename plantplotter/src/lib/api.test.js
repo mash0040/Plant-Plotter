@@ -44,6 +44,23 @@ describe('apiClient error handling', () => {
     });
   });
 
+  it('sends only task status with cookie credentials and CSRF protection', async () => {
+    const task = { id: 9, status: 'completed', completed_at: '2026-09-10T12:00:00.000Z' };
+    fetch.mockResolvedValue(createJsonResponse({ status: 200, body: task,
+      headers: { 'content-type': 'application/json' } }));
+    await expect(apiClient.updateTaskStatus(9, 'completed')).resolves.toEqual(task);
+    expect(fetch).toHaveBeenCalledExactlyOnceWith(expect.stringMatching(/\/tasks\/9$/), expect.objectContaining({
+      method: 'PATCH', credentials: 'include', body: JSON.stringify({ status: 'completed' }),
+      headers: expect.objectContaining({ 'X-CSRF-Protection': '1' })
+    }));
+  });
+
+  it.each([400, 401, 404, 500, 503])('does not retry a failed task status mutation (%s)', async status => {
+    fetch.mockResolvedValue(createJsonResponse({ status, body: { message: 'Request failed' } }));
+    await expect(apiClient.updateTaskStatus(9, 'completed')).rejects.toMatchObject({ status });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('maps HTTP 500 to the generic server error message', async () => {
     fetch.mockResolvedValue(createJsonResponse({
       status: 500,

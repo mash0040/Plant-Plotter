@@ -789,6 +789,13 @@ class ApiClient {
     }
   }
 
+  async updateTaskStatus(taskId, status) {
+    return this.request(`/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
   async deleteTask(taskId) {
     try {
       const response = await this.request(`/tasks/${taskId}`, {
