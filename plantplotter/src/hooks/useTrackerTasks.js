@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import apiClient from '@/lib/api';
 import { isAuthenticationError } from '@/lib/apiErrors';
 import {
@@ -27,6 +27,8 @@ export default function useTrackerTasks({
 }) {
   const scope = useTrackerRequestScope(selectedGarden?.id);
   const [taskState, setTaskState] = useState(null);
+  const completionRequests = useRef(new Set());
+  const [pendingTaskIds, setPendingTaskIds] = useState(new Set());
   const taskCollections = taskState?.scope === scope ? taskState.collections : EMPTY_TASK_COLLECTIONS;
   const [taskPlantLibrary, setTaskPlantLibrary] = useState([]);
   const [isTaskPlantLibraryLoading, setIsTaskPlantLibraryLoading] = useState(false);
@@ -40,7 +42,7 @@ export default function useTrackerTasks({
     clearFeedback('tasks-load');
   }, [clearFeedback, scope]);
 
-  const loadTasks = useCallback(async () => {
+  const loadTasks = useCallback(async ({ preserveOnError = false } = {}) => {
     if (!selectedGarden || !scope.isActive()) return;
     const isCurrentRequest = scope.startRequest();
 
@@ -62,11 +64,12 @@ export default function useTrackerTasks({
         'tasks-load',
         getTrackerFailureMessage(error, 'Tasks could not be loaded. The care queue may be out of date.')
       );
-      clearTaskCollections();
+      if (!preserveOnError) clearTaskCollections();
     }
   }, [clearFeedback, clearTaskCollections, scope, selectedGarden, showError]);
 
   const completeTask = useCallback(async (taskId) => {
+    if (!scope.isActive() || completionRequests.current.has(taskId)) return;
     const allTasks = [
       ...taskCollections.todayTasks,
       ...taskCollections.upcomingTasks,
@@ -75,13 +78,23 @@ export default function useTrackerTasks({
     const taskToComplete = allTasks.find(task => task.id === taskId);
     if (!taskToComplete) return;
 
+    completionRequests.current.add(taskId);
+    setPendingTaskIds(new Set(completionRequests.current));
+    clearFeedback(`task-complete-${taskId}`);
     try {
-      await apiClient.updateTask(
-        taskId,
-        getTaskUpdatePayload(taskToComplete, { status: 'completed' })
-      );
+      await apiClient.updateTaskStatus(taskId, 'completed');
       if (!scope.isActive()) return;
-      await loadTasks();
+      // Apply the confirmed completion even if the subsequent queue refresh fails.
+      setTaskState(current => {
+        if (current?.scope !== scope) return current;
+        const remainingTasks = [
+          ...current.collections.todayTasks,
+          ...current.collections.upcomingTasks,
+          ...current.collections.overdueTasks
+        ].filter(task => task.id !== taskId);
+        return { scope, collections: buildTaskCollections(remainingTasks) };
+      });
+      await loadTasks({ preserveOnError: true });
       if (!scope.isActive()) return;
       showSuccess(`task-complete-${taskId}`, 'Task completed.');
     } catch (error) {
@@ -89,10 +102,13 @@ export default function useTrackerTasks({
       console.error('Failed to complete task:', error);
       showError(
         `task-complete-${taskId}`,
-        getTrackerFailureMessage(error, 'The task could not be completed and remains in your care queue.')
+        getTrackerFailureMessage(error, 'The task could not be completed and remains in your care queue. Try completing it again.')
       );
+    } finally {
+      completionRequests.current.delete(taskId);
+      setPendingTaskIds(new Set(completionRequests.current));
     }
-  }, [loadTasks, scope, showError, showSuccess, taskCollections]);
+  }, [clearFeedback, loadTasks, scope, showError, showSuccess, taskCollections]);
 
   const loadTaskPlantLibrary = useCallback(async () => {
     if (taskPlantLibrary.length > 0 || isTaskPlantLibraryLoading) return;
@@ -160,6 +176,7 @@ export default function useTrackerTasks({
 
   return {
     ...taskCollections,
+    pendingTaskIds,
     taskPlantLibrary,
     isTaskPlantLibraryLoading,
     taskPlantLibraryError,

@@ -64,6 +64,7 @@ function TrackingPageContent() {
     todayTasks,
     upcomingTasks,
     overdueTasks,
+    pendingTaskIds,
     calendarTasks,
     taskPlantLibrary,
     isTaskPlantLibraryLoading,
@@ -354,6 +355,7 @@ function TrackingPageContent() {
               <div>
                 <TasksList
                   title="Overdue"
+                  pendingTaskIds={pendingTaskIds}
                   tasks={overdueTasks}
                   onTaskComplete={handleTaskComplete}
                   onTaskEdit={handleTaskEdit}
@@ -362,6 +364,7 @@ function TrackingPageContent() {
                 />
                 <TasksList
                   title="Today"
+                  pendingTaskIds={pendingTaskIds}
                   tasks={todayTasks}
                   onTaskComplete={handleTaskComplete}
                   onTaskEdit={handleTaskEdit}
@@ -369,10 +372,10 @@ function TrackingPageContent() {
                 />
                 <TasksList
                   title="Upcoming"
+                  pendingTaskIds={pendingTaskIds}
                   tasks={upcomingTasks}
                   onTaskComplete={handleTaskComplete}
                   onTaskEdit={handleTaskEdit}
-                  showCheckboxes
                   emptyMessage="No upcoming tasks"
                   collapsible
                 />

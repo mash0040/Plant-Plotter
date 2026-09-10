@@ -131,11 +131,12 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// PUT /api/tasks/:id
-router.put('/:id', verifyToken, async (req, res) => {
+// PUT edits a task; PATCH changes only its status using the stored metadata.
+const updateTask = async (req, res) => {
   let connection;
 
   try {
+    const statusOnly = req.method === 'PATCH';
     const { 
       title, 
       description, 
@@ -148,9 +149,9 @@ router.put('/:id', verifyToken, async (req, res) => {
       is_recurring,
       recurring_pattern,
       notes
-    } = req.body;
+    } = req.body || {};
     const allowedStatuses = ['pending', 'completed', 'cancelled', 'overdue'];
-    if (!title || !due_date) {
+    if (!statusOnly && (!title || !due_date)) {
       return sendErrorResponse(res, 400, 'title and due_date are required', {
         code: 'VALIDATION_ERROR',
         errors: {
@@ -160,23 +161,23 @@ router.put('/:id', verifyToken, async (req, res) => {
       });
     }
 
-    if (status && !allowedStatuses.includes(status)) {
+    if ((statusOnly || status) && !allowedStatuses.includes(status)) {
       return sendErrorResponse(res, 400, 'Invalid task status', {
         code: 'VALIDATION_ERROR'
       });
     }
 
-    if (task_type && !allowedTaskTypes.includes(task_type)) {
+    if (!statusOnly && task_type && !allowedTaskTypes.includes(task_type)) {
       return sendErrorResponse(res, 400, 'Invalid task type', {
         code: 'VALIDATION_ERROR'
       });
     }
 
-    const recurrence = validateTaskRecurrence({
+    let recurrence = statusOnly ? null : validateTaskRecurrence({
       isRecurring: is_recurring,
       recurringPattern: recurring_pattern
     });
-    if (!recurrence.isValid) {
+    if (recurrence && !recurrence.isValid) {
       return sendErrorResponse(res, 400, recurrence.error, {
         code: 'VALIDATION_ERROR',
         errors: { recurring_pattern: recurrence.error }
@@ -199,44 +200,66 @@ router.put('/:id', verifyToken, async (req, res) => {
     }
 
     const nextStatus = status || 'pending';
+    const task = statusOnly ? existingTask[0] : {
+      ...existingTask[0], title, description, due_date, priority, plant_name,
+      task_type, estimated_duration
+    };
+    if (statusOnly) {
+      // Recurrence is relevant only when this transition schedules another task.
+      recurrence = {
+        isRecurring: task.is_recurring === true || task.is_recurring === 1,
+        recurringPattern: task.recurring_pattern
+      };
+    }
     const shouldCreateNextOccurrence = shouldScheduleNextOccurrence({
       previousStatus: existingTask[0].status,
       nextStatus,
       isRecurring: recurrence.isRecurring
     });
     const nextOccurrenceDate = shouldCreateNextOccurrence
-      ? getNextOccurrenceDate(due_date, recurrence.recurringPattern)
+      ? getNextOccurrenceDate(task.due_date, recurrence.recurringPattern)
       : null;
 
     if (shouldCreateNextOccurrence && !nextOccurrenceDate) {
       await connection.rollback();
-      return sendErrorResponse(res, 400, 'Enter a valid due date before completing this recurring task.', {
+      return sendErrorResponse(res, 400, 'Edit this recurring task to set a valid due date and recurrence before completing it.', {
         code: 'VALIDATION_ERROR',
-        errors: { due_date: 'Enter a valid due date.' }
+        errors: { due_date: 'Check the due date and recurrence pattern.' }
       });
     }
 
-    await connection.execute(
-      `UPDATE garden_tasks
-       SET title = ?, description = ?, due_date = ?, priority = ?, status = ?,
-           plant_name = ?, task_type = ?, estimated_duration = ?, is_recurring = ?,
-           recurring_pattern = ?
-       WHERE id = ? AND user_id = ?`,
-      [
-        title,
-        description ?? null,
-        due_date,
-        priority || 'medium',
-        nextStatus,
-        plant_name ?? null,
-        task_type || 'maintenance',
-        estimated_duration ?? null,
-        recurrence.isRecurring,
-        recurrence.recurringPattern,
-        req.params.id,
-        req.user.id
-      ]
-    );
+    // Preserve a recorded timestamp on repeat requests, including legacy completions.
+    const completedAtSql = nextStatus !== 'completed' ? 'NULL'
+      : existingTask[0].status === 'completed' ? 'COALESCE(completed_at, NOW())' : 'NOW()';
+    if (statusOnly) {
+      await connection.execute(
+        `UPDATE garden_tasks SET status = ?, completed_at = ${completedAtSql}
+         WHERE id = ? AND user_id = ?`,
+        [nextStatus, req.params.id, req.user.id]
+      );
+    } else {
+      await connection.execute(
+        `UPDATE garden_tasks
+         SET title = ?, description = ?, due_date = ?, priority = ?, status = ?,
+             plant_name = ?, task_type = ?, estimated_duration = ?, is_recurring = ?,
+             recurring_pattern = ?, completed_at = ${completedAtSql}
+         WHERE id = ? AND user_id = ?`,
+        [
+          title,
+          description ?? null,
+          due_date,
+          priority || 'medium',
+          nextStatus,
+          plant_name ?? null,
+          task_type || 'maintenance',
+          estimated_duration ?? null,
+          recurrence.isRecurring,
+          recurrence.recurringPattern,
+          req.params.id,
+          req.user.id
+        ]
+      );
+    }
 
     if (nextOccurrenceDate) {
       await connection.execute(
@@ -249,13 +272,13 @@ router.put('/:id', verifyToken, async (req, res) => {
         [
           req.user.id,
           existingTask[0].garden_id,
-          title,
-          description ?? null,
+          task.title,
+          task.description ?? null,
           nextOccurrenceDate,
-          priority || 'medium',
-          plant_name ?? null,
-          task_type || 'maintenance',
-          estimated_duration ?? null,
+          task.priority || 'medium',
+          task.plant_name ?? null,
+          task.task_type || 'maintenance',
+          task.estimated_duration ?? null,
           recurrence.isRecurring,
           recurrence.recurringPattern
         ]
@@ -284,7 +307,10 @@ router.put('/:id', verifyToken, async (req, res) => {
       connection.release();
     }
   }
-});
+};
+
+router.put('/:id', verifyToken, updateTask);
+router.patch('/:id', verifyToken, updateTask);
 
 // DELETE /api/tasks/:id
 router.delete('/:id', verifyToken, async (req, res) => {

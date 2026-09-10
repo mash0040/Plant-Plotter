@@ -109,6 +109,14 @@ Do not modify or weaken tests merely to make them pass.
 After implementation, report:
 
 1. What changed.
-2. Tests/checks run and their results.
-3. Remaining concerns or follow-up work.
-4. A suggested concise commit message.
+2. Tests, lint, or builds run and their results.
+3. Manual UI tests I should perform to verify the change.
+4. Remaining concerns, limitations, or follow-up work.
+5. A suggested concise commit message.
+
+For manual UI testing:
+- Make the checklist specific to the issue just completed.
+- Include desktop and mobile checks when the change affects responsive or touch behavior.
+- Include error, loading, empty, or edge states when relevant.
+- Reuse manual validation steps from the GitHub issue when they already exist.
+- Do not include unrelated full-app smoke tests unless the change has broad impact.

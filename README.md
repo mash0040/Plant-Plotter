@@ -201,6 +201,8 @@ Some features include additional migration scripts in `plantplotter_db/`, such a
 
 Recurring tasks support `daily`, `every-2-days`, `weekly`, and `monthly` schedules. Completing one atomically marks the current occurrence complete and creates exactly one pending occurrence. When the original schedule is overdue, missed occurrences are skipped and the next task keeps the original cadence after the completion date. Monthly schedules retain their calendar day when possible and otherwise use the target month's last day.
 
+Task completion uses authenticated `PATCH /api/tasks/:id` with `{ "status": "completed" }` and the standard CSRF header. It updates only status and `completed_at`, so unrelated legacy task metadata does not need to pass editor validation. The endpoint also accepts `pending`, `overdue`, and `cancelled`, which clear `completed_at`; full `PUT` edits maintain the same timestamp behavior. Repeating completion preserves its timestamp and does not schedule another occurrence. Recurring tasks still need a valid stored due date and recurrence pattern to schedule their next occurrence atomically. The tracker disables each task's completion and edit controls while its request is pending, leaves failed completions available for an explicit retry, and never automatically retries mutations.
+
 ## Running Locally
 
 Start the frontend and backend together:
