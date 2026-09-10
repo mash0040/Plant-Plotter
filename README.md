@@ -223,6 +223,9 @@ Default local URLs:
 
 ## Checks
 
+GitHub Actions runs the frontend and backend test suites, frontend linting, and the
+production frontend build on every configured push and pull request.
+
 ```sh
 npm test --workspace=plantplotter
 npm run lint --workspace=plantplotter

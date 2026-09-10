@@ -30,6 +30,9 @@ jobs:
       - name: Run backend tests
         run: npm test --workspace=plantplotter_backend
 
+      - name: Run frontend tests
+        run: npm test --workspace=plantplotter
+
       - name: Lint frontend
         run: npm run lint --workspace=plantplotter
 
