@@ -30,7 +30,7 @@ For production builds, use:
 NEXT_PUBLIC_API_URL=https://api.plantplotter.me/api
 ```
 
-The GitHub Actions frontend build uses this production API URL. Vercel should also define `NEXT_PUBLIC_API_URL` for deployed builds.
+GitHub Actions runs the frontend tests and linting before building with this production API URL. Vercel should also define `NEXT_PUBLIC_API_URL` for deployed builds.
 
 The API issues authentication through an httpOnly cookie. The shared API client uses credentialed fetch requests automatically, so feature code should continue using `src/lib/api.js` instead of calling protected backend endpoints directly. Unsafe API requests also receive the required CSRF protection header there.
 
