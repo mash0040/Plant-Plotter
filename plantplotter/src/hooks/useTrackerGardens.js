@@ -13,7 +13,7 @@ import {
 import { getTrackerFailureMessage } from './useTrackerFeedback';
 import useTrackerRequestScope from './useTrackerRequestScope';
 
-export default function useTrackerGardens({ showError, showWarning, clearFeedback }) {
+export default function useTrackerGardens({ showError, showWarning, clearFeedback, initialGardenId }) {
   const [gardens, setGardens] = useState([]);
   const [selectedGarden, setSelectedGarden] = useState(null);
   const [isLoadingGardens, setIsLoadingGardens] = useState(true);
@@ -33,7 +33,9 @@ export default function useTrackerGardens({ showError, showWarning, clearFeedbac
       const trackerGardens = normalizeTrackerGardens(gardenSummaries);
 
       setGardens(trackerGardens);
-      setSelectedGarden(currentGarden => currentGarden || trackerGardens[0] || null);
+      setSelectedGarden(currentGarden => currentGarden
+        || trackerGardens.find(garden => String(garden.id) === initialGardenId)
+        || trackerGardens[0] || null);
       setGardenLoadError('');
       clearFeedback('gardens-load');
     } catch (error) {
@@ -76,7 +78,7 @@ export default function useTrackerGardens({ showError, showWarning, clearFeedbac
     } finally {
       if (isCurrentRequest()) setIsLoadingGardens(false);
     }
-  }, [clearFeedback, gardensScope, showWarning]);
+  }, [clearFeedback, gardensScope, initialGardenId, showWarning]);
 
   const loadSelectedGardenPlants = useCallback(async () => {
     if (!selectedGarden || selectedGarden.hasLoadedPlants || !plantsScope.isActive()) return;

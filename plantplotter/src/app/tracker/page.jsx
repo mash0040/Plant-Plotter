@@ -1,6 +1,8 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { TRACKER_CREATE_GARDEN_URL } from '@/lib/gardenCreation';
 import { AlertCircle, AlertTriangle, CheckCircle2, Plus, Sprout, X } from 'lucide-react';
 import GardenSelector from '@/components/Tracker/GardenSelector';
 import QuickActions from '@/components/Tracker/QuickActions';
@@ -35,6 +37,7 @@ const TRACKER_FEEDBACK_ICONS = {
 };
 
 function TrackingPageContent() {
+  const searchParams = useSearchParams();
   const trackerMessageRef = useRef(null);
   const {
     feedback,
@@ -53,7 +56,10 @@ function TrackingPageContent() {
     gardenLoadError,
     loadGardens,
     loadSelectedGardenPlants
-  } = useTrackerGardens({ showError, showWarning, clearFeedback });
+  } = useTrackerGardens({
+    showError, showWarning, clearFeedback,
+    initialGardenId: searchParams.get('gardenId')
+  });
   const {
     calendarData,
     loadActivities,
@@ -243,14 +249,14 @@ function TrackingPageContent() {
           </div>
           <h3 className="text-xl font-semibold text-gray-800 mb-2">No gardens yet</h3>
           <p className="text-gray-600 mb-6">
-            Create a garden in My Gardens to start tracking care tasks and activities.
+            Create a garden to start tracking care tasks and activities.
           </p>
           <Link
-            href="/gardens"
+            href={TRACKER_CREATE_GARDEN_URL}
             className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
           >
             <Sprout className="w-5 h-5" />
-            Go to My Gardens
+            Create Garden
           </Link>
         </div>
       </div>
@@ -469,7 +475,9 @@ function TrackingPageContent() {
 export default function TrackingPage() {
   return (
     <ProtectedRoute>
-      <TrackingPageContent />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-600">Loading tracker data...</div>}>
+        <TrackingPageContent />
+      </Suspense>
     </ProtectedRoute>
   );
 }

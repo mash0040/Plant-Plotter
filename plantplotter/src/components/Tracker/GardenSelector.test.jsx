@@ -12,9 +12,9 @@ describe('GardenSelector garden creation copy', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'No gardens yet' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Go to My Gardens' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Create Garden' })).toHaveAttribute(
       'href',
-      '/gardens'
+      '/gardens?create=true&returnTo=/tracker'
     );
   });
 });

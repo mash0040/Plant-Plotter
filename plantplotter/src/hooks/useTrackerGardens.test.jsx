@@ -23,6 +23,26 @@ beforeEach(() => {
 });
 
 describe('useTrackerGardens', () => {
+  it('selects the newly created garden and preserves subsequent manual selection', async () => {
+    const gardens = [{ id: 3, name: 'Old garden' }, { id: 42, name: 'New garden' }];
+    apiClient.getGardenSummaries.mockResolvedValue(gardens);
+    apiClient.getGardenPlants.mockResolvedValue([]);
+    const feedback = createFeedback();
+    const { result } = renderHook(() => useTrackerGardens({ ...feedback, initialGardenId: '42' }));
+    await waitFor(() => expect(result.current.selectedGarden?.id).toBe(42));
+    expect(result.current.selectedGarden).toMatchObject({ plantCount: 0, hasLoadedPlants: true });
+    act(() => result.current.setSelectedGarden(result.current.gardens[0]));
+    await act(async () => result.current.loadGardens());
+    expect(result.current.selectedGarden.id).toBe(3);
+  });
+
+  it.each(['999', 'invalid', undefined])('falls back to an available garden for initial ID %s', async (initialGardenId) => {
+    apiClient.getGardenSummaries.mockResolvedValue([{ id: 3, name: 'Available garden' }]);
+    const feedback = createFeedback();
+    const { result } = renderHook(() => useTrackerGardens({ ...feedback, initialGardenId }));
+    await waitFor(() => expect(result.current.selectedGarden?.id).toBe(3));
+  });
+
   it('loads garden summaries and hydrates the selected garden plants', async () => {
     apiClient.getGardenSummaries.mockResolvedValue([
       { id: 3, name: 'Vegetable Beds', plant_count: 1, status: 'Active', location: 'Backyard' }
