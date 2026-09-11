@@ -47,6 +47,41 @@ const activity = { garden_id: 7, activity_type: 'watered', plant_name: 'Basil',
   notes: 'Near the fence', activity_date: '2026-09-05' };
 
 for (const method of ['POST', 'PUT']) {
+  for (const time of ['24:00', '12:60', '12:30:60', '1:00 PM', '9:00', 900, {}, []]) {
+    test(`${method} rejects invalid performed time ${JSON.stringify(time)} before DB access`, async () => {
+      const response = await request(method, { ...activity, activity_time: time });
+      assert.equal(response.status, 400);
+      assert.equal(response.body.code, 'VALIDATION_ERROR');
+      assert.ok(response.body.errors.activity_time);
+      assert.equal(queries.length, 0);
+    });
+  }
+
+  for (const [input, stored] of [['09:15', '09:15:00'], ['00:00', '00:00:00'], ['23:59:59', '23:59:59'], [null, null], ['', null]]) {
+    test(`${method} persists explicit performed time ${JSON.stringify(input)} without replacing the creation timestamp`, async () => {
+      const saved = { ...activity, id: 15, activity_time: stored, created_at: '2026-09-11T17:30:00.000Z' };
+      execute = (sql, params) => {
+        if (queries.length === 1) return [[{ id: 15 }]];
+        if (queries.length === 2) {
+          if (method === 'POST') {
+            assert.equal(params[6], stored);
+            assert.match(sql, /created_at/);
+          } else {
+            assert.match(sql, /activity_time = \?/);
+            assert.doesNotMatch(sql, /created_at/);
+            assert.equal(params[4], stored);
+            assert.deepEqual(params.slice(5), ['15', 12]);
+          }
+          return [{ insertId: 15, affectedRows: 1 }];
+        }
+        return [[saved]];
+      };
+      const response = await request(method, { ...activity, activity_time: input });
+      assert.equal(response.status, method === 'POST' ? 201 : 200);
+      assert.deepEqual(response.body, saved);
+    });
+  }
+
   for (const type of ['unsupported', 'watering', '', null, 1, {}, []]) {
     test(`${method} rejects activity type ${JSON.stringify(type)} with 400 before accessing the DB`, async () => {
       const response = await request(method, { ...activity, activity_type: type });

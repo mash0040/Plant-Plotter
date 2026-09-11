@@ -70,6 +70,15 @@ describe('apiClient error handling', () => {
     }));
   });
 
+  it.each(['09:15', null])('sends an explicit performed time (%s) through create and edit requests', async activity_time => {
+    fetch.mockResolvedValue(createJsonResponse({ status: 200, body: { id: 12, activity_time },
+      headers: { 'content-type': 'application/json' } }));
+    await apiClient.addActivity({ gardenId: 7, activity: 'watered', activity_time });
+    await apiClient.updateActivity(12, { activity_type: 'watered', activity_time });
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toHaveProperty('activity_time', activity_time);
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toHaveProperty('activity_time', activity_time);
+  });
+
   it.each([400, 500, 503])('does not retry a failed Quick Log mutation (%s)', async status => {
     fetch.mockResolvedValue(createJsonResponse({ status, body: { message: 'Request failed' } }));
     await expect(apiClient.addActivity({ activity: 'watered' })).rejects.toMatchObject({ status });

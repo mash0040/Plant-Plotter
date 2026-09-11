@@ -14,7 +14,8 @@ const EMPTY_TASK_COLLECTIONS = {
   todayTasks: [],
   upcomingTasks: [],
   overdueTasks: [],
-  calendarTasks: {}
+  calendarTasks: {},
+  completedTasks: []
 };
 
 export default function useTrackerTasks({
@@ -49,7 +50,8 @@ export default function useTrackerTasks({
     try {
       const backendTasks = await apiClient.getTasks(selectedGarden.id);
       if (!isCurrentRequest()) return;
-      setTaskState({ scope, collections: buildTaskCollections(backendTasks) });
+      const tasks = Array.isArray(backendTasks) ? backendTasks : [];
+      setTaskState({ scope, tasks, collections: buildTaskCollections(tasks) });
       clearFeedback('tasks-load');
     } catch (error) {
       if (!isCurrentRequest()) return;
@@ -62,11 +64,23 @@ export default function useTrackerTasks({
 
       showError(
         'tasks-load',
-        getTrackerFailureMessage(error, 'Tasks could not be loaded. The care queue may be out of date.')
+        getTrackerFailureMessage(error, 'Tasks could not be loaded. The care queue and task history may be out of date.')
       );
       if (!preserveOnError) clearTaskCollections();
     }
   }, [clearFeedback, clearTaskCollections, scope, selectedGarden, showError]);
+
+  const applyTaskChange = useCallback((taskId, changes) => {
+    // An older read must not overwrite a confirmed completion, edit, or deletion.
+    scope.startRequest();
+    setTaskState(current => {
+      if (current?.scope !== scope) return current;
+      const previous = current.tasks.find(task => String(task.id) === String(taskId));
+      const tasks = current.tasks.filter(task => String(task.id) !== String(taskId));
+      if (changes) tasks.push({ ...previous, ...changes, id: taskId });
+      return { scope, tasks, collections: buildTaskCollections(tasks) };
+    });
+  }, [scope]);
 
   const completeTask = useCallback(async (taskId) => {
     if (!scope.isActive() || completionRequests.current.has(taskId)) return;
@@ -82,18 +96,9 @@ export default function useTrackerTasks({
     setPendingTaskIds(new Set(completionRequests.current));
     clearFeedback(`task-complete-${taskId}`);
     try {
-      await apiClient.updateTaskStatus(taskId, 'completed');
+      const completedTask = await apiClient.updateTaskStatus(taskId, 'completed');
       if (!scope.isActive()) return;
-      // Apply the confirmed completion even if the subsequent queue refresh fails.
-      setTaskState(current => {
-        if (current?.scope !== scope) return current;
-        const remainingTasks = [
-          ...current.collections.todayTasks,
-          ...current.collections.upcomingTasks,
-          ...current.collections.overdueTasks
-        ].filter(task => task.id !== taskId);
-        return { scope, collections: buildTaskCollections(remainingTasks) };
-      });
+      applyTaskChange(taskId, { ...completedTask, status: 'completed' });
       await loadTasks({ preserveOnError: true });
       if (!scope.isActive()) return;
       showSuccess(`task-complete-${taskId}`, 'Task completed.');
@@ -108,7 +113,7 @@ export default function useTrackerTasks({
       completionRequests.current.delete(taskId);
       setPendingTaskIds(new Set(completionRequests.current));
     }
-  }, [clearFeedback, loadTasks, scope, showError, showSuccess, taskCollections]);
+  }, [applyTaskChange, clearFeedback, loadTasks, scope, showError, showSuccess, taskCollections]);
 
   const loadTaskPlantLibrary = useCallback(async () => {
     if (taskPlantLibrary.length > 0 || isTaskPlantLibraryLoading) return;
@@ -135,9 +140,11 @@ export default function useTrackerTasks({
   const saveTask = useCallback(async (taskData) => {
     try {
       if (taskData.id) {
-        await apiClient.updateTask(taskData.id, getTaskUpdatePayload(taskData));
+        const payload = getTaskUpdatePayload(taskData);
+        const updatedTask = await apiClient.updateTask(taskData.id, payload);
         if (!scope.isActive()) return;
-        await loadTasks();
+        applyTaskChange(taskData.id, { ...payload, ...updatedTask });
+        await loadTasks({ preserveOnError: true });
         if (!scope.isActive()) return;
         showSuccess('task-update', 'Task updated.');
         return;
@@ -158,13 +165,14 @@ export default function useTrackerTasks({
       console.error('Failed to save task:', error);
       throw error;
     }
-  }, [gardens, loadTasks, scope, selectedGarden, setSelectedGarden, showSuccess]);
+  }, [applyTaskChange, gardens, loadTasks, scope, selectedGarden, setSelectedGarden, showSuccess]);
 
   const deleteTask = useCallback(async (taskId) => {
     try {
       await apiClient.deleteTask(taskId);
       if (!scope.isActive()) return;
-      await loadTasks();
+      applyTaskChange(taskId, null);
+      await loadTasks({ preserveOnError: true });
       if (!scope.isActive()) return;
       showSuccess('task-delete', 'Task deleted.');
     } catch (error) {
@@ -172,7 +180,7 @@ export default function useTrackerTasks({
       console.error('Failed to delete task:', error);
       throw error;
     }
-  }, [loadTasks, scope, showSuccess]);
+  }, [applyTaskChange, loadTasks, scope, showSuccess]);
 
   return {
     ...taskCollections,

@@ -1,13 +1,17 @@
 'use client';
-import React, { useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, Edit3, Trash2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Edit3, Trash2 } from 'lucide-react';
 import { MISSING_PLANT_LABEL } from '@/lib/trackerData';
+import { buildCalendarHistory } from '@/lib/trackerHistory';
 
 export default function TrackingCalendar({ 
   selectedDate, 
   onDateSelect, 
   calendarData = {}, 
   taskData = {},
+  completedTasks = [],
+  pendingTaskIds,
+  onTaskEdit,
   onActivityEdit, 
   onActivityDelete 
 }) {
@@ -15,6 +19,10 @@ export default function TrackingCalendar({
   const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
   const [tempYear, setTempYear] = useState(currentDate.getFullYear());
   const [tempMonth, setTempMonth] = useState(currentDate.getMonth());
+  const { calendarHistory, undatedTasks } = useMemo(
+    () => buildCalendarHistory(calendarData, completedTasks),
+    [calendarData, completedTasks]
+  );
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -73,7 +81,8 @@ export default function TrackingCalendar({
       'fertilized': 'bg-yellow-100 text-yellow-800',
       'harvested': 'bg-orange-100 text-orange-800',
       'pruned': 'bg-purple-100 text-purple-800',
-      'weeded': 'bg-emerald-100 text-emerald-800'
+      'weeded': 'bg-emerald-100 text-emerald-800',
+      'completed': 'bg-green-100 text-green-800'
     };
     return colorMap[activity] || 'bg-gray-100 text-gray-800';
   };
@@ -85,7 +94,8 @@ export default function TrackingCalendar({
       'fertilized': 'bg-yellow-500',
       'harvested': 'bg-orange-500',
       'pruned': 'bg-purple-500',
-      'weeded': 'bg-emerald-500'
+      'weeded': 'bg-emerald-500',
+      'completed': 'bg-green-500'
     };
     return colorMap[activity] || 'bg-gray-500';
   };
@@ -111,6 +121,7 @@ export default function TrackingCalendar({
       case 'harvested': return 'H';
       case 'pruned': return 'Pr';
       case 'weeded': return 'We';
+      case 'completed': return <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />;
       default: return 'A';
     }
   };
@@ -132,14 +143,14 @@ export default function TrackingCalendar({
   const handleActivityEdit = (activity, e) => {
     e.stopPropagation();
     if (onActivityEdit) {
-      onActivityEdit(activity);
+      onActivityEdit(activity.activityRecord || activity);
     }
   };
 
   const handleActivityDelete = (activity, e) => {
     e.stopPropagation();
     if (onActivityDelete) {
-      onActivityDelete(activity);
+      onActivityDelete(activity.activityRecord || activity);
     }
   };
 
@@ -166,7 +177,7 @@ export default function TrackingCalendar({
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = formatDateString(currentYear, currentDate.getMonth(), day);
-      const activities = calendarData[dateStr] || [];
+      const activities = calendarHistory[dateStr] || [];
       const tasks = taskData[dateStr] || [];
       const calendarItemsCount = activities.length + tasks.length;
       const isSelected = selectedDate === dateStr;
@@ -204,7 +215,7 @@ export default function TrackingCalendar({
                 const activityType = activity.activity || activity.activity_type || 'activity';
                 return (
                   <span
-                    key={activity.id || `${dateStr}-dot-${idx}`}
+                    key={activity.historyKey || `${dateStr}-dot-${idx}`}
                     className={`h-1.5 w-1.5 rounded-full ${getActivityDotColorClass(activityType)}`}
                   />
                 );
@@ -232,13 +243,15 @@ export default function TrackingCalendar({
                 
                 return (
                   <div
-                    key={activity.id || `${dateStr}-${idx}`}
+                    key={activity.historyKey || `${dateStr}-${idx}`}
                     className={`text-xs px-1.5 py-0.5 rounded-md flex items-center gap-1 ${getActivityColorClass(activityType)} truncate group relative`}
-                    title={getActivityTitle(activityType, plantLabel, activity.time)}
+                    title={activity.source === 'task'
+                      ? `Completed task: ${activity.title} — ${plantLabel} at ${activity.time}`
+                      : getActivityTitle(activityType, plantLabel, activity.time)}
                   >
                     <span className="text-[10px] font-semibold flex-shrink-0">{getActivityIcon(activityType)}</span>
                     <span className="truncate font-medium min-w-0">
-                      {truncatePlantName(plantLabel, 10)}
+                      {truncatePlantName(activity.source === 'task' ? activity.title : plantLabel, 10)}
                     </span>
                     
                     {activity.id && onActivityEdit && onActivityDelete && (
@@ -298,7 +311,57 @@ export default function TrackingCalendar({
     return days;
   };
 
-  const selectedDateActivities = calendarData[selectedDate] || [];
+  const selectedDateActivities = calendarHistory[selectedDate] || [];
+
+  const renderHistoryEntry = (entry) => {
+    const isTask = entry.source === 'task';
+    const activityType = entry.activity || entry.activity_type || 'activity';
+    const plantName = entry.plant || entry.plant_name || MISSING_PLANT_LABEL;
+    const title = isTask ? entry.title : `${activityType.charAt(0).toUpperCase()}${activityType.slice(1)} ${plantName}`;
+    const timeLabel = entry.time || (isTask && !entry.activity_date ? 'Completion date not recorded' : 'Time not recorded');
+
+    return (
+      <details key={entry.historyKey} className="group/entry border-b border-gray-200 last:border-b-0 dark:border-gray-600">
+        <summary className="touch-target flex cursor-pointer list-none items-start gap-3 rounded px-2 py-3 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:hover:bg-gray-700 [&::-webkit-details-marker]:hidden">
+          <span className="mt-1 shrink-0 text-sm text-green-700 dark:text-green-200" aria-hidden="true">{getActivityIcon(activityType)}</span>
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <span className="min-w-0 max-w-full break-words font-medium text-gray-900 dark:text-white">{title}</span>
+              <span className="shrink-0 text-sm tabular-nums text-gray-600 dark:text-gray-300">{timeLabel}</span>
+            </span>
+            <span className="block break-words text-sm text-gray-600 dark:text-gray-300">
+              {isTask ? `Completed task · ${plantName}` : 'Quick Log'}
+              {entry.plant_no_longer_planted && ' · No longer planted'}
+            </span>
+          </span>
+          <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-gray-500 group-open/entry:rotate-180 dark:text-gray-300" aria-hidden="true" />
+        </summary>
+        <div className="px-2 pb-3 sm:pl-9">
+          <p className="whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-200">{entry.notes || 'No notes recorded.'}</p>
+          {isTask ? onTaskEdit && (
+            <button type="button" onClick={() => onTaskEdit(entry.task)}
+              disabled={pendingTaskIds?.has(entry.task.id)} aria-label={`View completed task ${entry.title}`}
+              className="touch-target mt-2 rounded px-2 py-2 text-sm font-medium text-green-700 underline underline-offset-2 hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 disabled:cursor-not-allowed disabled:opacity-50 dark:text-green-200 dark:hover:bg-gray-700">
+              View task
+            </button>
+          ) : entry.id && onActivityEdit && onActivityDelete && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" onClick={(event) => handleActivityEdit(entry, event)}
+                aria-label={`Edit ${activityType} activity for ${plantName}`}
+                className="touch-target flex items-center gap-2 rounded px-2 py-2 text-sm font-medium text-green-700 hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:text-green-200 dark:hover:bg-gray-700">
+                <Edit3 className="h-4 w-4" aria-hidden="true" />Edit
+              </button>
+              <button type="button" onClick={(event) => handleActivityDelete(entry, event)}
+                aria-label={`Delete ${activityType} activity for ${plantName}`}
+                className="touch-target flex items-center gap-2 rounded px-2 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 dark:text-red-200 dark:hover:bg-gray-700">
+                <Trash2 className="h-4 w-4" aria-hidden="true" />Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </details>
+    );
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
@@ -439,6 +502,8 @@ export default function TrackingCalendar({
         <div className="flex items-center gap-1 mb-4 text-xs">
           <span className="rounded bg-indigo-100 px-1 text-indigo-800">T</span>
           <span className="text-gray-600 dark:text-gray-400">Pending Task</span>
+          <CheckCircle2 className="ml-3 h-3.5 w-3.5 text-green-700 dark:text-green-200" aria-hidden="true" />
+          <span className="text-gray-600 dark:text-gray-400">Completed task</span>
         </div>
 
         <div className="grid grid-cols-7 gap-1 mb-4">
@@ -446,63 +511,26 @@ export default function TrackingCalendar({
         </div>
         
         {selectedDateActivities.length > 0 && (
-          <div className="mt-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex flex-wrap items-center gap-2">
-              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-700">Date</span>
-              Activities for {formatDateKeyForDisplay(selectedDate)}:
-            </h4>
-            <div className="space-y-2">
-              {selectedDateActivities.map((activity, idx) => (
-                <div key={idx} className="flex items-start gap-3 p-3 bg-white dark:bg-gray-600 rounded group">
-                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-semibold text-gray-700">
-                    {getActivityIcon(activity.activity || activity.activity_type)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 dark:text-white break-words">
-                      <span className="capitalize">{activity.activity || activity.activity_type}</span>{' '}
-                      {activity.plant || activity.plant_name || MISSING_PLANT_LABEL}
-                      {activity.plant_no_longer_planted && (
-                        <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-300">
-                          (no longer planted)
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300">
-                      {activity.time || 'Time not recorded'}
-                    </div>
-                    {activity.notes && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 italic break-words">
-                        "{activity.notes}"
-                      </div>
-                    )}
-                  </div>
-                  
-                  {activity.id && onActivityEdit && onActivityDelete && (
-                    <div className="touch-reveal flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        onClick={(e) => handleActivityEdit(activity, e)}
-                        aria-label={`Edit ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || MISSING_PLANT_LABEL}`}
-                        className="touch-target flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
-                        title="Edit activity"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleActivityDelete(activity, e)}
-                        aria-label={`Delete ${activity.activity || activity.activity_type || 'activity'} activity for ${activity.plant || activity.plant_name || MISSING_PLANT_LABEL}`}
-                        className="touch-target flex h-9 w-9 items-center justify-center rounded text-gray-500 hover:text-red-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
-                        title="Delete activity"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <details key={selectedDate} open className="mt-4 border-t border-gray-200 pt-3 dark:border-gray-700">
+            <summary className="touch-target cursor-pointer rounded py-2 text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:text-white">
+              <h4 className="inline font-medium">
+                Activities for {formatDateKeyForDisplay(selectedDate)} ({selectedDateActivities.length})
+              </h4>
+            </summary>
+            <div>{selectedDateActivities.map(renderHistoryEntry)}</div>
+          </details>
+        )}
+
+        {undatedTasks.length > 0 && (
+          <details className="mt-4 rounded-lg bg-gray-50 p-3 dark:bg-gray-700 sm:p-4">
+            <summary className="touch-target cursor-pointer rounded py-2 font-medium text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:text-white">
+              Completed tasks without a recorded date ({undatedTasks.length})
+            </summary>
+            <p className="my-2 text-sm text-gray-600 dark:text-gray-300">
+              These tasks are complete, but their completion dates were not recorded.
+            </p>
+            <div className="space-y-2">{undatedTasks.map(renderHistoryEntry)}</div>
+          </details>
         )}
 
       </div>
