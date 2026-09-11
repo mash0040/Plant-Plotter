@@ -17,6 +17,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import RequestErrorNotice from '@/components/RequestErrorNotice';
 import { PLANT_LIBRARY } from '@/components/Garden/Constants/PlantData';
 import { snapToGrid, checkPlantOverlap, isWithinBounds, getPlantFootprint } from '@/components/Garden/Utils/GardenUtils';
+import { validateRowPlacement } from '@/components/Garden/Utils/RowPlantingUtils';
 import apiClient from '@/lib/api';
 import { getActionErrorMessage, isAuthenticationError } from '@/lib/apiErrors';
 
@@ -85,6 +86,7 @@ function GardenPlannerPageContent() {
   // Row Planting Modal state
   const [showRowPlantingModal, setShowRowPlantingModal] = useState(false);
   const [rowPlantingPlant, setRowPlantingPlant] = useState(null);
+  const [rowReveal, setRowReveal] = useState(null);
 
   // Enhanced sensor configuration to prevent sidebar dragging
   const sensors = useSensors(
@@ -217,42 +219,21 @@ function GardenPlannerPageContent() {
 
   // Row planting execution handler
   const handleExecuteRowPlanting = (plantsToAdd) => {
-    const hasOutOfBoundsPlant = plantsToAdd.some(plant => (
-      !isWithinBoundsFlexible(plant, dimensions, gridSize, showGrid)
-    ));
-
-    if (hasOutOfBoundsPlant) {
-      return {
-        success: false,
-        message: 'This row does not fit inside the garden. Adjust the row and try again.'
-      };
-    }
-
-    const hasExistingOverlap = plantsToAdd.some(plant => (
-      checkPlantOverlapFlexible(plant, placedPlants, gridSize, showGrid)
-    ));
-
-    if (hasExistingOverlap) {
-      return {
-        success: false,
-        message: 'This row overlaps existing plants. Choose a different spot.'
-      };
-    }
-
-    const hasRowOverlap = plantsToAdd.some((plant, index) => {
-      const otherRowPlants = plantsToAdd.filter((_, otherIndex) => otherIndex !== index);
-      return checkPlantOverlapFlexible(plant, otherRowPlants, gridSize, showGrid);
-    });
-
-    if (hasRowOverlap) {
-      return {
-        success: false,
-        message: 'Plants in this row overlap each other. Increase spacing and try again.'
-      };
-    }
+    const validation = validateRowPlacement(plantsToAdd, placedPlants, dimensions, gridSize);
+    if (!validation.success) return validation;
 
     setPlacedPlants(prev => [...prev, ...plantsToAdd]);
     setHasUnsavedChanges(true);
+    setRowReveal({
+      gardenId: currentGarden?.id,
+      gridSize,
+      plants: plantsToAdd.map(plant => ({
+        id: plant.id,
+        x: plant.x / gridSize,
+        y: plant.y / gridSize,
+        size: getPlantFootprint(plant)
+      }))
+    });
 
     return { success: true };
   };
@@ -293,6 +274,7 @@ function GardenPlannerPageContent() {
       if (!gardenId) return;
       
       setLoading(true);
+      setRowReveal(null);
       try {
         setPlannerLoadError('');
         const garden = await apiClient.getGarden(gardenId);
@@ -857,6 +839,7 @@ function GardenPlannerPageContent() {
       return;
     }
     
+    setRowReveal(null);
     setCurrentGarden(gardenData);
     setDimensions({ 
       width: gardenData.dimensions?.width || gardenData.width, 
@@ -1258,6 +1241,7 @@ function GardenPlannerPageContent() {
               placedPlants={placedPlants}
               onPlantRemove={handlePlantRemove}
               placementPreview={placementPreview}
+              rowReveal={rowReveal?.gardenId === currentGarden?.id ? rowReveal : null}
               isPlantLibraryOpen={sidebarOpen}
               disablePlantDragging={isTouchPlanner}
             />
@@ -1330,6 +1314,7 @@ function GardenPlannerPageContent() {
         }}
         plant={rowPlantingPlant}
         onPlant={handleExecuteRowPlanting}
+        placedPlants={placedPlants}
         gridSize={gridSize}
         dimensions={dimensions}
       />

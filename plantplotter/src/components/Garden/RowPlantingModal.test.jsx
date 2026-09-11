@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import RowPlantingModal from './RowPlantingModal';
@@ -10,7 +10,7 @@ const plant = {
   size: 1
 };
 
-const renderRowPlantingModal = () => {
+const renderRowPlantingModal = (props = {}) => {
   const onClose = vi.fn();
   const onPlant = vi.fn(() => ({ success: true }));
 
@@ -22,6 +22,7 @@ const renderRowPlantingModal = () => {
       onPlant={onPlant}
       gridSize={40}
       dimensions={{ width: 12, height: 12 }}
+      {...props}
     />
   );
 
@@ -140,5 +141,96 @@ describe('RowPlantingModal accessibility', () => {
       expect.objectContaining({ plantId: 'carrot', x: 40, y: 320 })
     ]);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('RowPlantingModal spatial preview', () => {
+  it('shows existing overlap before submission and enables a corrected row', async () => {
+    const user = userEvent.setup();
+    const { onPlant } = renderRowPlantingModal({ placedPlants: [{ id: 'existing', x: 80, y: 0, size: 2 }] });
+    expect(screen.getByRole('status')).toHaveTextContent('2 of 5 footprints overlap plants.');
+    const button = screen.getByRole('button', { name: 'Plant Row (5)' });
+    expect(button).toBeDisabled();
+    expect(document.querySelectorAll('[data-valid="false"]')).toHaveLength(2);
+    await user.click(button);
+    expect(onPlant).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Starting Y coordinate' }), { target: { value: '3' } });
+    expect(button).toBeEnabled();
+    expect(screen.getByRole('status')).toHaveTextContent('No overlaps.');
+    await user.click(button);
+    expect(onPlant.mock.calls[0][0]).toHaveLength(5);
+    expect(onPlant.mock.calls[0][0][0]).toMatchObject({ x: 0, y: 80 });
+  });
+
+  it('blocks partially fitting rows and perpendicular footprint overflow', async () => {
+    const user = userEvent.setup();
+    const { onPlant } = renderRowPlantingModal({ plant: { ...plant, size: 2 }, dimensions: { width: 8, height: 4 } });
+    const button = screen.getByRole('button', { name: 'Plant Row (5)' });
+    expect(button).toBeDisabled();
+    expect(document.querySelectorAll('[data-row-position]')).toHaveLength(5);
+    expect(screen.getByRole('status')).toHaveTextContent('1 of 5 footprints outside the garden.');
+    await user.click(button);
+    expect(onPlant).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Number of Plants' }), { target: { value: '2' } });
+    expect(screen.getByRole('button', { name: 'Plant Row (2)' })).toBeEnabled();
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Starting Y coordinate' }), { target: { value: '4' } });
+    expect(screen.getByRole('button', { name: 'Plant Row (2)' })).toBeDisabled();
+    expect(document.querySelectorAll('[data-valid="false"]')).toHaveLength(2);
+  });
+
+  it('synchronizes a tap/click with one-based fields, summary, and saved pixel positions', async () => {
+    const user = userEvent.setup();
+    const { onPlant } = renderRowPlantingModal();
+    const overview = screen.getByRole('img', { name: /Garden row overview/ });
+    // The square viewBox includes 0.3 units padding on each side.
+    vi.spyOn(overview, 'getBoundingClientRect').mockReturnValue({ left: 10, top: 20, width: 252, height: 252 });
+    fireEvent.click(overview, { clientX: 66, clientY: 96 });
+    expect(screen.getByRole('spinbutton', { name: 'Starting X coordinate' })).toHaveValue(3);
+    expect(screen.getByRole('spinbutton', { name: 'Starting Y coordinate' })).toHaveValue(4);
+    expect(screen.getByRole('status')).toHaveTextContent('Start: X 3, Y 4. End: X 7, Y 4');
+    await user.click(screen.getByRole('button', { name: 'Vertical' }));
+    expect(screen.getByRole('status')).toHaveTextContent('End: X 3, Y 8');
+    await user.click(screen.getByRole('button', { name: 'Plant Row (5)' }));
+    expect(onPlant.mock.calls[0][0].map(({ x, y }) => [x, y])).toEqual([[80, 120], [80, 160], [80, 200], [80, 240], [80, 280]]);
+  });
+
+  it('updates preview positions immediately for count, spacing, direction, and numeric start', () => {
+    renderRowPlantingModal();
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Number of Plants' }), { target: { value: '3' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Spacing Between Plants' }), { target: { value: '1' } });
+    expect(screen.getByRole('status')).toHaveTextContent('3 plants, horizontal, 5 units long.');
+    expect(screen.getByRole('status')).toHaveTextContent('End: X 5, Y 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Vertical' }));
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Starting X coordinate' }), { target: { value: '2' } });
+    expect(screen.getByRole('status')).toHaveTextContent('Start: X 2, Y 1. End: X 2, Y 5');
+    expect(document.querySelectorAll('[data-row-position]')).toHaveLength(3);
+  });
+
+  it('revalidates when existing plants change while the dialog is open', () => {
+    const props = { isOpen: true, onClose: vi.fn(), onPlant: vi.fn(), plant, gridSize: 40, dimensions: { width: 12, height: 12 } };
+    const { rerender } = render(<RowPlantingModal {...props} placedPlants={[]} />);
+    expect(screen.getByRole('button', { name: 'Plant Row (5)' })).toBeEnabled();
+    rerender(<RowPlantingModal {...props} placedPlants={[{ id: 'added', x: 0, y: 0, size: 1 }]} />);
+    expect(screen.getByRole('button', { name: 'Plant Row (5)' })).toBeDisabled();
+  });
+
+  it('keeps large gardens bounded to footprints instead of interactive grid cells', () => {
+    renderRowPlantingModal({ dimensions: { width: 1000, height: 1000 } });
+    const overview = screen.getByRole('img', { name: /Garden row overview/ });
+    expect(overview.querySelectorAll('*').length).toBeLessThan(40);
+    expect(overview.querySelectorAll('[data-row-position]')).toHaveLength(5);
+  });
+
+  it('keeps the direction arrow inside a single footprint that fills a tiny garden', () => {
+    renderRowPlantingModal({ plant: { ...plant, size: 2 }, dimensions: { width: 2, height: 2 } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Number of Plants' }), { target: { value: '1' } });
+    const overview = screen.getByRole('img', { name: /Garden row overview/ });
+    const arrow = overview.querySelector('line');
+    expect(Number(arrow.getAttribute('x2'))).toBeLessThan(2);
+    expect(Number(arrow.getAttribute('x2'))).toBeGreaterThan(Number(arrow.getAttribute('x1')));
+    fireEvent.click(screen.getByRole('button', { name: 'Vertical' }));
+    expect(Number(arrow.getAttribute('y2'))).toBeLessThan(2);
+    expect(Number(arrow.getAttribute('y2'))).toBeGreaterThan(Number(arrow.getAttribute('y1')));
+    expect(screen.getByRole('button', { name: 'Plant Row (1)' })).toBeEnabled();
   });
 });

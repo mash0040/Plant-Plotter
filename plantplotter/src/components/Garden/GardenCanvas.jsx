@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import DraggablePlant from './DraggablePlant';
+import { getRowRevealScroll } from './Utils/RowPlantingUtils';
 
 export default function GardenCanvas({
   dimensions,
@@ -10,12 +11,40 @@ export default function GardenCanvas({
   placedPlants,
   onPlantRemove,
   placementPreview,
+  rowReveal,
   isPlantLibraryOpen = false,
   disablePlantDragging = false
 }) {
   const { setNodeRef } = useDroppable({
     id: 'garden-canvas',
   });
+  const viewportRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [highlightedRow, setHighlightedRow] = useState(null);
+
+  useEffect(() => {
+    if (!rowReveal?.plants.length) {
+      setHighlightedRow(null);
+      return;
+    }
+    const viewport = viewportRef.current;
+    const canvas = canvasRef.current;
+    const revealGridSize = rowReveal.gridSize;
+    const bounds = {
+      x: Math.min(...rowReveal.plants.map(plant => plant.x)) * revealGridSize,
+      y: Math.min(...rowReveal.plants.map(plant => plant.y)) * revealGridSize,
+      right: Math.max(...rowReveal.plants.map(plant => plant.x + plant.size)) * revealGridSize,
+      bottom: Math.max(...rowReveal.plants.map(plant => plant.y + plant.size)) * revealGridSize
+    };
+    const viewportRect = viewport.getBoundingClientRect();
+    viewport.scrollTo(getRowRevealScroll(
+      { left: viewportRect.left, top: viewportRect.top, width: viewport.clientWidth, height: viewport.clientHeight },
+      canvas.getBoundingClientRect(), bounds, viewport.scrollLeft, viewport.scrollTop
+    ));
+    setHighlightedRow(rowReveal);
+    const timer = window.setTimeout(() => setHighlightedRow(null), 2400);
+    return () => window.clearTimeout(timer);
+  }, [rowReveal]);
 
   const canvasWidth = dimensions.width * gridSize;
   const canvasHeight = dimensions.height * gridSize;
@@ -26,7 +55,8 @@ export default function GardenCanvas({
   };
 
   return (
-    <div className="relative h-full min-h-0 overflow-auto bg-emerald-100/50 p-3 sm:p-5 lg:p-6">
+    <div ref={viewportRef} data-garden-viewport className="relative h-full min-h-0 overflow-auto bg-emerald-100/50 p-3 sm:p-5 lg:p-6">
+      <span className="sr-only" role="status">{highlightedRow ? `${highlightedRow.plants.length} plants added. The canvas shows the new row starting position.` : ''}</span>
       <div className={`mb-2 w-fit rounded-full border border-green-200 bg-white/95 px-3 py-1 text-xs font-medium text-green-800 shadow-sm sm:hidden ${isPlantLibraryOpen ? 'hidden' : 'block'}`}>
         Scroll to pan garden
       </div>
@@ -81,7 +111,10 @@ export default function GardenCanvas({
 
           {/* Garden Canvas */}
           <div
-            ref={setNodeRef}
+            ref={node => {
+              canvasRef.current = node;
+              setNodeRef(node);
+            }}
             className="relative border-2 border-green-700/60 bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 shadow-[0_18px_36px_-28px_rgba(20,83,45,0.9)]"
             style={{
               width: canvasWidth,
@@ -123,6 +156,18 @@ export default function GardenCanvas({
                 onRemove={() => onPlantRemove(plant.id)}
                 disableDrag={disablePlantDragging}
               />
+            ))}
+
+            {highlightedRow?.plants.filter(plant => placedPlants.some(existing => existing.id === plant.id)).map(plant => (
+              <div
+                key={`row-highlight-${plant.id}`}
+                data-row-highlight
+                aria-hidden="true"
+                className="pointer-events-none absolute z-20 rounded border-2 border-green-900 bg-green-100/25"
+                style={{ left: plant.x * gridSize, top: plant.y * gridSize, width: plant.size * gridSize, height: plant.size * gridSize }}
+              >
+                {plant.id === highlightedRow.plants[0].id && <span className="absolute left-0 top-0 whitespace-nowrap rounded bg-green-900 px-1.5 py-0.5 text-xs font-medium text-white">New row</span>}
+              </div>
             ))}
 
             {placementPreview && (
