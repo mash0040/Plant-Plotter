@@ -27,7 +27,7 @@ export default function GardenCanvas({
 
   return (
     <div className="relative h-full min-h-0 overflow-auto bg-emerald-100/50 p-3 sm:p-5 lg:p-6">
-      <div className={`sticky left-2 top-2 z-20 mb-2 rounded-full border border-green-200 bg-white/95 px-3 py-1 text-xs font-medium text-green-800 shadow-sm sm:hidden ${isPlantLibraryOpen ? 'hidden' : 'inline-flex'}`}>
+      <div className={`mb-2 w-fit rounded-full border border-green-200 bg-white/95 px-3 py-1 text-xs font-medium text-green-800 shadow-sm sm:hidden ${isPlantLibraryOpen ? 'hidden' : 'block'}`}>
         Scroll to pan garden
       </div>
       <div className="inline-block min-w-full py-1 sm:py-2">

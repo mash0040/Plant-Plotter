@@ -1202,7 +1202,7 @@ function GardenPlannerPageContent() {
         {/* Plant Library Sidebar */}
         <div 
           data-sidebar 
-          className="relative flex-shrink-0 z-10"
+          className={`relative flex-shrink-0 lg:z-10 ${sidebarOpen ? 'z-[60]' : 'z-10'}`}
           style={{ 
             touchAction: 'pan-y',
             userSelect: 'none'
