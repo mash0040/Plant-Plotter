@@ -106,6 +106,7 @@ CREATE TABLE garden_tasks (
     user_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    notes VARCHAR(2000) CHARACTER SET utf8mb4 NULL DEFAULT NULL,
     plant_name VARCHAR(255),
     task_type ENUM('water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'treat', 'other', 'maintenance') NOT NULL,
     status ENUM('pending', 'completed', 'cancelled', 'overdue') DEFAULT 'pending',

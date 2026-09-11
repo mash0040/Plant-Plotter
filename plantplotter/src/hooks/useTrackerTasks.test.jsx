@@ -35,6 +35,34 @@ beforeEach(() => {
 });
 
 describe('useTrackerTasks', () => {
+  it('carries notes through create, edit, clear and fresh task loads', async () => {
+    const props = createHookProps();
+    let saved;
+    apiClient.createTask.mockImplementation(async payload => { saved = { ...payload, id: 9 }; return saved; });
+    apiClient.updateTask.mockImplementation(async (id, payload) => {
+      saved = { ...saved, ...payload, notes: payload.notes || null, id };
+      return saved;
+    });
+    apiClient.getTasks.mockImplementation(async () => [{ ...saved }]);
+    const { result, unmount } = renderHook(() => useTrackerTasks(props));
+    await act(async () => result.current.saveTask({ title: 'Water basil', garden_id: 4,
+      due_date: getTodayDateKey(), task_type: 'water', notes: 'Use rain barrel\nBefore noon' }));
+    expect(apiClient.createTask).toHaveBeenCalledWith(expect.objectContaining({ notes: 'Use rain barrel\nBefore noon' }));
+    expect(result.current.todayTasks[0].notes).toBe('Use rain barrel\nBefore noon');
+
+    await act(async () => result.current.saveTask({ ...result.current.todayTasks[0], notes: 'Updated care' }));
+    expect(apiClient.updateTask).toHaveBeenLastCalledWith(9, expect.objectContaining({ notes: 'Updated care' }));
+    expect(result.current.todayTasks[0].notes).toBe('Updated care');
+    unmount();
+    const fresh = renderHook(() => useTrackerTasks(props));
+    await act(async () => fresh.result.current.loadTasks());
+    expect(fresh.result.current.todayTasks[0].notes).toBe('Updated care');
+    await act(async () => fresh.result.current.saveTask({ ...fresh.result.current.todayTasks[0], notes: '' }));
+    expect(apiClient.updateTask).toHaveBeenLastCalledWith(9, expect.objectContaining({ notes: '' }));
+    await act(async () => fresh.result.current.loadTasks());
+    expect(fresh.result.current.todayTasks[0].notes).toBeNull();
+  });
+
   it.each([
     ['Today', 'todayTasks', () => getTodayDateKey()],
     ['Overdue', 'overdueTasks', () => '2000-01-01'],

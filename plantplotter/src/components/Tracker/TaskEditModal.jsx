@@ -7,6 +7,8 @@ import { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
 import { TASK_RECURRENCE_OPTIONS } from '@/lib/taskRecurrence';
 
 const GENERAL_GARDEN_TASK_VALUE = '__whole_garden__';
+// Keep in sync with the task API; native maxlength counts UTF-16 code units.
+const TASK_NOTES_MAX_LENGTH = 2000;
 
 export default function TaskEditModal({ 
   isOpen, 
@@ -39,6 +41,7 @@ export default function TaskEditModal({
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const errorRef = useRef(null);
+  const notesRef = useRef(null);
   const deleteButtonRef = useRef(null);
   const deleteCancelRef = useRef(null);
   const wasDeleteConfirmOpenRef = useRef(false);
@@ -122,6 +125,8 @@ export default function TaskEditModal({
   const isOtherTask = formData.task_type === 'other';
   const selectedPlantValue = formData.plant_name || GENERAL_GARDEN_TASK_VALUE;
   const displayedError = error || (isPlantingTask ? plantLibraryError : '');
+  const notesError = formData.notes.length > TASK_NOTES_MAX_LENGTH
+    ? 'Notes must be 2,000 characters or fewer.' : '';
 
   // Load task data when modal opens
   useEffect(() => {
@@ -204,6 +209,11 @@ export default function TaskEditModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSaving || isDeleting) return;
+
+    if (notesError) {
+      notesRef.current?.focus();
+      return;
+    }
 
     const selectedGardenForTask = gardens.find(g => String(g.id) === String(formData.garden_id)) || currentGarden;
     const plantedPlantOptions = Array.from(
@@ -617,12 +627,21 @@ export default function TaskEditModal({
             </label>
             <textarea
               id="task-notes"
+              ref={notesRef}
               value={formData.notes}
+              maxLength={TASK_NOTES_MAX_LENGTH}
+              aria-invalid={Boolean(notesError)}
+              aria-describedby={notesError ? 'task-notes-error' : 'task-notes-hint'}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
               rows="2"
               placeholder="Additional notes or reminders..."
             />
+            {notesError ? (
+              <p id="task-notes-error" role="alert" className="mt-1 text-sm text-red-700">{notesError}</p>
+            ) : (
+              <p id="task-notes-hint" className="mt-1 text-sm text-gray-600">Up to 2,000 characters.</p>
+            )}
           </div>
 
           {/* Selected Garden Preview */}
