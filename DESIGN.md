@@ -108,6 +108,17 @@ The system is intentionally friendly rather than ornamental. Cards, dialogs, and
 - Rounded controls, circular icon wells, and soft shadows make actions feel tactile.
 - Status and task colors are functional accents, not competing brand palettes.
 
+## Theme Support
+
+The current application supports a light theme only, including when the operating
+system or browser prefers dark appearance. Keep the garden wash, white surfaces,
+dark text, and light browser controls consistent across routes and overlays.
+
+Existing `dark:` utilities are reserved for future work and require an explicit
+`dark` class on the root `<html>` element, which the application does not enable.
+Full dark mode requires shared color tokens, theme selection and persistence,
+initial-load behavior, and complete visual and contrast testing before release.
+
 ## Colors
 
 The palette is garden-led but utilitarian: forest and leaf greens define the product, while blue, amber, red, yellow, and purple appear as task and status signals.

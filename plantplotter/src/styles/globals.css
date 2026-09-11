@@ -6,6 +6,8 @@
 @import "tailwindcss/utilities";
 @import "tailwindcss";
 
+/* Dark utilities are reserved for a future app-wide theme enabled on <html>. */
+@custom-variant dark (&:where(html.dark, html.dark *));
 
 @layer base {
   :root,
