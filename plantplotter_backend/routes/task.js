@@ -4,13 +4,13 @@ const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
+const { getTaskFieldErrors } = require('../utils/taskValidation');
 const {
   getNextOccurrenceDate,
   shouldScheduleNextOccurrence,
   validateTaskRecurrence
 } = require('../utils/taskRecurrence');
 
-const allowedTaskTypes = ['water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'treat', 'other', 'maintenance'];
 // Keep in sync with the task editor's native maxlength (UTF-16 code units).
 const TASK_NOTES_MAX_LENGTH = 2000;
 const getNotesError = notes => {
@@ -61,23 +61,12 @@ router.post('/', verifyToken, async (req, res) => {
       is_recurring,
       recurring_pattern,
       notes
-    } = req.body;
+    } = req.body || {};
     
-    // Validate required fields
-    if (!title || !garden_id || !due_date) {
-      return sendErrorResponse(res, 400, 'title, garden_id, and due_date are required', {
-        code: 'VALIDATION_ERROR',
-        errors: {
-          title: !title ? 'title is required' : undefined,
-          garden_id: !garden_id ? 'garden_id is required' : undefined,
-          due_date: !due_date ? 'due_date is required' : undefined
-        }
-      });
-    }
-
-    if (task_type && !allowedTaskTypes.includes(task_type)) {
-      return sendErrorResponse(res, 400, 'Invalid task type', {
-        code: 'VALIDATION_ERROR'
+    const fieldErrors = getTaskFieldErrors({ title, garden_id, due_date, task_type }, { requireGarden: true });
+    if (Object.keys(fieldErrors).length) {
+      return sendErrorResponse(res, 400, Object.values(fieldErrors).join(' '), {
+        code: 'VALIDATION_ERROR', errors: fieldErrors
       });
     }
 
@@ -166,24 +155,15 @@ const updateTask = async (req, res) => {
       notes
     } = req.body || {};
     const allowedStatuses = ['pending', 'completed', 'cancelled', 'overdue'];
-    if (!statusOnly && (!title || !due_date)) {
-      return sendErrorResponse(res, 400, 'title and due_date are required', {
-        code: 'VALIDATION_ERROR',
-        errors: {
-          title: !title ? 'title is required' : undefined,
-          due_date: !due_date ? 'due_date is required' : undefined
-        }
+    const fieldErrors = statusOnly ? {} : getTaskFieldErrors({ title, due_date, task_type });
+    if (Object.keys(fieldErrors).length) {
+      return sendErrorResponse(res, 400, Object.values(fieldErrors).join(' '), {
+        code: 'VALIDATION_ERROR', errors: fieldErrors
       });
     }
 
     if ((statusOnly || status) && !allowedStatuses.includes(status)) {
       return sendErrorResponse(res, 400, 'Invalid task status', {
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    if (!statusOnly && task_type && !allowedTaskTypes.includes(task_type)) {
-      return sendErrorResponse(res, 400, 'Invalid task type', {
         code: 'VALIDATION_ERROR'
       });
     }

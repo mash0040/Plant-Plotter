@@ -10,20 +10,26 @@ const TASK_RECURRENCE_LABELS = Object.fromEntries(
   TASK_RECURRENCE_OPTIONS.map(({ value, label }) => [value, label])
 );
 
+export const isSupportedTaskRecurrence = pattern => (
+  TASK_RECURRENCE_OPTIONS.some(option => option.value === pattern)
+);
+
 export const normalizeTaskRecurrence = (task = {}) => {
-  const rawPattern = task.recurring_pattern || task.recurringPattern || 'none';
-  const recurringPattern = TASK_RECURRENCE_LABELS[rawPattern] ? rawPattern : 'none';
+  // Keep unknown saved schedules visible so editing cannot silently disable them.
+  const recurringPattern = task.recurring_pattern ?? task.recurringPattern ?? 'none';
+  const normalizedPattern = recurringPattern === '' ? 'none' : recurringPattern;
 
   return {
-    isRecurring: recurringPattern !== 'none',
-    recurringPattern
+    isRecurring: normalizedPattern !== 'none',
+    recurringPattern: normalizedPattern
   };
 };
 
 export const getTaskRecurrencePayload = (recurringPattern = 'none') => {
-  const normalizedPattern = TASK_RECURRENCE_LABELS[recurringPattern]
-    ? recurringPattern
-    : 'none';
+  const normalizedPattern = recurringPattern == null || recurringPattern === '' ? 'none' : recurringPattern;
+  if (!isSupportedTaskRecurrence(normalizedPattern)) {
+    throw new Error('Choose a supported recurrence pattern, or select None.');
+  }
 
   return {
     is_recurring: normalizedPattern !== 'none',
@@ -32,5 +38,5 @@ export const getTaskRecurrencePayload = (recurringPattern = 'none') => {
 };
 
 export const getTaskRecurrenceLabel = (recurringPattern) => (
-  TASK_RECURRENCE_LABELS[recurringPattern] || 'Not recurring'
+  isSupportedTaskRecurrence(recurringPattern) ? TASK_RECURRENCE_LABELS[recurringPattern] : 'Review schedule'
 );

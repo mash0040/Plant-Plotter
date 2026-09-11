@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { X, Save, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 import { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
-import { TASK_RECURRENCE_OPTIONS } from '@/lib/taskRecurrence';
+import { TASK_RECURRENCE_OPTIONS, isSupportedTaskRecurrence, normalizeTaskRecurrence } from '@/lib/taskRecurrence';
 
 const GENERAL_GARDEN_TASK_VALUE = '__whole_garden__';
 // Keep in sync with the task API; native maxlength counts UTF-16 code units.
@@ -72,6 +72,7 @@ export default function TaskEditModal({
     { value: 'harvest', label: 'Harvest', titleVerb: 'Harvest' },
     { value: 'inspect', label: 'Inspect', titleVerb: 'Inspect' },
     { value: 'treat', label: 'Treat Pest/Disease', titleVerb: 'Treat' },
+    { value: 'maintenance', label: 'Maintenance', titleVerb: 'Maintain' },
     { value: 'other', label: 'Other', titleVerb: 'Plan' }
   ];
 
@@ -123,8 +124,22 @@ export default function TaskEditModal({
   };
   const isPlantingTask = formData.task_type === 'plant';
   const isOtherTask = formData.task_type === 'other';
+  const savedTaskType = task?.task_type ?? task?.taskType ?? 'maintenance';
+  const savedPlantName = task?.plant_name || task?.plant || '';
+  const isSupportedTaskType = taskTypeOptions.some(option => option.value === formData.task_type);
+  const isSupportedRecurrence = isSupportedTaskRecurrence(formData.recurring_pattern);
+  const canUseSavedPlant = Boolean(task?.id && savedPlantName)
+    && formData.task_type === savedTaskType
+    && String(formData.garden_id) === String(task.garden_id ?? task.gardenId);
+  const isPreservingSavedPlant = canUseSavedPlant && formData.plant_name === savedPlantName;
+  const preserveTitle = Boolean(task?.id && typeof task.title === 'string' && task.title.trim())
+    && formData.task_type === savedTaskType
+    && formData.plant_name === savedPlantName
+    && (!isOtherTask || formData.description === (task.description || ''));
+  const taskTitle = preserveTitle ? task.title : getGeneratedTitle(formData.task_type, formData.plant_name);
+  const requiresDescription = isOtherTask && !(preserveTitle && !formData.description.trim());
   const selectedPlantValue = formData.plant_name || GENERAL_GARDEN_TASK_VALUE;
-  const displayedError = error || (isPlantingTask ? plantLibraryError : '');
+  const displayedError = error || (isPlantingTask && !isPreservingSavedPlant ? plantLibraryError : '');
   const notesError = formData.notes.length > TASK_NOTES_MAX_LENGTH
     ? 'Notes must be 2,000 characters or fewer.' : '';
 
@@ -138,10 +153,10 @@ export default function TaskEditModal({
         due_date: task.due_date ? getDateKey(task.due_date) : '',
         priority: task.priority || 'medium',
         plant_name: task.plant_name || task.plant || '',
-        task_type: task.task_type || task.taskType || 'water',
+        task_type: task.task_type ?? task.taskType ?? 'maintenance',
         status: getBackendSafeStatus(task.status) || 'pending',
         estimated_duration: task.estimated_duration || '',
-        recurring_pattern: task.recurring_pattern || task.recurringPattern || 'none',
+        recurring_pattern: normalizeTaskRecurrence(task).recurringPattern,
         notes: task.notes || ''
       });
       setError('');
@@ -201,7 +216,7 @@ export default function TaskEditModal({
     setFormData(prev => ({
       ...prev,
       [field]: value,
-      ...(field === 'garden_id' || field === 'task_type' ? { plant_name: '' } : {})
+      ...((field === 'garden_id' || field === 'task_type') && prev[field] !== value ? { plant_name: '' } : {})
     }));
     setError('');
   };
@@ -223,7 +238,6 @@ export default function TaskEditModal({
       new Set(plantLibrary.map(getLibraryPlantName).filter(Boolean))
     );
     const availablePlantOptions = isPlantingTask ? libraryPlantOptions : plantedPlantOptions;
-    const generatedTitle = getGeneratedTitle(formData.task_type, formData.plant_name);
 
     if (!formData.garden_id) {
       setError('Please select a garden');
@@ -235,27 +249,37 @@ export default function TaskEditModal({
       return;
     }
 
-    if (!formData.task_type) {
-      setError('Select a task type');
+    if (!isSupportedTaskType) {
+      setError('Choose a supported task type before saving.');
       return;
     }
 
-    if (isPlantingTask && plantLibrary.length === 0) {
+    if (!taskTitle.trim() || Array.from(taskTitle).length > 255) {
+      setError('Choose a task type and plant or area that produce a task title of 255 characters or fewer.');
+      return;
+    }
+
+    if (!isSupportedRecurrence) {
+      setError('Choose a supported recurrence pattern, or select None.');
+      return;
+    }
+
+    if (isPlantingTask && !isPreservingSavedPlant && plantLibrary.length === 0) {
       setError(isPlantLibraryLoading ? 'Plant library is still loading. Please try again in a moment.' : 'Plant library could not be loaded. Please try again.');
       return;
     }
 
-    if (isPlantingTask && (!formData.plant_name || !availablePlantOptions.includes(formData.plant_name))) {
+    if (isPlantingTask && !isPreservingSavedPlant && (!formData.plant_name || !availablePlantOptions.includes(formData.plant_name))) {
       setError('Select a plant from the plant library.');
       return;
     }
 
-    if (!isPlantingTask && !isOtherTask && formData.plant_name && !availablePlantOptions.includes(formData.plant_name)) {
+    if (!isPlantingTask && !isPreservingSavedPlant && formData.plant_name && !availablePlantOptions.includes(formData.plant_name)) {
       setError('Select a plant from this garden, or choose Whole garden / general task.');
       return;
     }
 
-    if (isOtherTask && !formData.description.trim()) {
+    if (requiresDescription && !formData.description.trim()) {
       setError('Add details for Other tasks so you know what needs to be done.');
       return;
     }
@@ -284,7 +308,7 @@ export default function TaskEditModal({
     try {
       const taskData = {
         ...formData,
-        title: generatedTitle,
+        title: taskTitle,
         // Ensure proper field names for API
         garden_id: formData.garden_id,
         plant_name: formData.plant_name,
@@ -331,17 +355,18 @@ export default function TaskEditModal({
     new Set(plantLibrary.map(getLibraryPlantName).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
   const plantOptions = isPlantingTask ? libraryPlantOptions : plantedPlantOptions;
-  const generatedTitle = getGeneratedTitle(formData.task_type, formData.plant_name);
   const isEditingExistingTask = Boolean(task?.id);
   const selectedGardenHasPlants = !selectedGarden || getGardenPlantCount(selectedGarden) > 0;
   const isNoPlantGardenBlocked = !isEditingExistingTask && selectedGarden && !selectedGardenHasPlants;
-  const showHistoricalPlantOption = formData.plant_name && !plantOptions.includes(formData.plant_name);
+  const showHistoricalPlantOption = canUseSavedPlant && !plantOptions.includes(savedPlantName);
   const plantFieldLabel = isPlantingTask ? 'Plant to Add *' : isOtherTask ? 'Plant' : 'Plant or Area';
-  const plantFieldHelp = isPlantingTask
-    ? 'Choose from the full plant library, even if it is not planted yet.'
-    : isOtherTask
-      ? 'Optional. Leave blank if this task is not plant-specific.'
-      : 'Choose a planted item, or leave as a whole-garden task.';
+  const plantFieldHelp = showHistoricalPlantOption
+    ? 'You can keep this task\'s saved plant or area, or choose a replacement.'
+    : isPlantingTask
+      ? 'Choose from the full plant library, even if it is not planted yet.'
+      : isOtherTask
+        ? 'Optional. Leave blank if this task is not plant-specific.'
+        : 'Choose a planted item, or leave as a whole-garden task.';
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
@@ -403,8 +428,13 @@ export default function TaskEditModal({
                 Task
               </span>
               <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900 break-words">
-                {generatedTitle || 'Select a task type and plant'}
+                {taskTitle || 'Select a task type and plant'}
               </div>
+              {isEditingExistingTask && (
+                <p className="mt-1 text-sm text-gray-600">
+                  Changing the task type or plant updates the title. For Other tasks, changing the description also updates it.
+                </p>
+              )}
             </div>
 
             <div>
@@ -414,22 +444,32 @@ export default function TaskEditModal({
               <select
                 id="task-type"
                 value={formData.task_type}
+                aria-invalid={!isSupportedTaskType}
+                aria-describedby={!isSupportedTaskType ? 'task-type-help' : undefined}
                 onChange={(e) => handleInputChange('task_type', e.target.value)}
                 className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
                 required
               >
+                {!isSupportedTaskType && (
+                  <option value={formData.task_type}>Unsupported task type: {String(formData.task_type || 'None')}</option>
+                )}
                 {taskTypeOptions.map(option => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
+              {!isSupportedTaskType && (
+                <p id="task-type-help" className="mt-1 text-sm text-red-700">
+                  This task type is no longer supported. Choose a replacement before saving.
+                </p>
+              )}
             </div>
 
             <div>
               <label htmlFor="task-description" className="block text-sm font-medium text-gray-700 mb-2">
                 Description
-                {isOtherTask && <span className="text-red-600"> *</span>}
+                {requiresDescription && <span className="text-red-600"> *</span>}
               </label>
               <textarea
                 id="task-description"
@@ -439,7 +479,7 @@ export default function TaskEditModal({
                 rows="3"
                 placeholder={isOtherTask ? 'Describe the task...' : 'Detailed description of the task...'}
               />
-              {isOtherTask && (
+              {requiresDescription && (
                 <p className="mt-1 text-xs font-medium text-gray-600">
                   Required for Other tasks.
                 </p>
@@ -489,7 +529,8 @@ export default function TaskEditModal({
                 value={selectedPlantValue}
                 onChange={(e) => handleInputChange('plant_name', e.target.value === GENERAL_GARDEN_TASK_VALUE ? '' : e.target.value)}
                 className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
-                disabled={isNoPlantGardenBlocked || (isPlantingTask ? isPlantLibraryLoading || plantOptions.length === 0 : false)}
+                aria-describedby="task-plant-help"
+                disabled={isNoPlantGardenBlocked || (isPlantingTask && !canUseSavedPlant && (isPlantLibraryLoading || plantOptions.length === 0))}
               >
                 {isPlantingTask ? (
                   <option value={GENERAL_GARDEN_TASK_VALUE}>
@@ -501,8 +542,8 @@ export default function TaskEditModal({
                   </option>
                 )}
                 {showHistoricalPlantOption && (
-                  <option value={formData.plant_name}>
-                    {formData.plant_name} (saved task value)
+                  <option value={savedPlantName}>
+                    {savedPlantName} (saved task value)
                   </option>
                 )}
                 {plantOptions.map(plantName => (
@@ -511,7 +552,7 @@ export default function TaskEditModal({
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs font-medium text-gray-600">
+              <p id="task-plant-help" className="mt-1 text-xs font-medium text-gray-600">
                 {plantFieldHelp}
               </p>
             </div>
@@ -609,15 +650,25 @@ export default function TaskEditModal({
             <select
               id="task-recurring-pattern"
               value={formData.recurring_pattern}
+              aria-invalid={!isSupportedRecurrence}
+              aria-describedby={!isSupportedRecurrence ? 'task-recurrence-help' : undefined}
               onChange={(e) => handleInputChange('recurring_pattern', e.target.value)}
               className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
             >
+              {!isSupportedRecurrence && (
+                <option value={formData.recurring_pattern}>Unsupported schedule: {String(formData.recurring_pattern)}</option>
+              )}
               {TASK_RECURRENCE_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
+            {!isSupportedRecurrence && (
+              <p id="task-recurrence-help" className="mt-1 text-sm text-red-700">
+                This schedule is no longer supported. Choose a replacement or select None before saving.
+              </p>
+            )}
           </div>
 
           {/* Notes */}
