@@ -36,6 +36,7 @@ const storedTask = overrides => ({
   description: 'Morning care', due_date: '2099-09-10', priority: 'medium',
   status: 'pending', completed_at: null, plant_name: 'Basil', task_type: 'water',
   estimated_duration: 10, is_recurring: 0, recurring_pattern: null,
+  notes: 'Use rain barrel',
   ...overrides
 });
 
@@ -87,7 +88,7 @@ test('completes an owned legacy task with status only and records the timestamp'
   connection = scriptConnection([
     selectTask(task), updateStatus('completed', 'NOW()'), selectTask(completed, { lock: false })
   ]);
-  const response = await request({ status: 'completed', title: 'Must not overwrite metadata' });
+  const response = await request({ status: 'completed', title: 'Must not overwrite metadata', notes: 'x'.repeat(2001) });
   assert.equal(response.status, 200);
   assert.deepEqual(response.body, completed);
   connection.assertFinished();
@@ -164,7 +165,7 @@ for (const [pattern, nextDate] of [['daily', '2099-09-11'], ['every-2-days', '20
       (sql, params) => {
         assert.match(sql, /INSERT INTO garden_tasks/);
         assert.deepEqual(params, [12, 4, task.title, task.description, nextDate, 'medium', 'Basil',
-          'water', 10, true, pattern]);
+          'water', 10, true, pattern, task.notes]);
         assert.ok(!connection.events.includes('commit'));
         return [{ insertId: 10 }];
       },
@@ -214,6 +215,31 @@ test('PUT retains editable-field validation', async () => {
   assert.equal((await request({ status: 'completed' }, { method: 'PUT' })).status, 400);
   assert.equal(acquisitions, 0);
 });
+
+for (const notes of ['New care instructions', '', null, undefined]) {
+  test(`PUT completion copies the edited notes to recurrence: ${JSON.stringify(notes)}`, async () => {
+    const task = storedTask({ is_recurring: 1, recurring_pattern: 'weekly' });
+    const expectedNotes = notes === undefined ? task.notes : notes || null;
+    connection = scriptConnection([
+      selectTask(task),
+      (sql, params) => {
+        assert.match(sql, /notes = \?/);
+        assert.equal(params[10], expectedNotes);
+        return [{ affectedRows: 1 }];
+      },
+      (sql, params) => {
+        assert.match(sql, /recurring_pattern,\s+notes, created_at/);
+        assert.equal(params[11], expectedNotes);
+        return [{ insertId: 10 }];
+      },
+      selectTask({ ...task, status: 'completed', notes: expectedNotes }, { lock: false })
+    ]);
+    const response = await request({ ...task, status: 'completed', notes }, { method: 'PUT' });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.notes, expectedNotes);
+    connection.assertFinished();
+  });
+}
 
 for (const status of ['completed', 'pending']) {
   test(`PUT also maintains the completion timestamp for ${status}`, async () => {

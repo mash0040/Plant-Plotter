@@ -11,6 +11,13 @@ const {
 } = require('../utils/taskRecurrence');
 
 const allowedTaskTypes = ['water', 'fertilize', 'harvest', 'plant', 'prune', 'weed', 'inspect', 'treat', 'other', 'maintenance'];
+// Keep in sync with the task editor's native maxlength (UTF-16 code units).
+const TASK_NOTES_MAX_LENGTH = 2000;
+const getNotesError = notes => {
+  if (notes === undefined || notes === null) return null;
+  if (typeof notes !== 'string') return 'Notes must be text.';
+  return notes.length > TASK_NOTES_MAX_LENGTH ? 'Notes must be 2,000 characters or fewer.' : null;
+};
 
 // GET /api/tasks
 router.get('/', verifyToken, async (req, res) => {
@@ -74,6 +81,13 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
+    const notesError = getNotesError(notes);
+    if (notesError) {
+      return sendErrorResponse(res, 400, notesError, {
+        code: 'VALIDATION_ERROR', errors: { notes: notesError }
+      });
+    }
+
     const recurrence = validateTaskRecurrence({
       isRecurring: is_recurring,
       recurringPattern: recurring_pattern
@@ -101,9 +115,9 @@ router.post('/', verifyToken, async (req, res) => {
       `INSERT INTO garden_tasks (
         user_id, garden_id, title, description, due_date, priority, plant_name, 
         task_type, status, estimated_duration, is_recurring, recurring_pattern,
-        created_at
+        notes, created_at
       ) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW())`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, NOW())`,
       [
         req.user.id, 
         garden_id, 
@@ -115,7 +129,8 @@ router.post('/', verifyToken, async (req, res) => {
         task_type || 'maintenance',
         estimated_duration || null,
         recurrence.isRecurring,
-        recurrence.recurringPattern
+        recurrence.recurringPattern,
+        notes || null
       ]
     );
 
@@ -173,6 +188,13 @@ const updateTask = async (req, res) => {
       });
     }
 
+    const notesError = statusOnly ? null : getNotesError(notes);
+    if (notesError) {
+      return sendErrorResponse(res, 400, notesError, {
+        code: 'VALIDATION_ERROR', errors: { notes: notesError }
+      });
+    }
+
     let recurrence = statusOnly ? null : validateTaskRecurrence({
       isRecurring: is_recurring,
       recurringPattern: recurring_pattern
@@ -202,7 +224,9 @@ const updateTask = async (req, res) => {
     const nextStatus = status || 'pending';
     const task = statusOnly ? existingTask[0] : {
       ...existingTask[0], title, description, due_date, priority, plant_name,
-      task_type, estimated_duration
+      task_type, estimated_duration,
+      // Older clients may omit notes; only an explicit empty/null value clears them.
+      notes: notes === undefined ? existingTask[0].notes : notes || null
     };
     if (statusOnly) {
       // Recurrence is relevant only when this transition schedules another task.
@@ -242,7 +266,7 @@ const updateTask = async (req, res) => {
         `UPDATE garden_tasks
          SET title = ?, description = ?, due_date = ?, priority = ?, status = ?,
              plant_name = ?, task_type = ?, estimated_duration = ?, is_recurring = ?,
-             recurring_pattern = ?, completed_at = ${completedAtSql}
+             recurring_pattern = ?, notes = ?, completed_at = ${completedAtSql}
          WHERE id = ? AND user_id = ?`,
         [
           title,
@@ -255,6 +279,7 @@ const updateTask = async (req, res) => {
           estimated_duration ?? null,
           recurrence.isRecurring,
           recurrence.recurringPattern,
+          task.notes ?? null,
           req.params.id,
           req.user.id
         ]
@@ -266,9 +291,9 @@ const updateTask = async (req, res) => {
         `INSERT INTO garden_tasks (
           user_id, garden_id, title, description, due_date, priority, plant_name,
           task_type, status, estimated_duration, is_recurring, recurring_pattern,
-          created_at
+          notes, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW())`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, NOW())`,
         [
           req.user.id,
           existingTask[0].garden_id,
@@ -280,7 +305,8 @@ const updateTask = async (req, res) => {
           task.task_type || 'maintenance',
           task.estimated_duration ?? null,
           recurrence.isRecurring,
-          recurrence.recurringPattern
+          recurrence.recurringPattern,
+          task.notes ?? null
         ]
       );
     }
