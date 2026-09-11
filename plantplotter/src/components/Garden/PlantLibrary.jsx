@@ -1,11 +1,164 @@
 'use client';
 import { ArrowLeft, X, Search, ChevronDown, ChevronUp, Heart, AlertTriangle, Info, Plus } from 'lucide-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import PlantLibraryItem from './PlantLibraryItem';
 import apiClient from '@/lib/api';
 import { getActionErrorMessage } from '@/lib/apiErrors';
 import { useAuth } from '@/hooks/useAuth';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
+
+// Helper function to safely parse JSON or comma-separated strings
+const safeJsonParse = (value, fallback = []) => {
+  if (!value) return fallback;
+
+  if (Array.isArray(value)) return value;
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : fallback;
+    } catch (jsonError) {
+      try {
+        if (value.includes(',')) {
+          return value.split(',').map(item => item.trim()).filter(Boolean);
+        } else if (value.trim()) {
+          return [value.trim()];
+        }
+      } catch (splitError) {
+        console.warn('Failed to parse value as comma-separated:', value, splitError);
+      }
+    }
+  }
+
+  return fallback;
+};
+
+const formatPlantValue = (value) => {
+  if (value === undefined || value === null || value === '') return 'Not specified.';
+  if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : 'Not specified.';
+  if (typeof value === 'object') return 'Not specified.';
+  return String(value);
+};
+
+const formatPlantList = (value) => {
+  const list = safeJsonParse(value, []);
+  return list
+    .map(item => String(item).replace(/_/g, ' ').trim())
+    .filter(Boolean)
+    .map(item => item.charAt(0).toUpperCase() + item.slice(1));
+};
+
+const getPlantInfoRows = (plant) => ([
+  ['Category', plant.category || plant.type],
+  ['Garden footprint', plant.size ? `${plant.size}x${plant.size} grid units` : 'Not specified.'],
+  ['Sunlight', plant.sunlight],
+  ['Water needs', plant.waterNeeds || plant.water_needs],
+  ['Spacing', plant.spacing],
+  ['Planting depth', plant.plantingDepth || plant.planting_depth],
+  ['Difficulty', plant.difficulty],
+  ['Days to maturity', plant.daysToMaturity || plant.days_to_maturity]
+]);
+
+const PlantInfoModal = ({ plant, onClose }) => {
+  const { dialogProps, titleId } = useAccessibleDialog({
+    isOpen: Boolean(plant),
+    onClose
+  });
+
+  if (!plant) return null;
+
+  const companions = formatPlantList(plant.companionPlants || plant.companion_plants);
+  const avoidPlants = formatPlantList(plant.avoidPlants || plant.avoid_plants);
+
+  return createPortal(
+    <div
+      className="fixed inset-x-0 top-0 z-[70] flex h-dvh items-center justify-center overflow-hidden overscroll-none bg-black/50 backdrop-blur-sm"
+      style={{
+        paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
+        paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
+        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(0.75rem, env(safe-area-inset-left))'
+      }}
+      // Keep the planner's outside-click handler from closing the library.
+      onMouseDown={(event) => event.stopPropagation()}
+    >
+      <div
+        {...dialogProps}
+        className="flex min-h-0 w-full max-w-lg max-h-full flex-col overflow-hidden rounded-xl bg-white shadow-xl border border-gray-100 sm:max-h-[min(90dvh,100%)]"
+      >
+        <div className="shrink-0 bg-white border-b border-gray-100 px-4 py-3 sm:px-5 sm:py-4 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-3xl flex-shrink-0">{plant.emoji || 'Plant'}</span>
+            <div className="min-w-0">
+              <h2 id={titleId} className="text-lg font-semibold text-gray-900 truncate">{plant.name}</h2>
+              <p className="text-sm text-gray-700 capitalize">{formatPlantValue(plant.category || plant.type)}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+            aria-label="Close plant details"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div
+          role="region"
+          aria-label="Plant details"
+          tabIndex={0}
+          className="min-h-0 overflow-y-auto overscroll-contain p-5 space-y-5 break-words focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-green-600"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {getPlantInfoRows(plant).map(([label, value]) => (
+              <div key={label} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-600">{label}</p>
+                <p className="mt-1 text-sm font-medium text-gray-900">{formatPlantValue(value)}</p>
+              </div>
+            ))}
+          </div>
+
+          {plant.description && (
+            <div className="rounded-lg border border-gray-100 p-3">
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">Description</h3>
+              <p className="text-sm leading-6 text-gray-700">{formatPlantValue(plant.description)}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-lg border border-green-100 bg-green-50 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Heart className="w-4 h-4 text-green-600" />
+                <h3 className="text-sm font-semibold text-green-800">Good companions</h3>
+              </div>
+              <p className="text-sm text-green-800">{companions.length > 0 ? companions.join(', ') : 'Not specified.'}</p>
+            </div>
+
+            <div className="rounded-lg border border-orange-100 bg-orange-50 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-orange-600" />
+                <h3 className="text-sm font-semibold text-orange-800">Avoid near</h3>
+              </div>
+              <p className="text-sm text-orange-800">{avoidPlants.length > 0 ? avoidPlants.join(', ') : 'Not specified.'}</p>
+            </div>
+          </div>
+        </div>
+        <div className="shrink-0 border-t border-gray-100 p-3 sm:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-11 w-full rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
 
 export default function PlantLibrary({ 
   searchTerm, 
@@ -27,32 +180,6 @@ export default function PlantLibrary({
   const [showCompanionGuide, setShowCompanionGuide] = useState(false);
   const [expandedPlants, setExpandedPlants] = useState({});
   const [selectedInfoPlant, setSelectedInfoPlant] = useState(null);
-
-  // Helper function to safely parse JSON or comma-separated strings
-  const safeJsonParse = (value, fallback = []) => {
-    if (!value) return fallback;
-    
-    if (Array.isArray(value)) return value;
-    
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : fallback;
-      } catch (jsonError) {
-        try {
-          if (value.includes(',')) {
-            return value.split(',').map(item => item.trim()).filter(Boolean);
-          } else if (value.trim()) {
-            return [value.trim()];
-          }
-        } catch (splitError) {
-          console.warn('Failed to parse value as comma-separated:', value, splitError);
-        }
-      }
-    }
-    
-    return fallback;
-  };
 
   const findPlantMatches = (searchValue, plantsArray) => {
     if (!searchValue || !plantsArray) return [];
@@ -375,107 +502,6 @@ export default function PlantLibrary({
     } else {
       console.error('onPlantRow callback not provided to PlantLibrary');
     }
-  };
-
-  const formatPlantValue = (value) => {
-    if (value === undefined || value === null || value === '') return 'Not specified.';
-    if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : 'Not specified.';
-    if (typeof value === 'object') return 'Not specified.';
-    return String(value);
-  };
-
-  const formatPlantList = (value) => {
-    const list = safeJsonParse(value, []);
-    return list
-      .map(item => String(item).replace(/_/g, ' ').trim())
-      .filter(Boolean)
-      .map(item => item.charAt(0).toUpperCase() + item.slice(1));
-  };
-
-  const getPlantInfoRows = (plant) => ([
-    ['Category', plant.category || plant.type],
-    ['Garden footprint', plant.size ? `${plant.size}x${plant.size} grid units` : 'Not specified.'],
-    ['Sunlight', plant.sunlight],
-    ['Water needs', plant.waterNeeds || plant.water_needs],
-    ['Spacing', plant.spacing],
-    ['Planting depth', plant.plantingDepth || plant.planting_depth],
-    ['Difficulty', plant.difficulty],
-    ['Days to maturity', plant.daysToMaturity || plant.days_to_maturity]
-  ]);
-
-  const PlantInfoModal = ({ plant, onClose }) => {
-    const { dialogProps, titleId } = useAccessibleDialog({
-      isOpen: Boolean(plant),
-      onClose
-    });
-
-    if (!plant) return null;
-
-    const companions = formatPlantList(plant.companionPlants || plant.companion_plants);
-    const avoidPlants = formatPlantList(plant.avoidPlants || plant.avoid_plants);
-
-    return (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
-        <div
-          {...dialogProps}
-          className="w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl border border-gray-100"
-        >
-          <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-3xl flex-shrink-0">{plant.emoji || 'Plant'}</span>
-              <div className="min-w-0">
-                <h2 id={titleId} className="text-lg font-semibold text-gray-900 truncate">{plant.name}</h2>
-                <p className="text-sm text-gray-700 capitalize">{formatPlantValue(plant.category || plant.type)}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
-              aria-label="Close plant details"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="p-5 space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {getPlantInfoRows(plant).map(([label, value]) => (
-                <div key={label} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-600">{label}</p>
-                  <p className="mt-1 text-sm font-medium text-gray-900">{formatPlantValue(value)}</p>
-                </div>
-              ))}
-            </div>
-
-            {plant.description && (
-              <div className="rounded-lg border border-gray-100 p-3">
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">Description</h3>
-                <p className="text-sm leading-6 text-gray-700">{formatPlantValue(plant.description)}</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-lg border border-green-100 bg-green-50 p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Heart className="w-4 h-4 text-green-600" />
-                  <h3 className="text-sm font-semibold text-green-800">Good companions</h3>
-                </div>
-                <p className="text-sm text-green-800">{companions.length > 0 ? companions.join(', ') : 'Not specified.'}</p>
-              </div>
-
-              <div className="rounded-lg border border-orange-100 bg-orange-50 p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="w-4 h-4 text-orange-600" />
-                  <h3 className="text-sm font-semibold text-orange-800">Avoid near</h3>
-                </div>
-                <p className="text-sm text-orange-800">{avoidPlants.length > 0 ? avoidPlants.join(', ') : 'Not specified.'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   const handleAddNewPlant = () => {
