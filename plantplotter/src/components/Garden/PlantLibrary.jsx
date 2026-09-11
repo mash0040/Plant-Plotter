@@ -817,7 +817,7 @@ export default function PlantLibrary({
         >
           {Object.entries(groupedPlants).map(([category, plants]) => (
             <div key={category} className="space-y-2">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide px-2 py-1 bg-gray-100 rounded sticky top-0 z-10">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide px-2 py-1 bg-gray-100 rounded">
                 {category} ({plants.length})
               </h3>
               <div className="space-y-1">
