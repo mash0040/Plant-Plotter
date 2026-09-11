@@ -37,6 +37,20 @@ The API issues authentication through an httpOnly cookie. The shared API client 
 Use `plantplotter/.env.local` for local values. Keep `plantplotter/.env.local.example` safe for documented defaults. Do not commit real local environment files.
 Only `NEXT_PUBLIC_*` values should be placed in frontend environment files because they are exposed to browser code.
 
+## Theme support
+
+The application currently uses a light theme for both light and dark system appearance.
+Tailwind v4's `dark` variant is defined in `src/styles/globals.css` and requires
+`class="dark"` on the root `<html>` element. The application does not set that class;
+existing `dark:` utilities are dormant. A `dark` class on a nested component does not
+enable them. The legacy JavaScript Tailwind config is not loaded by the current CSS
+entry point and does not control theme activation.
+
+The root layout and global styles retain `color-scheme: light` for browser controls.
+Full dark mode is future work and will require a complete palette, theme selection,
+preference persistence, initial-load handling, and visual/contrast testing across
+routes and overlays before enabling the root selector.
+
 ## Commands
 
 From this folder:

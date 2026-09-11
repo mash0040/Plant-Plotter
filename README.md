@@ -278,6 +278,7 @@ Try the app live at https://www.plantplotter.me
 
 ## Known Limitations
 
+- The application currently supports a light theme only, regardless of operating-system or browser appearance. Existing dark styles remain inactive until explicitly enabled at the application root. Full dark mode, theme selection, and preference persistence are future work.
 - Refresh tokens are not implemented yet; expired sessions redirect users to sign in again.
 - Tracker weather requires browser location access. When permission is denied or location cannot be resolved, the tracker does not substitute another location and instead provides a retryable message. Garden placement labels such as `Backyard` are not treated as geographic addresses.
 - Email reminders, weather alerts, public garden sharing, and public profiles are planned future improvements.
