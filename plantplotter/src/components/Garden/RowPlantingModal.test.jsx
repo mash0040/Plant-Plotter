@@ -29,6 +29,37 @@ const renderRowPlantingModal = () => {
 };
 
 describe('RowPlantingModal accessibility', () => {
+  it('keeps a rejected overlap visible after submission and allows a corrected retry', async () => {
+    const user = userEvent.setup();
+    const { onClose, onPlant } = renderRowPlantingModal();
+    const message = 'This row overlaps existing plants. Choose a different spot.';
+    onPlant.mockReturnValue({ success: false, message });
+
+    await user.click(screen.getByRole('button', { name: 'Plant Row (5)' }));
+    expect(onPlant).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText(message)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Plant Row (5)' }));
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Vertical' }));
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    onPlant.mockReturnValue({ success: true });
+    await user.click(screen.getByRole('button', { name: 'Plant Row (5)' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a fallback message when placement is rejected without a reason', async () => {
+    const user = userEvent.setup();
+    const { onClose, onPlant } = renderRowPlantingModal();
+    onPlant.mockReturnValue({ success: false });
+    await user.click(screen.getByRole('button', { name: 'Plant Row (5)' }));
+    expect(screen.getByText('Row planting failed. Adjust the row and try again.')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('labels each numeric field and gives every stepper a specific name', () => {
     renderRowPlantingModal();
 

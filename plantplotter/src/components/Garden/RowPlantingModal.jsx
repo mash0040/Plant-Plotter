@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { X, Plus, Minus, Grid, ArrowRight, ArrowDown } from 'lucide-react';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 
@@ -27,6 +27,17 @@ export default function RowPlantingModal({
   
   const [previewPositions, setPreviewPositions] = useState([]);
   const [validationMessage, setValidationMessage] = useState('');
+  const validationRef = useRef(null);
+
+  useEffect(() => {
+    setValidationMessage('');
+  }, [isOpen, plant?.id]);
+
+  useEffect(() => {
+    if (validationMessage) {
+      validationRef.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
+  }, [validationMessage]);
 
   const toInteger = (value, fallback = 0) => {
     const parsedValue = parseInt(value, 10);
@@ -56,7 +67,6 @@ export default function RowPlantingModal({
   // Calculate preview positions when config changes
   useEffect(() => {
     if (!plant) return;
-    setValidationMessage('');
     
     const normalizedConfig = getNormalizedConfig();
     const positions = [];
@@ -409,7 +419,7 @@ export default function RowPlantingModal({
             </div>
 
             {previewValidationMessage && (
-              <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <div ref={validationRef} role="alert" className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 {previewValidationMessage}
               </div>
             )}
