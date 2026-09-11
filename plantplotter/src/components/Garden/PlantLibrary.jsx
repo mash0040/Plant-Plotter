@@ -7,6 +7,7 @@ import apiClient from '@/lib/api';
 import { getActionErrorMessage } from '@/lib/apiErrors';
 import { useAuth } from '@/hooks/useAuth';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
+import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
 // Helper function to safely parse JSON or comma-separated strings
 const safeJsonParse = (value, fallback = []) => {
@@ -180,6 +181,18 @@ export default function PlantLibrary({
   const [showCompanionGuide, setShowCompanionGuide] = useState(false);
   const [expandedPlants, setExpandedPlants] = useState({});
   const [selectedInfoPlant, setSelectedInfoPlant] = useState(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia?.('(max-width: 1023px)');
+    if (!mediaQuery) return undefined;
+    const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
+    updateViewport();
+    mediaQuery.addEventListener('change', updateViewport);
+    return () => mediaQuery.removeEventListener('change', updateViewport);
+  }, []);
+
+  useBodyScrollLock(isOpen && isMobileViewport);
 
   const findPlantMatches = (searchValue, plantsArray) => {
     if (!searchValue || !plantsArray) return [];
@@ -599,12 +612,12 @@ export default function PlantLibrary({
     <>
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 touch-none bg-black/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={onToggle}
         />
       )}
       
-      <div className={`
+      <div inert={Boolean(selectedInfoPlant)} className={`
         fixed lg:relative 
         top-0 left-0 
         h-dvh overflow-hidden
@@ -697,7 +710,7 @@ export default function PlantLibrary({
             {showCompanionGuide && (
               <div className="px-4 pb-4">
                 {companionSuggestionsByPlant.length > 0 ? (
-                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                  <div className="space-y-3 max-h-80 overflow-y-auto overscroll-contain">
                     {companionSuggestionsByPlant.map((plantSuggestion) => (
                       <div key={plantSuggestion.sourcePlant.id} className="bg-white/70 rounded-lg p-3 border border-white/50">
                         <button

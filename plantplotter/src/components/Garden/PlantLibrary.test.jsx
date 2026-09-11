@@ -1,7 +1,7 @@
 import { DndContext } from '@dnd-kit/core';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import apiClient from '@/lib/api';
 import PlantLibrary from './PlantLibrary';
 
@@ -18,14 +18,14 @@ const plants = [
   { id: 'basil', name: 'Basil', emoji: '🌿', category: 'herbs' }
 ];
 
-function LibraryHarness({ searchTerm = '' }) {
+function LibraryHarness({ searchTerm = '', isOpen = true }) {
   return (
     <DndContext>
       <div data-sidebar>
         <PlantLibrary
           searchTerm={searchTerm}
           setSearchTerm={vi.fn()}
-          isOpen
+          isOpen={isOpen}
           onToggle={vi.fn()}
           disableDrag
         />
@@ -45,6 +45,50 @@ async function openDetails(user, name = 'Tomato') {
 describe('Plant library details', () => {
   beforeEach(() => {
     apiClient.getPlantLibrary.mockResolvedValue(plants);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps a mobile drawer locked after details close, then releases on drawer close', async () => {
+    const mediaQuery = Object.assign(new EventTarget(), { matches: true });
+    vi.stubGlobal('matchMedia', vi.fn(() => mediaQuery));
+    const user = userEvent.setup();
+    const { container, rerender } = render(<LibraryHarness />);
+    await screen.findByRole('button', { name: 'View information for Tomato' });
+    expect(document.body.style.position).toBe('fixed');
+
+    const { dialog } = await openDetails(user);
+    const libraryScroller = container.querySelector('[data-scroll-container="plants"]');
+    expect(libraryScroller.closest('[inert]')).not.toBeNull();
+    await user.click(within(dialog).getByRole('button', { name: 'Close plant details' }));
+    expect(libraryScroller.closest('[inert]')).toBeNull();
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body.style.position).toBe('fixed');
+
+    rerender(<LibraryHarness isOpen={false} />);
+    expect(document.body.style.overflow).not.toBe('hidden');
+    expect(document.body.style.position).not.toBe('fixed');
+  });
+
+  it('locks only the mobile drawer and releases when resizing to a desktop sidebar', async () => {
+    const mediaQuery = Object.assign(new EventTarget(), { matches: false });
+    vi.stubGlobal('matchMedia', vi.fn(() => mediaQuery));
+    const { unmount } = render(<LibraryHarness />);
+    await screen.findByRole('button', { name: 'View information for Tomato' });
+    expect(document.body.style.position).not.toBe('fixed');
+    act(() => {
+      mediaQuery.matches = true;
+      mediaQuery.dispatchEvent(new Event('change'));
+    });
+    expect(document.body.style.position).toBe('fixed');
+    act(() => {
+      mediaQuery.matches = false;
+      mediaQuery.dispatchEvent(new Event('change'));
+    });
+    expect(document.body.style.position).not.toBe('fixed');
+    unmount();
   });
 
   it('opens named modal details outside the sidebar and locks body scrolling', async () => {
