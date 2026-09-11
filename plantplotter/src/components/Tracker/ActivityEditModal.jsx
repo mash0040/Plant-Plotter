@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { X, Save, Trash2, Activity } from 'lucide-react';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 import { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
+import { getDefaultActivityTime, getTimeSeconds, isValidActivityTime } from '@/lib/trackerTime';
 
 export default function ActivityEditModal({ 
   isOpen, 
@@ -20,7 +21,8 @@ export default function ActivityEditModal({
     plant_name: '',
     notes: '',
     garden_id: '',
-    activity_date: ''
+    activity_date: '',
+    activity_time: ''
   });
   
   const [isSaving, setIsSaving] = useState(false);
@@ -84,7 +86,10 @@ export default function ActivityEditModal({
         plant_name: activity.plant_name || '',
         notes: activity.notes || '',
         garden_id: activity.garden_id || (selectedGarden ? selectedGarden.id : ''),
-        activity_date: activity.activity_date ? getDateKey(activity.activity_date) : getTodayDateKey()
+        activity_date: activity.activity_date ? getDateKey(activity.activity_date) : getTodayDateKey(),
+        activity_time: activity.activity_time !== undefined
+          ? activity.activity_time || ''
+          : getTimeSeconds(activity.time) === null ? '' : new Date(getTimeSeconds(activity.time) * 1000).toISOString().slice(11, 19)
       });
       setError('');
       setFieldErrors({});
@@ -96,7 +101,8 @@ export default function ActivityEditModal({
         plant_name: '',
         notes: '',
         garden_id: selectedGarden ? selectedGarden.id : (gardens.length > 0 ? gardens[0].id : ''),
-        activity_date: selectedDate || getTodayDateKey()
+        activity_date: selectedDate || getTodayDateKey(),
+        activity_time: getDefaultActivityTime(selectedDate || getTodayDateKey())
       });
       setError('');
       setFieldErrors({});
@@ -188,6 +194,9 @@ export default function ActivityEditModal({
     if (!formData.activity_date) {
       nextFieldErrors.activity_date = 'Date is required.';
     }
+    if (!isValidActivityTime(formData.activity_time)) {
+      nextFieldErrors.activity_time = 'Enter a valid time or leave it blank if you are unsure.';
+    }
 
     if (Object.keys(nextFieldErrors).length > 0) {
       setFieldErrors(nextFieldErrors);
@@ -203,7 +212,8 @@ export default function ActivityEditModal({
       const activityData = {
         ...formData,
         activity_type: getBackendSafeActivityType(formData.activity_type),
-        activity_date: formData.activity_date || selectedDate || getTodayDateKey()
+        activity_date: formData.activity_date || selectedDate || getTodayDateKey(),
+        activity_time: formData.activity_time || null
       };
 
       await onSave(activity?.id ? { ...activityData, id: activity.id } : activityData);
@@ -401,6 +411,19 @@ export default function ActivityEditModal({
             {fieldErrors.activity_date && (
               <p data-field-error="true" className="mt-1 text-sm text-red-600">{fieldErrors.activity_date}</p>
             )}
+          </div>
+
+          {/* Performed time */}
+          <div>
+            <label htmlFor="activity-time" className="block text-sm font-medium text-gray-700 mb-2">Time performed (optional)</label>
+            <input id="activity-time" type="time" step="1" value={formData.activity_time}
+              disabled={isSaving || isDeleting}
+              onChange={(event) => handleInputChange('activity_time', event.target.value)}
+              aria-describedby="activity-time-help"
+              aria-invalid={Boolean(fieldErrors.activity_time)}
+              className="w-full min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:text-gray-500" />
+            <p id="activity-time-help" className="mt-2 text-sm text-gray-600">Use your local time. Leave blank if you are unsure.</p>
+            {fieldErrors.activity_time && <p data-field-error="true" className="mt-1 text-sm text-red-600">{fieldErrors.activity_time}</p>}
           </div>
 
           {/* Notes */}

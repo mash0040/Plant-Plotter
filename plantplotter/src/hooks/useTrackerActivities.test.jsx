@@ -143,7 +143,8 @@ describe('useTrackerActivities', () => {
       activity_type: 'pruned',
       plant_name: 'Tomato',
       notes: 'Lower leaves',
-      activity_date: '2026-09-05'
+      activity_date: '2026-09-05',
+      activity_time: '09:15:32'
     }));
     await act(async () => result.current.deleteActivity(12));
 
@@ -151,7 +152,8 @@ describe('useTrackerActivities', () => {
       activity_type: 'pruned',
       plant_name: 'Tomato',
       notes: 'Lower leaves',
-      activity_date: '2026-09-05'
+      activity_date: '2026-09-05',
+      activity_time: '09:15:32'
     });
     expect(apiClient.deleteActivity).toHaveBeenCalledWith(12);
     expect(apiClient.getActivities).toHaveBeenCalledTimes(2);

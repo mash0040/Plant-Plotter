@@ -46,11 +46,13 @@ describe('Quick Log recovery', () => {
     render(<QuickLog onSaved={onSaved} />);
     await user.selectOptions(screen.getByLabelText('Plant'), 'Basil');
     await user.type(screen.getByLabelText('Notes (optional)'), 'Near the fence');
+    fireEvent.change(screen.getByLabelText('Time performed (optional)'), { target: { value: '09:15' } });
     await user.click(screen.getByRole('button', { name: 'Add Activity' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Log Planted' });
     expect(within(dialog).getByLabelText('Plant')).toHaveValue('Basil');
     expect(within(dialog).getByLabelText('Notes (optional)')).toHaveValue('Near the fence');
+    expect(within(dialog).getByLabelText('Time performed (optional)')).toHaveValue('09:15');
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Your selections and notes are still here.');
     expect(screen.getAllByRole('alert')).toHaveLength(1);
     expect(screen.queryByText('Activity logged.')).not.toBeInTheDocument();
@@ -63,6 +65,7 @@ describe('Quick Log recovery', () => {
     expect(onSaved).toHaveBeenCalledExactlyOnceWith(savedActivity);
     expect(apiClient.addActivity).toHaveBeenCalledTimes(2);
     expect(apiClient.addActivity.mock.calls[0][0]).toEqual(apiClient.addActivity.mock.calls[1][0]);
+    expect(apiClient.addActivity.mock.calls[1][0].activity_time).toBe('09:15');
     const calendar = JSON.parse(screen.getByLabelText('Calendar entries').textContent);
     expect(Object.values(calendar).flat()).toHaveLength(1);
     expect(calendar['2026-09-04'][0]).toMatchObject({ id: 15, time: '23:58', plant: 'Basil', notes: 'Near the fence' });
@@ -78,6 +81,7 @@ describe('Quick Log recovery', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(onSaved).toHaveBeenCalledTimes(1);
     expect(apiClient.addActivity).toHaveBeenCalledTimes(1);
+    expect(apiClient.addActivity.mock.calls[0][0].activity_time).toBeNull();
   });
 
   it('blocks same-tick form submissions and prevents draft changes or dismissal while saving', async () => {
@@ -95,6 +99,7 @@ describe('Quick Log recovery', () => {
     expect(screen.getByRole('button', { name: 'Adding...' })).toBeDisabled();
     expect(screen.getByLabelText('Plant')).toBeDisabled();
     expect(screen.getByLabelText('Notes (optional)')).toBeDisabled();
+    expect(screen.getByLabelText('Time performed (optional)')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();

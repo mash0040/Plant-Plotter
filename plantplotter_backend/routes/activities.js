@@ -6,6 +6,19 @@ const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailabilit
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
 const allowedActivityTypes = ['planted', 'watered', 'fertilized', 'harvested', 'pruned', 'weeded'];
 
+const validateActivityTime = (req, res) => {
+  const value = req.body.activity_time;
+  if (value === undefined || value === null || value === '') return true;
+  if (typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value)) return true;
+  sendErrorResponse(res, 400, 'Enter a valid time or leave it blank if you are unsure.', {
+    code: 'VALIDATION_ERROR',
+    errors: { activity_time: 'Use a time between 00:00 and 23:59.' }
+  });
+  return false;
+};
+
+const normalizeActivityTime = (value) => value ? (value.length === 5 ? `${value}:00` : value) : null;
+
 // GET /api/activities
 router.get('/', verifyToken, async (req, res) => {
   try {
@@ -60,6 +73,8 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
+    if (!validateActivityTime(req, res)) return;
+
     // Verify garden belongs to user
     const [garden] = await db.execute(
       'SELECT id FROM gardens WHERE id = ? AND user_id = ?',
@@ -75,7 +90,10 @@ router.post('/', verifyToken, async (req, res) => {
     // Get current date and time
     const now = new Date();
     const activityDate = activity_date || now.toISOString().split('T')[0]; // YYYY-MM-DD format
-    const activityTime = now.toTimeString().split(' ')[0]; // HH:MM:SS format
+    // Older clients omit the field; explicit null means the performed time is unknown.
+    const activityTime = req.body.activity_time === undefined
+      ? now.toTimeString().split(' ')[0]
+      : normalizeActivityTime(req.body.activity_time);
 
     const [result] = await db.execute(
       `INSERT INTO garden_activities (user_id, garden_id, activity_type, plant_name, notes, activity_date, activity_time, created_at) 
@@ -117,6 +135,8 @@ router.put('/:id', verifyToken, async (req, res) => {
       });
     }
 
+    if (!validateActivityTime(req, res)) return;
+
     const [existingActivity] = await db.execute(
       'SELECT id FROM garden_activities WHERE id = ? AND user_id = ?',
       [activityId, req.user.id]
@@ -128,11 +148,15 @@ router.put('/:id', verifyToken, async (req, res) => {
       });
     }
     
+    const hasActivityTime = req.body.activity_time !== undefined;
+    const updateValues = [activity_type, plant_name || null, notes || null, activity_date];
+    if (hasActivityTime) updateValues.push(normalizeActivityTime(req.body.activity_time));
+    updateValues.push(activityId, req.user.id);
     await db.execute(
       `UPDATE garden_activities 
-       SET activity_type = ?, plant_name = ?, notes = ?, activity_date = ?
+       SET activity_type = ?, plant_name = ?, notes = ?, activity_date = ?${hasActivityTime ? ', activity_time = ?' : ''}
        WHERE id = ? AND user_id = ?`,
-      [activity_type, plant_name || null, notes || null, activity_date, activityId, req.user.id]
+      updateValues
     );
 
     const [updatedActivity] = await db.execute(

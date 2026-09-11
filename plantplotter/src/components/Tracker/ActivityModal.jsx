@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 import { getTrackerFailureMessage } from '@/hooks/useTrackerFeedback';
+import { isValidActivityTime } from '@/lib/trackerTime';
 
 export default function ActivityModal({
   isOpen,
@@ -48,6 +49,10 @@ export default function ActivityModal({
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (submissionRef.current || !gardenPlantOptions.includes(formData.plant) || !formData.activity) return;
+    if (!isValidActivityTime(formData.activity_time)) {
+      setError('Enter a valid time or leave it blank if you are unsure.');
+      return;
+    }
 
     submissionRef.current = true;
     setIsSubmitting(true);
@@ -57,7 +62,8 @@ export default function ActivityModal({
       await onSubmit({
         activity: formData.activity,
         plant: formData.plant,
-        notes: formData.notes
+        notes: formData.notes,
+        activity_time: formData.activity_time || null
       });
     } catch (saveError) {
       setError(getTrackerFailureMessage(saveError, 'The activity could not be logged. Your selections and notes are still here. Try again.'));
@@ -130,6 +136,17 @@ export default function ActivityModal({
               )}
             </div>
 
+            <div>
+              <label htmlFor="quick-activity-time" className="block text-sm font-medium text-gray-700 mb-2">
+                Time performed (optional)
+              </label>
+              <input id="quick-activity-time" type="time" value={formData.activity_time || ''}
+                disabled={isSubmitting}
+                onChange={(event) => onFormDataChange({ ...formData, activity_time: event.target.value })}
+                aria-describedby="quick-activity-time-help"
+                className="w-full min-h-11 rounded border border-gray-300 bg-white p-2 text-gray-900 focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:text-gray-500" />
+              <p id="quick-activity-time-help" className="mt-2 text-sm text-gray-600">Use your local time. Leave blank if you are unsure.</p>
+            </div>
             <div>
               <label htmlFor="quick-activity-notes" className="block text-sm font-medium text-gray-700 mb-2">
                 Notes (optional)

@@ -42,6 +42,10 @@ After the group project delivery, I independently improved and expanded the appl
 
 Quick Log records completed care for an explicitly selected plant; whole-garden logging is not currently offered. The Planted action records planting history for a plant already in the garden, while the planner manages plant placement. Failed saves keep the modal and draft open with an explicit retry action. Successful saves use the returned activity's date, time, and identifiers, and activity mutations are never retried automatically.
 
+Completed tasks also appear in the tracking calendar's Activities history, on the local date of their recorded completion rather than their due date. Entries show the task title, plant or area, notes, and completion time, with a View task action for the existing editor. Each completed recurring occurrence remains in history while its next occurrence stays in the care queue. History uses the saved task records without creating duplicate Quick Log entries: reopening a task removes its completion entry, and deleting a task removes its history. Older completed tasks without a recorded completion date are available in a separate expandable list below the calendar.
+
+Activities history is collapsible, with compact entries that expand to show notes and actions. Quick Log and completed tasks share note styling and a 12-hour time display. Entries are ordered by performed time, newest first, with unknown times last. Quick Log's optional Time performed field defaults to the current local time for today and stays blank for a past date; it can also be corrected or cleared in the activity editor. Editing notes preserves the recorded time. The API accepts `activity_time` as `HH:mm`, `HH:mm:ss`, or `null` for an unknown time and keeps `created_at` separate. For older clients, an omitted POST time retains the existing server-time default, and an omitted PUT time leaves the stored time unchanged. Existing recorded times are preserved as stored because legacy records do not identify their time zone.
+
 ## Tech Stack
 
 ### Frontend

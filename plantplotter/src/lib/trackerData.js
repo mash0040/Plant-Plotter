@@ -82,6 +82,7 @@ export const hydrateTrackerGarden = (garden, plantedItems) => ({
 });
 
 const formatActivityTime = (activity) => {
+  if (activity.activity_time === null || activity.activity_time === '') return '';
   if (activity.activity_time) return String(activity.activity_time).substring(0, 5);
   if (!activity.created_at) return '';
 
@@ -112,6 +113,7 @@ export const buildActivityCalendar = (activities, plantedItems = []) => {
       plant: plantName,
       notes: activity.notes || '',
       time: formatActivityTime(activity),
+      activity_time: activity.activity_time,
       activity_date: dateKey,
       activity_type: activity.activity_type,
       plant_name: plantName,
@@ -180,7 +182,8 @@ export const buildTaskCollections = (tasks, today = new Date()) => {
     todayTasks: sortTasksByDueDate(pendingTasks.filter(task => task.dueDate === todayDateKey)),
     upcomingTasks: sortTasksByDueDate(pendingTasks.filter(task => task.dueDate > todayDateKey)),
     overdueTasks: sortTasksByDueDate(pendingTasks.filter(task => task.dueDate < todayDateKey)),
-    calendarTasks
+    calendarTasks,
+    completedTasks: normalizedTasks.filter(task => task.status === 'completed')
   };
 };
 

@@ -131,7 +131,7 @@ describe('tracker activity transformations', () => {
   it('does not invent a plant or time when the saved response has neither', () => {
     expect(createCalendarActivity({ savedActivity: {
       id: 12, activity_type: 'weeded', activity_date: '2026-09-05', garden_id: 3,
-      activity_time: null, created_at: null, plant_name: null
+      activity_time: null, created_at: '2026-09-11T13:30:00.000Z', plant_name: null
     } })).toMatchObject({ plant: 'Plant not recorded', time: '' });
   });
 });

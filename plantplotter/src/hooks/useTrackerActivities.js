@@ -90,7 +90,8 @@ export default function useTrackerActivities({
           activity_type: activityData.activity_type,
           plant_name: activityData.plant_name,
           notes: activityData.notes,
-          activity_date: activityData.activity_date
+          activity_date: activityData.activity_date,
+          activity_time: activityData.activity_time
         });
       } else {
         await apiClient.addActivity({
@@ -98,7 +99,8 @@ export default function useTrackerActivities({
           activity: activityData.activity_type,
           plant: activityData.plant_name,
           notes: activityData.notes,
-          date: activityData.activity_date
+          date: activityData.activity_date,
+          activity_time: activityData.activity_time
         });
       }
 
