@@ -1,13 +1,14 @@
 // app/gardens/page.jsx
 'use client';
 import { Suspense, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import apiClient from '@/lib/api';
 import GardenList from '@/components/Gardens/GardenList';
 import GardenForm from '@/components/Gardens/GardenForm';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import RequestErrorNotice from '@/components/RequestErrorNotice';
+import { getGardenCreationReturnPath } from '@/lib/gardenCreation';
 import { CheckCircle, X } from 'lucide-react';
 import {
   getActionErrorMessage,
@@ -31,6 +32,8 @@ function GardensLoading() {
 
 function AllGardensContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const [creationReturnPath, setCreationReturnPath] = useState(null);
   const [gardens, setGardens] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedGarden, setSelectedGarden] = useState(null);
@@ -40,6 +43,21 @@ function AllGardensContent() {
   const [successMessage, setSuccessMessage] = useState('');
   const [gardenPendingDelete, setGardenPendingDelete] = useState(null);
   const messageRef = useRef(null);
+
+  useEffect(() => {
+    if (searchParams.get('create') !== 'true') return;
+
+    setSelectedGarden(null);
+    setCreationReturnPath(getGardenCreationReturnPath(searchParams.get('returnTo')));
+    setIsFormOpen(true);
+
+    // Consume the request so closing, refreshing, or returning does not reopen it.
+    const remainingParams = new URLSearchParams(searchParams.toString());
+    remainingParams.delete('create');
+    remainingParams.delete('returnTo');
+    const query = remainingParams.toString();
+    window.history.replaceState(null, '', query ? `/gardens?${query}` : '/gardens');
+  }, [searchParams]);
 
   // Check for success parameters from garden planner
   useEffect(() => {
@@ -135,11 +153,13 @@ function AllGardensContent() {
   };
 
   const handleAddNew = () => {
+    setCreationReturnPath(null);
     setSelectedGarden(null);
     setIsFormOpen(true);
   };
 
   const handleEdit = (garden) => {
+    setCreationReturnPath(null);
     setSelectedGarden(garden);
     setIsFormOpen(true);
   };
@@ -261,6 +281,15 @@ function AllGardensContent() {
         setSuccessMessage('Garden created.');
       }
       
+      if (!isUpdate && creationReturnPath) {
+        setIsFormOpen(false);
+        setSelectedGarden(null);
+        setCreationReturnPath(null);
+        const query = savedGarden.id == null ? '' : `?gardenId=${encodeURIComponent(savedGarden.id)}`;
+        router.replace(`${creationReturnPath}${query}`);
+        return;
+      }
+
       // Reload gardens to reflect the changes
       await loadGardens();
       
@@ -281,6 +310,7 @@ function AllGardensContent() {
   };
 
   const handleClose = () => {
+    setCreationReturnPath(null);
     setIsFormOpen(false);
     setSelectedGarden(null);
   };

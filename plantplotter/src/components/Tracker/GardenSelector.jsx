@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import { TRACKER_CREATE_GARDEN_URL } from '@/lib/gardenCreation';
 import { Leaf } from 'lucide-react';
 
 export default function GardenSelector({ gardens, selectedGarden, onGardenSelect }) {
@@ -85,12 +86,12 @@ export default function GardenSelector({ gardens, selectedGarden, onGardenSelect
             <Leaf className="w-6 h-6 text-gray-500" />
           </div>
           <h4 className="text-sm font-medium text-gray-700">No gardens yet</h4>
-          <p className="mt-1 text-sm text-gray-500">Create a garden in My Gardens to start tracking care.</p>
+          <p className="mt-1 text-sm text-gray-500">Create a garden to start tracking care.</p>
           <Link
-            href="/gardens" 
+            href={TRACKER_CREATE_GARDEN_URL}
             className="text-green-600 hover:text-green-700 text-sm font-medium mt-2 inline-block"
           >
-            Go to My Gardens
+            Create Garden
           </Link>
         </div>
       )}
