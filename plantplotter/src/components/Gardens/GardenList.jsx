@@ -62,25 +62,20 @@ export default function GardenList({
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {hasGardens && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-green-100">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              {/* Decorative elements */}
-              <div className="absolute top-10 left-10 opacity-10">
-                <Leaf className="w-32 h-32 text-green-600 transform rotate-12" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">My Gardens</h1>
-                <p className="text-gray-600">Manage and track your garden spaces</p>
-              </div>
-              <button
-                onClick={onAddNew}
-                className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Create Garden
-              </button>
+          <header className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">My Gardens</h1>
+              <p className="text-gray-600">Manage and track your garden spaces</p>
             </div>
-          </div>
+            <button
+              type="button"
+              onClick={onAddNew}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-green-600 px-6 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-50"
+            >
+              <Plus className="w-5 h-5" />
+              Create Garden
+            </button>
+          </header>
         )}
 
         {hasGardens ? (
