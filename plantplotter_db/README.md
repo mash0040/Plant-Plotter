@@ -24,6 +24,8 @@ The active schema uses `CREATE DATABASE IF NOT EXISTS garden_plotter;` and selec
 
 The seed file also selects `garden_plotter`. It includes a demo user, sample gardens, plant library data, tasks, and activities. It is optional for an empty installation and intended for local/demo setup only. Run it once after the schema; it uses fixed IDs and is not an upgrade or a repeatable data refresh.
 
+The only seeded account is `demo@plantplotter.com`, explicitly assigned user ID `1`. All five showcase gardens, their 65 planted items, 23 tasks, and 40 activities belong to that account. No admin/test personas are required. Account preferences remain SQL `NULL`: account-wide settings are not implemented, and current garden/planner controls operate independently. Demo login credentials are documented in the [root README](../README.md#demo).
+
 The schema does not drop existing data, but its `CREATE TABLE` statements are not an upgrade procedure and will fail on existing tables. Do not rerun the base schema or demo seed against an existing deployment. Configure the backend's `DB_NAME=garden_plotter` and other connection settings as described in the [root README](../README.md#backend-environment).
 
 ## Migrations
@@ -98,6 +100,8 @@ With Docker running, validate the SQL and authentication paths against disposabl
 node plantplotter_backend/scripts/validateFreshDatabase.js
 ```
 
-This check creates an isolated container, imports only the active schema and seed, starts the backend with temporary local settings, and exercises registration, login, reset-token persistence/consumption, session revocation, and invalid/reused reset links. It captures the development reset link locally without sending email. It also checks upgrades from a representative older schema and reruns the migrations documented as repeatable. The container is removed afterward; no existing database or local environment file is used.
+This check creates an isolated container, imports only the active schema and seed, and starts the backend with temporary local settings. It verifies the documented demo login, unset preferences, and populated garden/planner/tracker API data, then exercises registration, login, reset-token persistence/consumption, session revocation, and invalid/reused reset links. It captures the development reset link locally without sending email. It also checks upgrades from a representative older schema and reruns the migrations documented as repeatable. The container is removed afterward; no existing database or local environment file is used.
+
+For manual demo validation, sign in with the documented demo account after a fresh schema and seed import. Confirm all five showcase gardens are listed, open each planner to see its saved plants, and switch between gardens in Tracker to inspect tasks and activity history. Seed dates are fixed historical examples, so look in overdue/completed tasks and the matching historical calendar months rather than expecting activity today. Confirm Profile > Preferences still shows the existing coming-soon state.
 
 For manual UI validation, connect the app to a fresh local setup, register a new account, sign out and back in, request a reset link, reset the password, and confirm the old password and previously signed-in session no longer work. Sign in with the new password and confirm reusing the reset link fails. Use a new account rather than the protected demo account. Email delivery requires the separate email-provider configuration described in the root README.
