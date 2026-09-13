@@ -2,7 +2,7 @@
 
 This folder contains the Next.js frontend for Plant Plotter. It requires the Express backend API from `plantplotter_backend/` for authentication, gardens, plant library data, planner saves, tracker tasks, and activity logs.
 
-For full project setup, database instructions, demo accounts, and backend configuration, see the root `README.md`.
+Start with the [root README](../README.md#local-setup) for local setup and demo access. Detailed database instructions are in the [database README](../plantplotter_db/README.md), and backend configuration defaults are in the [environment template](../plantplotter_backend/.env.example).
 
 ## Environment
 
