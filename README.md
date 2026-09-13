@@ -194,7 +194,7 @@ The active database files are:
 - `plantplotter_db/plantPlotterSchema.sql`
 - `plantplotter_db/data_instance.sql`
 
-Run the schema first, then the seed file:
+For a fresh installation, run the schema against an empty database first, then the local/demo seed file:
 
 ```sh
 cd plantplotter_db
@@ -202,8 +202,9 @@ mysql -u <user> -p < plantPlotterSchema.sql
 mysql -u <user> -p < data_instance.sql
 ```
 
-The active database name is `garden_plotter`. The seed file is intended for local/demo setup only.
-Some features include additional migration scripts in `plantplotter_db/`, such as password reset, task type updates, recurring-task integrity, and performance indexes. Apply the relevant migrations after the base schema. Existing databases must apply `task_recurrence_migration.sql` before relying on the recurring-task constraint.
+The active database name is `garden_plotter`. The seed file is optional and intended for local/demo setup only. **Fresh installations must skip all upgrade migrations:** the base schema includes the current password-reset fields, session version, task notes, task types, recurrence constraint, and performance indexes.
+
+For existing databases, apply only missing upgrades from the [database migration instructions](plantplotter_db/README.md#migrations). Do not rerun the base schema or demo seed against an existing deployment. The [database README](plantplotter_db/README.md#fresh-installation) also includes PowerShell setup instructions and a disposable MySQL validation command.
 
 Before deploying task notes support to an existing database, apply `plantplotter_db/task_notes_migration.sql` once. Fresh schema installations already include the column and must skip this migration. Notes persist through creation, editing, reload, and recurring occurrences, with a 2,000-character limit. See [database migration instructions](plantplotter_db/README.md#migrations) for setup and empty-value behavior.
 

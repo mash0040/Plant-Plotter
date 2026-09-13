@@ -1,5 +1,6 @@
 -- Normalize existing recurrence state and enforce the supported task contract.
--- Apply once after the base schema on databases created before this constraint.
+-- Apply once to older databases missing chk_task_recurrence.
+-- Fresh installations already include this constraint and must skip this file.
 
 USE garden_plotter;
 

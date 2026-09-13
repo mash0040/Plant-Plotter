@@ -9,49 +9,95 @@ This directory contains the MySQL setup files for Plant Plotter.
 
 The current app uses the `garden_plotter` database.
 
-## Safe Setup Order
+## Fresh Installation
 
-Run the active schema first, then the seed file:
+Use MySQL 8 with an empty `garden_plotter` database (or let the schema create it). From this directory, run the active schema first, then the local/demo seed file:
 
 ```sh
 mysql -u <user> -p < plantPlotterSchema.sql
 mysql -u <user> -p < data_instance.sql
 ```
 
-The active schema uses `CREATE DATABASE IF NOT EXISTS garden_plotter;` and selects the database with `USE garden_plotter;`. The seed file also selects `garden_plotter` so it can run independently after the schema exists.
+These redirection commands work in shells such as Bash and Command Prompt. In PowerShell, start `mysql -u <user> -p` from this directory, then run `SOURCE plantPlotterSchema.sql;` followed by `SOURCE data_instance.sql;` at the MySQL prompt.
 
-The seed file is intended for local/demo setup. It includes demo users, sample gardens, plant library data, tasks, and activities.
+The active schema uses `CREATE DATABASE IF NOT EXISTS garden_plotter;` and selects it with `USE garden_plotter;`. It contains the current password-reset fields and token index, session version, task notes, expanded task types, recurrence constraint, and performance indexes. **Fresh installations must skip all upgrade migrations.** No historical migration is needed to start the current backend.
+
+The seed file also selects `garden_plotter`. It includes a demo user, sample gardens, plant library data, tasks, and activities. It is optional for an empty installation and intended for local/demo setup only. Run it once after the schema; it uses fixed IDs and is not an upgrade or a repeatable data refresh.
+
+The schema does not drop existing data, but its `CREATE TABLE` statements are not an upgrade procedure and will fail on existing tables. Do not rerun the base schema or demo seed against an existing deployment. Configure the backend's `DB_NAME=garden_plotter` and other connection settings as described in the [root README](../README.md#backend-environment).
 
 ## Migrations
 
-For password-reset session revocation, existing databases must run this migration once **before deploying the updated API**:
+These files remain available only for upgrading older databases. Back up the database and inspect its current definitions before applying the relevant files **before deploying the updated API**. Skip changes already present; do not run every SQL file in the directory. Each command below is run from this directory.
+
+| Upgrade file | Apply when the existing database is missing | Repeat behavior |
+| --- | --- | --- |
+| `password_reset_migration.sql` | `users.reset_password_token_hash`, `users.reset_password_expires`, or `idx_users_reset_password_token_hash` | Checks names and adds only missing columns/index. |
+| `session_version_migration.sql` | `users.session_version` | Apply once; duplicate column otherwise. |
+| `task_notes_migration.sql` | `garden_tasks.notes` | Apply once; duplicate column otherwise. |
+| `task_type_options_migration.sql` | `treat` or `other` in `garden_tasks.task_type` | Reapplies the established enum; inspect any custom values first. |
+| `task_recurrence_migration.sql` | `chk_task_recurrence` | Apply once; duplicate constraint otherwise. Normalizes existing recurrence state. |
+| `performance_indexes.sql` | Any of its six named performance indexes | Checks index names and adds only missing indexes. Requires routine creation privileges. |
+
+Inspect `SHOW CREATE TABLE users;`, `SHOW CREATE TABLE garden_tasks;`, and `SHOW INDEX FROM <table>;` for the tables listed in `performance_indexes.sql`. Name checks in repeatable migrations do not repair an existing definition with the wrong type or indexed columns; review such differences separately.
+
+For older password-reset schemas:
+
+```sh
+mysql -u <user> -p garden_plotter < password_reset_migration.sql
+```
+
+The current fields are nullable `reset_password_token_hash VARCHAR(255)` and `reset_password_expires DATETIME`. The obsolete `password_reset_token` and `password_reset_expires` fields are not used by the backend and are omitted from fresh installations. The upgrade preserves any legacy fields and data; it does not copy old tokens into the current hashed-token field.
+
+For password-reset session revocation:
 
 ```sh
 mysql -u <user> -p garden_plotter < session_version_migration.sql
 ```
 
-Fresh installations already include `users.session_version` and must skip this migration. Existing users receive version `0`; each successful password reset increments it atomically with the password change. No seed data or environment-variable changes are required. Keep the existing password-reset migration applied as well.
+Existing users receive version `0`; each successful password reset increments it atomically with the password change. No seed data or environment-variable changes are required. The current password-reset columns above must also be present.
 
 Verify that `SHOW COLUMNS FROM users LIKE 'session_version';` reports `int unsigned`, `Null: NO`, and default `0`. Deploy the updated API across all instances after the migration. Existing authentication cookies without a version will require users to sign in once. Never reset or decrement stored versions, since doing so could revalidate older cookies. See [session behavior](../SECURITY.md#password-reset).
 
-For task notes, existing databases must run this migration once **before deploying the updated API**:
+For task notes:
 
 ```sh
 mysql -u <user> -p garden_plotter < task_notes_migration.sql
 ```
 
-Fresh installations already include `garden_tasks.notes` in the active schema and must skip this migration. Existing tasks receive `NULL` notes; no other task data changes. The notes column explicitly uses `utf8mb4` to support Unicode and emoji even when the existing table has an older default character set.
+Existing tasks receive `NULL` notes; no other task data changes. The notes column explicitly uses `utf8mb4` to support Unicode and emoji even when the existing table has an older default character set.
 
 Task notes are optional, with a 2,000-character limit enforced by both the editor and API using JavaScript/native input length (UTF-16 code units; some emoji count as two). Nonempty text, including whitespace and line breaks, is preserved. Empty strings and explicit `null` clear notes to SQL `NULL`; an omitted field on update preserves existing notes for older clients. Status-only completion preserves notes and copies them to the next recurring occurrence.
 
-Existing databases should apply the relevant migration files after the base schema. For recurring task support, run:
+For expanded task types and recurring task support, apply only the missing changes:
 
 ```sh
+mysql -u <user> -p garden_plotter < task_type_options_migration.sql
 mysql -u <user> -p garden_plotter < task_recurrence_migration.sql
 ```
 
 This migration preserves the supported `daily`, `every-2-days`, `weekly`, and `monthly` patterns, repairs their recurring flag, and adds the recurrence integrity constraint. It intentionally fails if an unknown pattern exists so that value can be reviewed instead of silently discarded.
 
-## Legacy Files
+For performance indexes:
 
-Files in `legacy/` are older `plant_potter` schema files kept for reference only. They are not the active setup path for the current app.
+```sh
+mysql -u <user> -p garden_plotter < performance_indexes.sql
+```
+
+## Validation
+
+From the repository root, run the backend suite, including static schema and setup-documentation checks:
+
+```sh
+npm test --workspace=plantplotter_backend
+```
+
+With Docker running, validate the SQL and authentication paths against disposable MySQL 8.4:
+
+```sh
+node plantplotter_backend/scripts/validateFreshDatabase.js
+```
+
+This check creates an isolated container, imports only the active schema and seed, starts the backend with temporary local settings, and exercises registration, login, reset-token persistence/consumption, session revocation, and invalid/reused reset links. It captures the development reset link locally without sending email. It also checks upgrades from a representative older schema and reruns the migrations documented as repeatable. The container is removed afterward; no existing database or local environment file is used.
+
+For manual UI validation, connect the app to a fresh local setup, register a new account, sign out and back in, request a reset link, reset the password, and confirm the old password and previously signed-in session no longer work. Sign in with the new password and confirm reusing the reset link fails. Use a new account rather than the protected demo account. Email delivery requires the separate email-provider configuration described in the root README.
