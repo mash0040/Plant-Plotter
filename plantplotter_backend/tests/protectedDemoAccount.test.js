@@ -16,6 +16,10 @@ let sentEmails;
 let lookupError;
 let passwordHash;
 const execute = async (sql, params) => {
+  // Keep the demo-identity lookup assertions independent of session verification.
+  if (sql === 'SELECT session_version FROM users WHERE id = ? AND is_active = TRUE') {
+    return [users.filter(user => user.id === params[0]).map(user => ({ session_version: user.session_version }))];
+  }
   queries.push({ sql, params });
   if (lookupError) throw lookupError;
   if (sql.startsWith('SELECT')) {
@@ -97,8 +101,8 @@ before(async () => {
 after(async () => { await new Promise(resolve => server.close(resolve)); });
 beforeEach(() => {
   users = [
-    { id: 7, username: 'Demo', email: 'demo@plantplotter.com', password_hash: passwordHash, role: 'user', preferences: '{}' },
-    { id: 12, username: 'Gardener', email: 'gardener@example.com', password_hash: passwordHash, role: 'user', preferences: '{}' }
+    { id: 7, username: 'Demo', email: 'demo@plantplotter.com', password_hash: passwordHash, session_version: 0, role: 'user', preferences: '{}' },
+    { id: 12, username: 'Gardener', email: 'gardener@example.com', password_hash: passwordHash, session_version: 0, role: 'user', preferences: '{}' }
   ];
   gardens = [{ id: 1, user_id: 7 }, { id: 2, user_id: 12 }];
   queries = [];
@@ -110,7 +114,7 @@ beforeEach(() => {
 const request = async (path, method = 'GET', body, { userId = 7, csrf = true, claims = {} } = {}) => {
   const headers = { 'Content-Type': 'application/json' };
   if (csrf) headers['X-CSRF-Protection'] = '1';
-  if (userId !== null) headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ ...claims, id: userId }, process.env.JWT_SECRET)}`;
+  if (userId !== null) headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ ...claims, id: userId, sessionVersion: 0 }, process.env.JWT_SECRET)}`;
   const response = await fetch(`${baseUrl}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   return { status: response.status, body: await response.json(), cookie: response.headers.get('set-cookie') };
 };
@@ -248,9 +252,10 @@ test('normal account deletion commits and clears the session without affecting t
   assert.match(response.cookie, /Expires=Thu, 01 Jan 1970/);
 });
 
-test('a missing account remains a 404 and deletion clears its session', async () => {
+test('a missing account is rejected by session verification and clears its cookie', async () => {
   const response = await request('/users/account', 'DELETE', {}, { userId: 99 });
-  assert.equal(response.status, 404);
+  assert.equal(response.status, 401);
+  assert.equal(response.body.code, 'INVALID_TOKEN');
   assert.match(response.cookie, /Expires=Thu, 01 Jan 1970/);
   assert.deepEqual(transactions, []);
 });

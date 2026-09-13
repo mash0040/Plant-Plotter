@@ -44,6 +44,7 @@ const createFakeDb = (initialUsers = [], { beforePasswordUpdate = async () => {}
       }
 
       if (query.includes('SET password_hash = ?')) {
+        assert.match(query, /session_version = session_version \+ 1/);
         assert.match(query, /WHERE id = \?\s+AND reset_password_token_hash = \?\s+AND reset_password_expires > \?/);
         const [passwordHash, userId, tokenHash, consumedAt] = params;
         await beforePasswordUpdate();
@@ -54,6 +55,7 @@ const createFakeDb = (initialUsers = [], { beforePasswordUpdate = async () => {}
           && new Date(item.reset_password_expires) > consumedAt);
         if (user) {
           user.password_hash = passwordHash;
+          user.session_version += 1;
           user.reset_password_token_hash = null;
           user.reset_password_expires = null;
         }
@@ -154,6 +156,7 @@ test('reset password accepts valid token, clears token fields, and new password 
       id: 1,
       email: 'user@example.com',
       password_hash: oldPasswordHash,
+      session_version: 4,
       reset_password_token_hash: hashResetToken('valid-token'),
       reset_password_expires: new Date('2026-01-01T00:30:00.000Z')
     }
@@ -168,6 +171,7 @@ test('reset password accepts valid token, clears token fields, and new password 
   });
 
   assert.equal(result.status, 200);
+  assert.equal(fakeDb.users[0].session_version, 5);
   assert.equal(fakeDb.users[0].reset_password_token_hash, null);
   assert.equal(fakeDb.users[0].reset_password_expires, null);
   assert.equal(await bcrypt.compare('NewPass123', fakeDb.users[0].password_hash), true);
@@ -179,6 +183,7 @@ const validResetUser = () => ({
   email: 'user@example.com',
   is_active: true,
   password_hash: 'unchanged-password-hash',
+  session_version: 0,
   reset_password_token_hash: hashResetToken('valid-token'),
   reset_password_expires: new Date('2026-01-01T00:30:00.000Z')
 });
@@ -220,6 +225,7 @@ test('competing requests that both validate a token allow only one password chan
   const results = await Promise.all(passwords.map(password => resetPassword(resetRequest(fakeDb, password))));
 
   assert.equal(attempts, 2);
+  assert.equal(fakeDb.users[0].session_version, 1);
   assert.deepEqual(results.map(result => result.status).sort(), [200, 400]);
   const winner = results.findIndex(result => result.status === 200);
   const loser = 1 - winner;
@@ -263,6 +269,7 @@ test('a newly issued token prevents an already validated older token from changi
 
   assert.deepEqual(result, invalidResetResponse);
   assert.equal(fakeDb.users[0].password_hash, original.password_hash);
+  assert.equal(fakeDb.users[0].session_version, original.session_version);
   assert.equal(fakeDb.users[0].reset_password_token_hash, hashResetToken('replacement-token'));
   assert.deepEqual(fakeDb.users[0].reset_password_expires, new Date('2026-01-01T00:32:00.000Z'));
 });

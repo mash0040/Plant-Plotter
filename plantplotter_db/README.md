@@ -24,6 +24,16 @@ The seed file is intended for local/demo setup. It includes demo users, sample g
 
 ## Migrations
 
+For password-reset session revocation, existing databases must run this migration once **before deploying the updated API**:
+
+```sh
+mysql -u <user> -p garden_plotter < session_version_migration.sql
+```
+
+Fresh installations already include `users.session_version` and must skip this migration. Existing users receive version `0`; each successful password reset increments it atomically with the password change. No seed data or environment-variable changes are required. Keep the existing password-reset migration applied as well.
+
+Verify that `SHOW COLUMNS FROM users LIKE 'session_version';` reports `int unsigned`, `Null: NO`, and default `0`. Deploy the updated API across all instances after the migration. Existing authentication cookies without a version will require users to sign in once. Never reset or decrement stored versions, since doing so could revalidate older cookies. See [session behavior](../SECURITY.md#password-reset).
+
 For task notes, existing databases must run this migration once **before deploying the updated API**:
 
 ```sh

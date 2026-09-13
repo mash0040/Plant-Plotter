@@ -55,7 +55,7 @@ const registerUser = async (req, res) => {
 
     // Insert user into database
     const [result] = await db.execute(
-      'INSERT INTO users (username, email, password_hash, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
+      'INSERT INTO users (username, email, password_hash, role, is_active, session_version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, NOW(), NOW())',
       [trimmedUsername, trimmedEmail, hashedPassword, 'user', true]
     );
 
@@ -66,7 +66,8 @@ const registerUser = async (req, res) => {
       id: userId, 
       email: trimmedEmail,
       username: trimmedUsername,
-      role: 'user'
+      role: 'user',
+      sessionVersion: 0
     };
 
     const token = jwt.sign(
@@ -105,7 +106,7 @@ const loginUser = async (req, res) => {
 
   try {
     // Find user in database
-    const [rows] = await db.execute('SELECT * FROM users WHERE email = ? AND is_active = TRUE', [trimmedEmail]);
+    const [rows] = await db.execute('SELECT id, email, username, role, password_hash, session_version FROM users WHERE email = ? AND is_active = TRUE', [trimmedEmail]);
 
     if (rows.length === 0) {
       return sendErrorResponse(res, 401, 'Invalid credentials', {
@@ -134,7 +135,8 @@ const loginUser = async (req, res) => {
       id: user.id, 
       email: user.email,
       username: user.username,
-      role: user.role || 'user'
+      role: user.role || 'user',
+      sessionVersion: user.session_version
     };
 
     const token = jwt.sign(

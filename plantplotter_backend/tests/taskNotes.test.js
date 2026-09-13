@@ -13,6 +13,8 @@ let row;
 let calls;
 let failure;
 const execute = async (sql, params) => {
+  // Business-query counts below exclude the authentication lookup.
+  if (sql === 'SELECT session_version FROM users WHERE id = ? AND is_active = TRUE') return [[{ session_version: 0 }]];
   calls += 1;
   if (failure) throw failure;
   if (sql.includes('SELECT id FROM gardens')) {
@@ -85,7 +87,7 @@ const request = async (method, body) => {
     method,
     headers: {
       'Content-Type': 'application/json', 'X-CSRF-Protection': '1',
-      Cookie: `${getAuthCookieName()}=${jwt.sign({ id: 12 }, process.env.JWT_SECRET, { expiresIn: '1h' })}`
+      Cookie: `${getAuthCookieName()}=${jwt.sign({ id: 12, sessionVersion: 0 }, process.env.JWT_SECRET, { expiresIn: '1h' })}`
     },
     ...(method === 'GET' ? {} : { body: JSON.stringify({ ...task, ...body }) })
   });

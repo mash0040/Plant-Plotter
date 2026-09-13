@@ -13,6 +13,10 @@ let connection;
 let acquisitions;
 const dbPath = require.resolve('../config/db');
 require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
+  execute: async (sql) => {
+    assert.equal(sql, 'SELECT session_version FROM users WHERE id = ? AND is_active = TRUE');
+    return [[{ session_version: 0 }]];
+  },
   getConnection: async () => { acquisitions += 1; return connection; }
 } };
 const taskRouter = require('../routes/task');
@@ -74,7 +78,7 @@ const request = async (body, { userId = 12, id = 9, method = 'PATCH', csrf = tru
   const headers = { 'Content-Type': 'application/json' };
   if (csrf) headers['X-CSRF-Protection'] = '1';
   if (userId !== null) {
-    headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '1h' })}`;
+    headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ id: userId, sessionVersion: 0 }, process.env.JWT_SECRET, { expiresIn: '1h' })}`;
   }
   const response = await fetch(`${baseUrl}/${id}`, { method, headers, body: JSON.stringify(body) });
   return { status: response.status, body: await response.json(), headers: response.headers };
