@@ -3,16 +3,13 @@ import { useState, useEffect, useRef } from 'react';
 import { User, Mail, Save, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getActionErrorMessage } from '@/lib/apiErrors';
-import { validateEmail } from '@/lib/emailValidation';
 
 export default function ProfileForm() {
   const { user, updateProfile, deleteAccount, loading } = useAuth();
   const isProtectedDemo = user?.isProtectedDemo === true;
   
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    avatar: ''
+    username: ''
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,9 +25,7 @@ export default function ProfileForm() {
   useEffect(() => {
     if (user) {
       setFormData({
-        username: user.username || '',
-        email: user.email || '',
-        avatar: user.avatar || ''
+        username: user.username || ''
       });
     }
   }, [user]);
@@ -53,11 +48,6 @@ export default function ProfileForm() {
       newErrors.username = 'Display name must be at least 2 characters';
     }
     
-    const emailError = validateEmail(formData.email);
-    if (emailError) {
-      newErrors.email = emailError;
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -76,9 +66,7 @@ export default function ProfileForm() {
     
     try {
       await updateProfile({
-        ...formData,
-        username: formData.username.trim(),
-        email: formData.email.trim()
+        username: formData.username.trim()
       });
       setMessage({ type: 'success', text: 'Profile updated.' });
       
@@ -191,13 +179,15 @@ export default function ProfileForm() {
               placeholder="How your name appears in PlantPlotter"
               autoComplete="name"
               readOnly={isProtectedDemo}
-              aria-describedby={isProtectedDemo ? 'demo-account-notice' : undefined}
+              aria-describedby={isProtectedDemo ? 'demo-account-notice' : 'profile-display-name-help'}
               disabled={isSubmitting}
             />
           </div>
-          <p className="mt-1 text-xs text-gray-500">
-            Display name is shown in the app. It does not need to be unique - your account is identified by email.
-          </p>
+          {!isProtectedDemo && (
+            <p id="profile-display-name-help" className="mt-1 text-sm text-gray-600">
+              Update your display name.
+            </p>
+          )}
           {errors.username && (
             <p className="mt-1 text-sm text-red-600">{errors.username}</p>
           )}
@@ -215,26 +205,12 @@ export default function ProfileForm() {
             <input
               id="profile-email"
               type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all ${
-                errors.email
-                  ? 'border-red-300 bg-red-50'
-                  : 'border-gray-300 bg-white'
-              }`}
-              placeholder="you@example.com"
-              autoComplete="email"
-              readOnly={isProtectedDemo}
-              aria-describedby={isProtectedDemo ? 'demo-account-notice' : undefined}
-              disabled={isSubmitting}
+              value={user?.email || ''}
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 opacity-100 cursor-not-allowed"
+              readOnly
+              disabled
             />
           </div>
-          <p className="mt-1 text-xs text-gray-500">
-            Email is used to sign in and must be unique.
-          </p>
-          {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-          )}
         </div>
 
         {/* Account Info */}

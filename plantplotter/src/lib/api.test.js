@@ -368,8 +368,9 @@ describe('apiClient error handling', () => {
     await apiClient.getProfile();
     expect(fetch.mock.calls[0][1].headers['X-CSRF-Protection']).toBeUndefined();
 
-    await apiClient.updateProfile({ username: 'Demo User', email: 'demo@example.com' });
+    await apiClient.updateProfile({ username: 'Demo User' });
     expect(fetch.mock.calls[1][1].headers['X-CSRF-Protection']).toBe('1');
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ username: 'Demo User' });
   });
 
   it('calls the logout endpoint and clears legacy browser session data', async () => {
