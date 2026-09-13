@@ -45,6 +45,28 @@ API tools used for manual testing must send both the authentication cookie and t
 
 Password-reset tokens are separate from authentication sessions. They remain short-lived, single-use values delivered through the reset link and are not stored as browser authentication credentials.
 
+## Shared Recruiter Demo Account
+
+The seeded `demo@plantplotter.com` address is reserved for the public recruiter
+demo. The API identifies it from the stored user record; account-mutation guards
+look up that record using the authenticated user ID. Request-body fields and
+email/role values cached in a session JWT cannot override this protection.
+
+Profile updates, preferences updates, and account deletion return HTTP `403`
+with code `DEMO_ACCOUNT_PROTECTED` before any account mutation or deletion
+transaction. A failed permission lookup does not allow the mutation to proceed.
+Forgot-password requests return the usual generic response without generating
+a token or sending email. Existing reset tokens for the demo account are also
+rejected before changing its password.
+
+Profile and login responses include `isProtectedDemo` for the read-only profile
+UI; the API enforces protection independently of that flag. Garden, planner,
+tracker, and logout actions remain available. No schema migration or additional
+environment variable is needed. Protection assumes the seeded demo address is
+still assigned to the shared account; this change does not repair an account
+that was already renamed or deleted. Database administrators must preserve the
+reserved identity when maintaining the demo account.
+
 ## Known Limitation
 
 Refresh tokens and server-side JWT revocation are not implemented. Session JWTs expire according to `JWT_EXPIRES_IN`; signing out removes the browser cookie, while changing `JWT_SECRET` invalidates all outstanding sessions.

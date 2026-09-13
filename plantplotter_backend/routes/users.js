@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
+const requireMutableAccount = require('../middleware/requireMutableAccount');
+const { isProtectedDemoAccount } = require('../utils/protectedDemoAccount');
 const { validateEmail } = require('../utils/emailValidation');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
@@ -33,14 +35,14 @@ router.get('/profile', verifyToken, async (req, res) => {
       }
     }
 
-    res.json(userData);
+    res.json({ ...userData, isProtectedDemo: isProtectedDemoAccount(userData) });
   } catch (error) {
     sendDatabaseAwareErrorResponse(res, error, { message: 'Server error' });
   }
 });
 
 // PUT /api/users/profile - Update user profile
-router.put('/profile', verifyToken, async (req, res) => {
+router.put('/profile', verifyToken, requireMutableAccount, async (req, res) => {
   try {
     const { username, email } = req.body;
     const db = require('../config/db');
@@ -105,7 +107,7 @@ router.put('/profile', verifyToken, async (req, res) => {
 
     res.json({
       message: 'Profile updated successfully',
-      user: userData
+      user: { ...userData, isProtectedDemo: isProtectedDemoAccount(userData) }
     });
 
   } catch (error) {
@@ -114,7 +116,7 @@ router.put('/profile', verifyToken, async (req, res) => {
 });
 
 // DELETE /api/users/account - Delete the authenticated user's own account
-router.delete('/account', verifyToken, async (req, res) => {
+router.delete('/account', verifyToken, requireMutableAccount, async (req, res) => {
   const db = require('../config/db');
   let connection;
 
@@ -161,7 +163,7 @@ router.delete('/account', verifyToken, async (req, res) => {
 });
 
 // PUT /api/users/preferences - Update user preferences
-router.put('/preferences', verifyToken, async (req, res) => {
+router.put('/preferences', verifyToken, requireMutableAccount, async (req, res) => {
   try {
     const preferences = req.body;
     const db = require('../config/db');
@@ -206,7 +208,7 @@ router.put('/preferences', verifyToken, async (req, res) => {
     
     res.json({
       message: 'Preferences updated successfully',
-      user: userData
+      user: { ...userData, isProtectedDemo: isProtectedDemoAccount(userData) }
     });
 
   } catch (error) {

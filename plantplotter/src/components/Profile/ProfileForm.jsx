@@ -7,6 +7,7 @@ import { validateEmail } from '@/lib/emailValidation';
 
 export default function ProfileForm() {
   const { user, updateProfile, deleteAccount, loading } = useAuth();
+  const isProtectedDemo = user?.isProtectedDemo === true;
   
   const [formData, setFormData] = useState({
     username: '',
@@ -63,6 +64,7 @@ export default function ProfileForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isProtectedDemo) return;
     setMessage({ type: '', text: '' });
     
     if (!validateForm()) {
@@ -107,6 +109,7 @@ export default function ProfileForm() {
   };
 
   const handleDeleteAccount = async () => {
+    if (isProtectedDemo) return;
     setDeleteError('');
     setMessage({ type: '', text: '' });
 
@@ -146,6 +149,13 @@ export default function ProfileForm() {
         <h2 className="text-2xl font-bold text-gray-800">Profile Settings</h2>
       </div>
 
+      {isProtectedDemo && (
+        <p id="demo-account-notice" className="mb-6 rounded-lg bg-green-50 p-4 text-sm leading-6 text-green-900">
+          This shared demo account is available for everyone to explore. Its profile and password cannot be changed,
+          and the account cannot be deleted. You can still manage gardens, use the planner, track care, and sign out.
+        </p>
+      )}
+
       {/* Status Message */}
       {message.text && (
         <div ref={messageRef} role={message.type === 'error' ? 'alert' : 'status'} aria-live="polite" className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
@@ -180,6 +190,8 @@ export default function ProfileForm() {
               }`}
               placeholder="How your name appears in PlantPlotter"
               autoComplete="name"
+              readOnly={isProtectedDemo}
+              aria-describedby={isProtectedDemo ? 'demo-account-notice' : undefined}
               disabled={isSubmitting}
             />
           </div>
@@ -212,6 +224,8 @@ export default function ProfileForm() {
               }`}
               placeholder="you@example.com"
               autoComplete="email"
+              readOnly={isProtectedDemo}
+              aria-describedby={isProtectedDemo ? 'demo-account-notice' : undefined}
               disabled={isSubmitting}
             />
           </div>
@@ -241,7 +255,7 @@ export default function ProfileForm() {
         </div>
 
         {/* Submit Button */}
-        <div className="flex gap-3">
+        {!isProtectedDemo && <div className="flex gap-3">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -259,10 +273,10 @@ export default function ProfileForm() {
               </>
             )}
           </button>
-        </div>
+        </div>}
       </form>
 
-      <div className="mt-8 border-t border-red-100 pt-6">
+      {!isProtectedDemo && <div className="mt-8 border-t border-red-100 pt-6">
         <div className="rounded-xl border border-red-200 bg-red-50 p-5">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 rounded-full bg-red-100 p-2">
@@ -345,7 +359,7 @@ export default function ProfileForm() {
             </div>
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

@@ -8,6 +8,7 @@ const { requestPasswordReset, resetPassword } = require('../utils/passwordResetS
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
 const { clearAuthCookie, setAuthCookie } = require('../utils/authCookie');
+const { isProtectedDemoAccount } = require('../utils/protectedDemoAccount');
 
 const normalizeEmail = (email) => (
   typeof email === 'string' ? email.trim().toLowerCase() : ''
@@ -82,7 +83,8 @@ const registerUser = async (req, res) => {
         id: userId,
         username: trimmedUsername,
         email: trimmedEmail,
-        role: 'user'
+        role: 'user',
+        isProtectedDemo: isProtectedDemoAccount({ email: trimmedEmail })
       }
     });
   } catch (err) {
@@ -149,7 +151,8 @@ const loginUser = async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role || 'user'
+        role: user.role || 'user',
+        isProtectedDemo: isProtectedDemoAccount(user)
       }
     });
 
