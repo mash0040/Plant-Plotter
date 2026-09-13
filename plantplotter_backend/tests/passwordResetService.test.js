@@ -38,6 +38,7 @@ const createFakeDb = (initialUsers = []) => {
         const user = users.find(item => item.reset_password_token_hash === tokenHash);
         return [user ? [{
           id: user.id,
+          email: user.email,
           reset_password_expires: user.reset_password_expires
         }] : []];
       }
@@ -57,6 +58,17 @@ const createFakeDb = (initialUsers = []) => {
     }
   };
 };
+
+test('demo forgot-password does not generate a token or send email', async () => {
+  const fakeDb = createFakeDb([{ id: 7, email: 'demo@plantplotter.com', is_active: true }]);
+  const fail = () => assert.fail('Demo reset must not generate tokens or send email');
+  const response = await requestPasswordReset({
+    db: fakeDb, email: ' DEMO@PlantPlotter.COM ', generateToken: fail, sendEmail: fail
+  });
+  assert.deepEqual(response, { message: PASSWORD_RESET_SUCCESS_MESSAGE });
+  assert.equal(fakeDb.calls.length, 1);
+  assert.equal(fakeDb.users[0].reset_password_token_hash, undefined);
+});
 
 test('forgot password returns generic response for existing and non-existing email', async () => {
   const fakeDb = createFakeDb([

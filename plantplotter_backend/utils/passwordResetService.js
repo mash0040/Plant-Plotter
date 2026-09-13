@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const { validatePassword } = require('./passwordValidation');
 const { validateEmail } = require('./emailValidation');
 const { sendPasswordResetEmail } = require('./emailService');
+const { isProtectedDemoAccount } = require('./protectedDemoAccount');
 
 const PASSWORD_RESET_SUCCESS_MESSAGE = 'If an account exists, we sent password reset instructions.';
 const RESET_TOKEN_BYTES = 32;
@@ -61,7 +62,7 @@ const requestPasswordReset = async ({
     [normalizedEmail]
   );
 
-  if (users.length === 0) {
+  if (users.length === 0 || isProtectedDemoAccount(users[0])) {
     return { message: PASSWORD_RESET_SUCCESS_MESSAGE };
   }
 
@@ -106,14 +107,14 @@ const resetPassword = async ({ db, token, password, confirmPassword, now = () =>
 
   const tokenHash = hashResetToken(token);
   const [users] = await db.execute(
-    `SELECT id, reset_password_expires
+    `SELECT id, email, reset_password_expires
      FROM users
      WHERE reset_password_token_hash = ?
      LIMIT 1`,
     [tokenHash]
   );
 
-  if (users.length === 0) {
+  if (users.length === 0 || isProtectedDemoAccount(users[0])) {
     return { status: 400, body: { message: 'Password reset link is invalid or expired.' } };
   }
 
