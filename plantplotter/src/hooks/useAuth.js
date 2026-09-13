@@ -212,21 +212,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updatePreferences = async (preferences) => {
-    try {
-      setError(null);
-      const response = await apiClient.updatePreferences(preferences);
-      
-      // Fetch fresh data after update to ensure sync
-      await fetchUserProfile(true);
-      
-      return response;
-    } catch (error) {
-      setError(getUserFacingErrorMessage(error));
-      throw error;
-    }
-  };
-
   const deleteAccount = async () => {
     try {
       setError(null);
@@ -279,7 +264,6 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     updateProfile,
-    updatePreferences,
     deleteAccount,
     logout,
     loading,

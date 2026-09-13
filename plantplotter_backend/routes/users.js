@@ -139,60 +139,6 @@ router.delete('/account', verifyToken, requireMutableAccount, async (req, res) =
   }
 });
 
-// PUT /api/users/preferences - Update user preferences
-router.put('/preferences', verifyToken, requireMutableAccount, async (req, res) => {
-  try {
-    const preferences = req.body;
-    const db = require('../config/db');
-
-    // Validate preferences structure
-    if (!preferences || typeof preferences !== 'object') {
-      return sendErrorResponse(res, 400, 'Invalid preferences data', {
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    // Convert preferences to JSON string for storage
-    const preferencesJson = JSON.stringify(preferences);
-
-    // Update preferences in database
-    await db.execute(
-      'UPDATE users SET preferences = ?, updated_at = NOW() WHERE id = ?',
-      [preferencesJson, req.user.id]
-    );
-
-    // Return updated user data with all fields
-    const [updatedUser] = await db.execute(
-      'SELECT id, username, email, avatar, preferences, role, created_at FROM users WHERE id = ?',
-      [req.user.id]
-    );
-
-    if (updatedUser.length === 0) {
-      return sendErrorResponse(res, 404, 'User not found', {
-        code: 'USER_NOT_FOUND'
-      });
-    }
-
-    // Parse preferences for response
-    const userData = updatedUser[0];
-    if (userData.preferences && typeof userData.preferences === 'string') {
-      try {
-        userData.preferences = JSON.parse(userData.preferences);
-      } catch (parseError) {
-        userData.preferences = preferences; // fallback to input data
-      }
-    }
-    
-    res.json({
-      message: 'Preferences updated successfully',
-      user: { ...userData, isProtectedDemo: isProtectedDemoAccount(userData) }
-    });
-
-  } catch (error) {
-    sendDatabaseAwareErrorResponse(res, error, { message: 'Server error' });
-  }
-});
-
 // GET /api/users/protected - Minimal protected route check
 router.get('/protected', verifyToken, (req, res) => {
   res.json({

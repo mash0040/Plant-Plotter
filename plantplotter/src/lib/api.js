@@ -810,20 +810,6 @@ class ApiClient {
     }
   }
 
-  // Preferences methods
-  async updatePreferences(preferences) {
-    try {
-      const response = await this.request('/users/preferences', {
-        method: 'PUT',
-        body: JSON.stringify(preferences),
-      });
-      return response;
-    } catch (error) {
-      console.error('Failed to update preferences:', error);
-      throw error;
-    }
-  }
-
   async updateProfile(profileData) {
     try {
       const response = await this.request('/users/profile', {

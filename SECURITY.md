@@ -59,7 +59,7 @@ demo. The API identifies it from the stored user record; account-mutation guards
 look up that record using the authenticated user ID. Request-body fields and
 email/role values cached in a session JWT cannot override this protection.
 
-Profile updates, preferences updates, and account deletion return HTTP `403`
+Profile updates and account deletion return HTTP `403`
 with code `DEMO_ACCOUNT_PROTECTED` before any account mutation or deletion
 transaction. A failed permission lookup does not allow the mutation to proceed.
 Forgot-password requests return the usual generic response without generating

@@ -59,7 +59,7 @@ export default function Navbar() {
   // Redirect non-authenticated users from protected routes
   useEffect(() => {
     if (mounted && !loading && !user) {
-      const protectedRoutes = ['/gardens', '/garden', '/tracker', '/profile', '/preferences'];
+      const protectedRoutes = ['/gardens', '/garden', '/tracker', '/profile'];
       if (protectedRoutes.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
         router.replace('/login');
       }
@@ -178,14 +178,6 @@ export default function Navbar() {
                     Profile Settings
                   </Link>
                   
-                  <Link
-                    href="/profile?tab=preferences"
-                    onClick={() => setShowUserMenu(false)}
-                    className="touch-target flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Preferences
-                  </Link>
-                  
                   <div className="border-t border-gray-100 mt-1">
                     <button
                       onClick={handleLogout}
@@ -281,14 +273,6 @@ export default function Navbar() {
                     className="flex min-h-11 items-center px-3 py-2 text-sm text-white hover:bg-green-700 rounded-md transition-colors"
                   >
                     Profile Settings
-                  </Link>
-                  
-                  <Link
-                    href="/profile?tab=preferences"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex min-h-11 items-center px-3 py-2 text-sm text-white hover:bg-green-700 rounded-md transition-colors"
-                  >
-                    Preferences
                   </Link>
                   
                   <button
