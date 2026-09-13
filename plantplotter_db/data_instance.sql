@@ -1,4 +1,5 @@
--- Insert demo users with properly generated bcrypt hashes
+-- Local/demo seed: run once after the schema on a fresh installation.
+-- All sample gardens belong to the single demo user created below.
 USE garden_plotter;
 
 INSERT INTO users (username, email, password_hash, role, is_active, email_verified, preferences)
@@ -15,14 +16,6 @@ VALUES (
 update users 
 set preferences =  '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenReminders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
 where id = 1;
-
-update users 
-set preferences = '{"language":"en", "theme": "dark", "notifications": {"email":true,"push":true,"gardenReminders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":true}, "garden":{"defaultUnits": "imperial", "autoSave":true, "gridSize":40}}'
-where id = 2;
-
-update users 
-set preferences = '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenReminders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
-where id = 3;
 
 
 -- Insert some default plants in library
@@ -384,11 +377,7 @@ INSERT INTO gardens (id, user_id, name, description, width, height, grid_size, s
 (2, 1, 'Mixed Berry & Flower Garden', 'Diverse garden combining berry bushes, flowers, and companion herbs', 14, 10, 40, 'Sandy', 'Front yard', 'Active', 13),
 (3, 1, 'Culinary Herb Collection', 'Comprehensive herb garden with cooking essentials and specialty varieties', 8, 8, 40, 'Loamy', 'Kitchen garden', 'Active', 12),
 (4, 1, 'Young Orchard', 'Developing fruit tree collection with understory plantings', 20, 15, 40, 'Clay', 'Side yard', 'Active', 11),
-(5, 1, 'Intensive Container Garden', 'Maximized small-space gardening with succession planting', 6, 4, 40, 'Loamy', 'Apartment balcony', 'Active', 14),
--- Admin User Garden (user_id = 2) - Empty for workflow checks
-(6, 2, 'Admin Review Garden', 'Empty garden reserved for admin workflow checks', 10, 8, 40, 'Loamy', 'Demo workspace', 'Planning', 0),
--- Regular User Garden (user_id = 3) - Empty for new users
-(7, 3, 'My First Garden', 'Starter garden for regular user', 8, 6, 40, 'Loamy', 'Backyard', 'Planning', 0);
+(5, 1, 'Intensive Container Garden', 'Maximized small-space gardening with succession planting', 6, 4, 40, 'Loamy', 'Apartment balcony', 'Active', 14);
 
 
 INSERT INTO planted_items (id, garden_id, plant_id, plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, planted_date, notes) VALUES

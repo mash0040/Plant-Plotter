@@ -1,5 +1,6 @@
 -- Plant Plotter production performance indexes.
--- Apply this after the base schema on deployed databases; it only adds indexes.
+-- Upgrade older databases missing these indexes; safe to rerun by index name.
+-- Fresh installations already include these indexes and should skip this file.
 
 USE garden_plotter;
 

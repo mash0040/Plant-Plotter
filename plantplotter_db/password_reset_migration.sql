@@ -1,5 +1,7 @@
 -- Plant Plotter password reset migration.
--- Apply this after the base schema on deployed databases; it only adds nullable columns.
+-- Upgrade older databases missing the current reset columns or index.
+-- Fresh installations already include these definitions and should skip this file.
+-- Safe to rerun: existing columns/index are preserved, including unused legacy fields.
 
 USE garden_plotter;
 

@@ -1,5 +1,7 @@
 -- Garden Management App Database Schema
 -- MySQL Database Setup
+-- Complete fresh-install schema. Do not run this over an existing installation.
+-- Existing databases should use the applicable upgrade migrations in README.md.
 
 -- Create database if it does not already exist.
 -- This schema intentionally does not drop the database or wipe existing data.
@@ -27,8 +29,8 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT TRUE,
     email_verified BOOLEAN DEFAULT FALSE,
     email_verification_token VARCHAR(255),
-    password_reset_token VARCHAR(255),
-    password_reset_expires TIMESTAMP NULL,
+    reset_password_token_hash VARCHAR(255) NULL,
+    reset_password_expires DATETIME NULL,
     last_login TIMESTAMP NULL,
     failed_login_attempts INT DEFAULT 0,
     locked_until TIMESTAMP NULL,
@@ -37,7 +39,8 @@ CREATE TABLE users (
     INDEX idx_email (email),
     INDEX idx_role (role),
     INDEX idx_active (is_active),
-    INDEX idx_email_verified (email_verified)
+    INDEX idx_email_verified (email_verified),
+    INDEX idx_users_reset_password_token_hash (reset_password_token_hash)
 );
 
 -- Gardens table
@@ -57,7 +60,8 @@ CREATE TABLE gardens (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
-    INDEX idx_status (status)
+    INDEX idx_status (status),
+    INDEX idx_gardens_user_updated (user_id, updated_at)
 );
 
 -- Planted Items table
@@ -78,7 +82,8 @@ CREATE TABLE planted_items (
     FOREIGN KEY (garden_id) REFERENCES gardens(id) ON DELETE CASCADE,
     INDEX idx_garden_id (garden_id),
     INDEX idx_plant_category (plant_category),
-    INDEX idx_planted_date (planted_date)
+    INDEX idx_planted_date (planted_date),
+    INDEX idx_planted_items_garden_created (garden_id, created_at)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Garden Activities table (for tracking system)
@@ -97,7 +102,8 @@ CREATE TABLE garden_activities (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_garden_activity (garden_id, activity_date),
     INDEX idx_user_activity (user_id, activity_date),
-    INDEX idx_activity_type (activity_type)
+    INDEX idx_activity_type (activity_type),
+    INDEX idx_garden_activities_user_garden_date_time (user_id, garden_id, activity_date, activity_time)
 );
 
 -- Garden Tasks table (for task management)
@@ -129,7 +135,8 @@ CREATE TABLE garden_tasks (
     INDEX idx_garden_tasks (garden_id, due_date),
     INDEX idx_user_tasks (user_id, status, due_date),
     INDEX idx_task_status (status),
-    INDEX idx_due_date (due_date)
+    INDEX idx_due_date (due_date),
+    INDEX idx_garden_tasks_user_garden_due (user_id, garden_id, due_date)
 );
 
 -- User Sessions table (for authentication)
@@ -165,5 +172,7 @@ CREATE TABLE plant_library (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_category (category),
-    INDEX idx_difficulty (difficulty)
+    INDEX idx_difficulty (difficulty),
+    INDEX idx_plant_library_name (name),
+    INDEX idx_plant_library_category_name (category, name)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

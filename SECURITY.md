@@ -52,9 +52,9 @@ Requesting a reset link, invalid/expired/reused links, validation failures, and 
 
 Before deploying this API to an existing database, apply [session_version_migration.sql](plantplotter_db/session_version_migration.sql) once; fresh schemas already include the column. Cookies issued before this deployment lack a version and require a one-time sign-in. Deploy the API consistently across instances: an older API instance does not enforce revocation. See [database migration instructions](plantplotter_db/README.md#migrations).
 
-## Shared Recruiter Demo Account
+## Shared Demo Account
 
-The seeded `demo@plantplotter.com` address is reserved for the public recruiter
+The seeded `demo@plantplotter.com` address is reserved for the general testing of the app 
 demo. The API identifies it from the stored user record; account-mutation guards
 look up that record using the authenticated user ID. Request-body fields and
 email/role values cached in a session JWT cannot override this protection.
