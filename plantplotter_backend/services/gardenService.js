@@ -1,5 +1,4 @@
 const db = require('../config/db.js');
-const { isTemporaryDatabaseUnavailableError } = require('../utils/databaseAvailability');
 const {
   buildCompletePlantData,
   buildSinglePlantData,
@@ -202,8 +201,8 @@ const updateGardenForUser = async (gardenId, userId, gardenData) => {
   return transformUpdatedGarden(updatedGarden[0]);
 };
 
-const insertPlantedItem = async (plantData) => {
-  const [result] = await db.execute(
+const insertPlantedItem = async (plantData, connection = db) => {
+  const [result] = await connection.execute(
     `INSERT INTO planted_items
      (garden_id, plant_id, plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, planted_date, notes, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
@@ -225,34 +224,52 @@ const insertPlantedItem = async (plantData) => {
 };
 
 const replacePlantedItemsForGarden = async (gardenId, userId, plantedItems = []) => {
-  const garden = await findGardenForUser(gardenId, userId);
-  if (!garden) return null;
+  const connection = await db.getConnection();
+  let connectionUsable = true;
 
-  await db.execute(
-    'DELETE FROM planted_items WHERE garden_id = ?',
-    [gardenId]
-  );
+  try {
+    await connection.beginTransaction();
+    // Serialize replacements for this garden, including an initially empty layout.
+    const [gardens] = await connection.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ? FOR UPDATE',
+      [gardenId, userId]
+    );
+    if (gardens.length === 0) {
+      await connection.rollback();
+      return null;
+    }
 
-  let plantsAdded = 0;
-  for (const plant of plantedItems) {
-    try {
+    await connection.execute(
+      'DELETE FROM planted_items WHERE garden_id = ?',
+      [gardenId]
+    );
+
+    for (const plant of plantedItems) {
       const safePlant = buildCompletePlantData(gardenId, plant);
-      await insertPlantedItem(safePlant);
-      plantsAdded++;
-    } catch (plantError) {
-      if (isTemporaryDatabaseUnavailableError(plantError)) {
-        throw plantError;
-      }
+      await insertPlantedItem(safePlant, connection);
+    }
 
-      console.error(`Failed to add plant ${plant.plant_name}:`, plantError.message);
+    await connection.commit();
+    return {
+      message: 'Plants saved successfully',
+      plantsAdded: plantedItems.length,
+      totalPlants: plantedItems.length
+    };
+  } catch (error) {
+    try {
+      await connection.rollback();
+    } catch (rollbackError) {
+      // Never return a connection with an uncertain transaction to the pool.
+      connectionUsable = false;
+      connection.destroy();
+      console.error('Plant replacement rollback error:', rollbackError.message);
+    }
+    throw error;
+  } finally {
+    if (connectionUsable) {
+      connection.release();
     }
   }
-
-  return {
-    message: 'Plants saved successfully',
-    plantsAdded,
-    totalPlants: plantedItems.length
-  };
 };
 
 const clearPlantedItemsForGarden = async (gardenId, userId) => {
