@@ -78,6 +78,48 @@ async function stopBackend() {
   backend = null;
 }
 
+async function validateDemo(request) {
+  const demoSection = readFileSync(path.resolve(databaseDir, '../README.md'), 'utf8')
+    .split('## Demo')[1]?.split('## ')[0];
+  assert.ok(demoSection, 'README must document the demo account');
+  const email = demoSection.match(/- Email:\s*(\S+)/)?.[1];
+  const demoPassword = demoSection.match(/- Password:\s*(\S+)/)?.[1];
+  assert.ok(email);
+  assert.ok(demoPassword);
+  const [users] = await db.query('SELECT id, email, role, preferences FROM garden_plotter.users');
+  assert.equal(users.length, 1, 'Seed must create only the required demo user');
+  assert.equal(users[0].id, 1);
+  assert.equal(users[0].email, email);
+  assert.equal(users[0].role, 'user');
+  assert.equal(users[0].preferences, null);
+
+  const demo = await request('/auth/login', { email, password: demoPassword });
+  assert.ok(demo.cookie, 'Documented demo credentials must issue a session');
+  assert.equal(demo.body.user.isProtectedDemo, true);
+  const profile = await request('/users/profile', null, demo.cookie);
+  assert.equal(profile.body.preferences, null);
+  const gardens = (await request('/gardens', null, demo.cookie)).body;
+  assert.ok(gardens.length >= 5, 'Demo account must see the showcase gardens');
+  const totals = { plants: 0, tasks: 0, activities: 0 };
+  for (const garden of gardens) {
+    await request(`/gardens/${garden.id}`, null, demo.cookie);
+    const plants = (await request(`/gardens/${garden.id}/plants`, null, demo.cookie)).body;
+    assert.ok(plants.length > 0, `${garden.name}: planner must have planted items`);
+    totals.plants += plants.length;
+    for (const route of ['tasks', 'activities']) {
+      const records = (await request(`/${route}?gardenId=${garden.id}`, null, demo.cookie)).body;
+      assert.ok(records.length > 0, `${garden.name}: tracker must have ${route}`);
+      assert.ok(records.every(record => record.garden_id === garden.id && record.user_id === users[0].id),
+        `${garden.name}: ${route} must belong to the demo user and selected garden`);
+      totals[route] += records.length;
+    }
+  }
+  assert.ok(totals.plants >= 65 && totals.tasks >= 23 && totals.activities >= 40,
+    'Demo API must expose the populated showcase dataset');
+  await request('/auth/logout', {}, demo.cookie);
+  console.log('PASS: documented demo login, unset preferences, and populated garden/planner/tracker API data');
+}
+
 async function validateAuth(port) {
   const api = `http://127.0.0.1:${port}/api`;
   const request = async (route, body, cookie, expected = 200) => {
@@ -96,6 +138,8 @@ async function validateAuth(port) {
     try { return (await fetch(`${api}/health`, { signal: AbortSignal.timeout(1000) })).ok; }
     catch { return false; }
   }, 'backend startup');
+
+  await validateDemo(request);
 
   const email = 'schema-check@example.com';
   const oldPassword = 'SchemaCheck!2026';

@@ -1,21 +1,18 @@
 -- Local/demo seed: run once after the schema on a fresh installation.
--- All sample gardens belong to the single demo user created below.
+-- All sample gardens belong to the single demo user with explicit ID 1.
+-- Account preferences remain unset until account-wide settings are implemented.
 USE garden_plotter;
 
-INSERT INTO users (username, email, password_hash, role, is_active, email_verified, preferences)
+INSERT INTO users (id, username, email, password_hash, role, is_active, email_verified)
 VALUES (
+  1,
   'Demo User',
   'demo@plantplotter.com',
   '$2b$10$BP0cbU.ETkdycbkSAt/e2ewCknQT9fWG3.hsxGpPsZ1N0HlKfNNQe',
   'user',
   TRUE,
-  TRUE,
-  '{"theme": "light", "units": "metric", "notifications": true}'
+  TRUE
 );
-
-update users 
-set preferences =  '{"language":"en", "theme": "light", "notifications": {"email":true,"push":false,"gardenReminders":true,"weatherAlerts":true }, "privacy":{"profileVisible":true, "shareGardens":false}, "garden":{"defaultUnits": "metric", "autoSave":true, "gridSize":40}}'
-where id = 1;
 
 
 -- Insert some default plants in library
