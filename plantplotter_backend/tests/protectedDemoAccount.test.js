@@ -51,10 +51,6 @@ const execute = async (sql, params) => {
     user.reset_password_expires = params[1];
     return [{ affectedRows: 1 }];
   }
-  if (sql.startsWith('UPDATE users SET preferences')) {
-    users.find(user => user.id === params[1]).preferences = params[0];
-    return [{ affectedRows: 1 }];
-  }
   if (sql.startsWith('DELETE FROM users')) {
     users = users.filter(user => user.id !== params[0]);
     gardens = gardens.filter(garden => garden.user_id !== params[0]);
@@ -119,7 +115,7 @@ const request = async (path, method = 'GET', body, { userId = 7, csrf = true, cl
   return { status: response.status, body: await response.json(), cookie: response.headers.get('set-cookie') };
 };
 
-for (const [path, method] of [['/users/account', 'DELETE'], ['/users/profile', 'PUT'], ['/users/preferences', 'PUT']]) {
+for (const [path, method] of [['/users/account', 'DELETE'], ['/users/profile', 'PUT']]) {
   test(`${method} ${path} rejects demo mutations before acquiring a transaction or changing data`, async () => {
     const original = structuredClone({ users, gardens });
     const response = await request(path, method, {
@@ -173,7 +169,7 @@ for (const [userId, isProtectedDemo] of [[7, true], [12, false]]) {
   });
 }
 
-test('normal profile and preferences updates ignore misleading demo fields in body and JWT', async () => {
+test('normal profile updates ignore misleading demo fields in body and JWT', async () => {
   const options = { userId: 12, claims: { email: 'demo@plantplotter.com', isProtectedDemo: true } };
   const profile = await request('/users/profile', 'PUT', {
     id: 7, username: 'Updated Gardener', isProtectedDemo: true
@@ -184,11 +180,27 @@ test('normal profile and preferences updates ignore misleading demo fields in bo
   assert.equal(users[1].username, 'Updated Gardener');
   assert.equal(users[1].email, 'gardener@example.com');
   assert.equal(users[0].username, 'Demo');
-  const preferences = await request('/users/preferences', 'PUT', { garden: { defaultUnits: 'metric' } }, options);
-  assert.equal(preferences.status, 200);
-  assert.equal(preferences.body.user.isProtectedDemo, false);
-  assert.deepEqual(preferences.body.user.preferences, { garden: { defaultUnits: 'metric' } });
 });
+
+for (const userId of [null, 7, 12]) {
+  test(`removed preferences endpoint returns 404 without touching account data for user ${userId}`, async () => {
+    const original = structuredClone({ users, gardens });
+    const headers = { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1' };
+    if (userId !== null) {
+      headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ id: userId, sessionVersion: 0 }, process.env.JWT_SECRET)}`;
+    }
+    const response = await fetch(`${baseUrl}/users/preferences`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ garden: { defaultUnits: 'metric' }, arbitrary: true })
+    });
+    assert.equal(response.status, 404);
+    await response.text();
+    assert.deepEqual({ users, gardens }, original);
+    assert.deepEqual(queries, []);
+    assert.deepEqual(transactions, []);
+  });
+}
 
 test('normal profile requires a nonblank display name without requiring email', async () => {
   const original = structuredClone(users);

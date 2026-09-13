@@ -216,11 +216,7 @@ export default function ProfileForm() {
         {/* Account Info */}
         <div className="bg-gray-50 rounded-lg p-4">
           <h3 className="font-medium text-gray-800 mb-2">Account Information</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-700">Role:</span>
-              <span className="ml-2 font-medium capitalize">{user?.role || 'User'}</span>
-            </div>
+          <div className="text-sm">
             <div>
               <span className="text-gray-700">Member since:</span>
               <span className="ml-2 font-medium">
