@@ -124,15 +124,22 @@ const resetPassword = async ({ db, token, password, confirmPassword, now = () =>
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  await db.execute(
+  // Consume the still-valid token in the same statement that changes the password.
+  const [result] = await db.execute(
     `UPDATE users
      SET password_hash = ?,
          reset_password_token_hash = NULL,
          reset_password_expires = NULL,
          updated_at = NOW()
-     WHERE id = ?`,
-    [hashedPassword, users[0].id]
+     WHERE id = ?
+       AND reset_password_token_hash = ?
+       AND reset_password_expires > ?`,
+    [hashedPassword, users[0].id, tokenHash, now()]
   );
+
+  if (result.affectedRows !== 1) {
+    return { status: 400, body: { message: 'Password reset link is invalid or expired.' } };
+  }
 
   return { status: 200, body: { message: 'Password reset successfully. You can now sign in.' } };
 };

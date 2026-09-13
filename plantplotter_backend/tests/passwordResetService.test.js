@@ -8,7 +8,7 @@ const {
   resetPassword
 } = require('../utils/passwordResetService');
 
-const createFakeDb = (initialUsers = []) => {
+const createFakeDb = (initialUsers = [], { beforePasswordUpdate = async () => {} } = {}) => {
   const users = initialUsers.map(user => ({ ...user }));
   const calls = [];
 
@@ -44,8 +44,14 @@ const createFakeDb = (initialUsers = []) => {
       }
 
       if (query.includes('SET password_hash = ?')) {
-        const [passwordHash, userId] = params;
-        const user = users.find(item => item.id === userId);
+        assert.match(query, /WHERE id = \?\s+AND reset_password_token_hash = \?\s+AND reset_password_expires > \?/);
+        const [passwordHash, userId, tokenHash, consumedAt] = params;
+        await beforePasswordUpdate();
+        // Model one atomic conditional UPDATE, with no yield between matching and mutation.
+        const user = users.find(item => item.id === userId
+          && item.reset_password_token_hash === tokenHash
+          && item.reset_password_expires
+          && new Date(item.reset_password_expires) > consumedAt);
         if (user) {
           user.password_hash = passwordHash;
           user.reset_password_token_hash = null;
@@ -135,8 +141,10 @@ test('reset password rejects invalid and expired tokens', async () => {
     now: () => new Date('2026-01-01T00:01:00.000Z')
   });
 
-  assert.equal(invalidResult.status, 400);
-  assert.equal(expiredResult.status, 400);
+  const invalidResponse = { status: 400, body: { message: 'Password reset link is invalid or expired.' } };
+  assert.deepEqual(invalidResult, invalidResponse);
+  assert.deepEqual(expiredResult, invalidResponse);
+  assert.ok(fakeDb.calls.every(call => call.query.trim().startsWith('SELECT')));
 });
 
 test('reset password accepts valid token, clears token fields, and new password works', async () => {
@@ -165,3 +173,122 @@ test('reset password accepts valid token, clears token fields, and new password 
   assert.equal(await bcrypt.compare('NewPass123', fakeDb.users[0].password_hash), true);
   assert.equal(await bcrypt.compare('OldPass123', fakeDb.users[0].password_hash), false);
 });
+
+const validResetUser = () => ({
+  id: 1,
+  email: 'user@example.com',
+  is_active: true,
+  password_hash: 'unchanged-password-hash',
+  reset_password_token_hash: hashResetToken('valid-token'),
+  reset_password_expires: new Date('2026-01-01T00:30:00.000Z')
+});
+const resetRequest = (db, password = 'NewPass123') => ({
+  db, token: 'valid-token', password, confirmPassword: password,
+  now: () => new Date('2026-01-01T00:01:00.000Z')
+});
+const invalidResetResponse = {
+  status: 400, body: { message: 'Password reset link is invalid or expired.' }
+};
+
+test('a consumed token cannot be reused to change the password again', async () => {
+  const fakeDb = createFakeDb([validResetUser()]);
+  assert.equal((await resetPassword(resetRequest(fakeDb))).status, 200);
+  const savedUser = { ...fakeDb.users[0] };
+
+  const result = await resetPassword(resetRequest(fakeDb, 'OtherPass456'));
+
+  assert.deepEqual(result, invalidResetResponse);
+  assert.deepEqual(fakeDb.users[0], savedUser);
+  assert.equal(fakeDb.calls.filter(call => call.query.includes('SET password_hash = ?')).length, 1);
+});
+
+test('competing requests that both validate a token allow only one password change', { timeout: 5000 }, async () => {
+  let attempts = 0;
+  let releaseUpdates;
+  const bothReady = new Promise(resolve => { releaseUpdates = resolve; });
+  const fakeDb = createFakeDb([validResetUser()], {
+    async beforePasswordUpdate() {
+      attempts += 1;
+      if (attempts === 2) releaseUpdates();
+      // Neither UPDATE can consume the token until both requests read it as valid
+      // and finish hashing. No sleeps or assumptions about bcrypt completion order.
+      await bothReady;
+    }
+  });
+  const passwords = ['FirstPass123', 'SecondPass456'];
+
+  const results = await Promise.all(passwords.map(password => resetPassword(resetRequest(fakeDb, password))));
+
+  assert.equal(attempts, 2);
+  assert.deepEqual(results.map(result => result.status).sort(), [200, 400]);
+  const winner = results.findIndex(result => result.status === 200);
+  const loser = 1 - winner;
+  assert.deepEqual(results[loser], invalidResetResponse);
+  assert.equal(await bcrypt.compare(passwords[winner], fakeDb.users[0].password_hash), true);
+  assert.equal(await bcrypt.compare(passwords[loser], fakeDb.users[0].password_hash), false);
+  assert.equal(fakeDb.users[0].reset_password_token_hash, null);
+  assert.equal(fakeDb.users[0].reset_password_expires, null);
+});
+
+for (const consumedAt of ['2026-01-01T00:30:00.000Z', '2026-01-01T00:31:00.000Z']) {
+  test(`token expiring before consumption at ${consumedAt} cannot change the password`, async () => {
+    const original = validResetUser();
+    const fakeDb = createFakeDb([original]);
+    let clockReads = 0;
+
+    const result = await resetPassword({
+      ...resetRequest(fakeDb),
+      now: () => new Date(clockReads++ === 0 ? '2026-01-01T00:01:00.000Z' : consumedAt)
+    });
+
+    assert.deepEqual(result, invalidResetResponse);
+    assert.equal(clockReads, 2);
+    assert.deepEqual(fakeDb.users[0], original);
+    assert.equal(fakeDb.calls.filter(call => call.query.includes('SET password_hash = ?')).length, 1);
+  });
+}
+
+test('a newly issued token prevents an already validated older token from changing the password', async () => {
+  const original = validResetUser();
+  const fakeDb = createFakeDb([original], {
+    async beforePasswordUpdate() {
+      await requestPasswordReset({
+        db: fakeDb, email: original.email, generateToken: () => 'replacement-token',
+        sendEmail: async () => {}, now: () => new Date('2026-01-01T00:02:00.000Z')
+      });
+    }
+  });
+
+  const result = await resetPassword(resetRequest(fakeDb));
+
+  assert.deepEqual(result, invalidResetResponse);
+  assert.equal(fakeDb.users[0].password_hash, original.password_hash);
+  assert.equal(fakeDb.users[0].reset_password_token_hash, hashResetToken('replacement-token'));
+  assert.deepEqual(fakeDb.users[0].reset_password_expires, new Date('2026-01-01T00:32:00.000Z'));
+});
+
+test('password-update database failures propagate without consuming the token', async () => {
+  const original = validResetUser();
+  const error = Object.assign(new Error('Simulated database failure'), { code: 'ECONNRESET' });
+  const fakeDb = createFakeDb([original], { beforePasswordUpdate: async () => { throw error; } });
+
+  await assert.rejects(resetPassword(resetRequest(fakeDb)), failure => failure === error);
+
+  assert.deepEqual(fakeDb.users[0], original);
+});
+
+for (const [password, confirmPassword, message] of [
+  ['NewPass123', 'OtherPass123', 'Passwords do not match'],
+  ['short', 'short', 'Password must be at least 8 characters long']
+]) {
+  test(`password validation preserves the token: ${message}`, async () => {
+    const original = validResetUser();
+    const fakeDb = createFakeDb([original]);
+
+    const result = await resetPassword({ ...resetRequest(fakeDb), password, confirmPassword });
+
+    assert.deepEqual(result, { status: 400, body: { message } });
+    assert.deepEqual(fakeDb.calls, []);
+    assert.deepEqual(fakeDb.users[0], original);
+  });
+}
