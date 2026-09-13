@@ -3,7 +3,6 @@ const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
 const requireMutableAccount = require('../middleware/requireMutableAccount');
 const { isProtectedDemoAccount } = require('../utils/protectedDemoAccount');
-const { validateEmail } = require('../utils/emailValidation');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
 const { clearAuthCookie } = require('../utils/authCookie');
@@ -41,13 +40,18 @@ router.get('/profile', verifyToken, async (req, res) => {
   }
 });
 
-// PUT /api/users/profile - Update user profile
+// PUT /api/users/profile - Update the display name; account email is read-only
 router.put('/profile', verifyToken, requireMutableAccount, async (req, res) => {
   try {
-    const { username, email } = req.body;
+    if (Object.prototype.hasOwnProperty.call(req.body ?? {}, 'email')) {
+      return sendErrorResponse(res, 400, 'Email cannot be changed in profile settings.', {
+        code: 'EMAIL_READ_ONLY'
+      });
+    }
+
+    const { username } = req.body ?? {};
     const db = require('../config/db');
     const trimmedUsername = typeof username === 'string' ? username.trim() : '';
-    const trimmedEmail = typeof email === 'string' ? email.trim() : '';
 
     if (!trimmedUsername) {
       return sendErrorResponse(res, 400, 'Username is required', {
@@ -55,37 +59,10 @@ router.put('/profile', verifyToken, requireMutableAccount, async (req, res) => {
       });
     }
 
-    if (!trimmedEmail) {
-      return sendErrorResponse(res, 400, 'Email is required', {
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    const emailError = validateEmail(trimmedEmail);
-    if (emailError) {
-      return sendErrorResponse(res, 400, emailError, {
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    // Display name (username column) is NOT unique — duplicates are allowed.
-    // Only email needs to be unique because it is the login identifier.
-    // Check if email is already taken by another user
-    const [existingEmail] = await db.execute(
-      'SELECT id FROM users WHERE email = ? AND id != ?',
-      [trimmedEmail, req.user.id]
-    );
-
-    if (existingEmail.length > 0) {
-      return sendErrorResponse(res, 409, 'Email already taken', {
-        code: 'EMAIL_ALREADY_TAKEN'
-      });
-    }
-
-    // Update both username and email
+    // Display names do not need to be unique.
     await db.execute(
-      'UPDATE users SET username = ?, email = ?, updated_at = NOW() WHERE id = ?',
-      [trimmedUsername, trimmedEmail, req.user.id]
+      'UPDATE users SET username = ?, updated_at = NOW() WHERE id = ?',
+      [trimmedUsername, req.user.id]
     );
 
     // Return updated user with preferences

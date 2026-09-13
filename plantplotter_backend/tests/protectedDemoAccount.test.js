@@ -36,9 +36,15 @@ const execute = async (sql, params) => {
     return [found.map(({ id, username, email, preferences, role }) => ({ id, username, email, preferences, role }))];
   }
   if (sql.startsWith('UPDATE users SET username')) {
-    const user = users.find(user => user.id === params[2]);
+    assert.equal(sql, 'UPDATE users SET username = ?, updated_at = NOW() WHERE id = ?');
+    const user = users.find(user => user.id === params[1]);
     user.username = params[0];
-    user.email = params[1];
+    return [{ affectedRows: 1 }];
+  }
+  if (/^UPDATE users\s+SET reset_password_token_hash = \?/.test(sql)) {
+    const user = users.find(user => user.id === params[2]);
+    user.reset_password_token_hash = params[0];
+    user.reset_password_expires = params[1];
     return [{ affectedRows: 1 }];
   }
   if (sql.startsWith('UPDATE users SET preferences')) {
@@ -166,11 +172,13 @@ for (const [userId, isProtectedDemo] of [[7, true], [12, false]]) {
 test('normal profile and preferences updates ignore misleading demo fields in body and JWT', async () => {
   const options = { userId: 12, claims: { email: 'demo@plantplotter.com', isProtectedDemo: true } };
   const profile = await request('/users/profile', 'PUT', {
-    id: 7, username: 'Updated Gardener', email: 'updated@example.com', isProtectedDemo: true
+    id: 7, username: 'Updated Gardener', isProtectedDemo: true
   }, options);
   assert.equal(profile.status, 200);
   assert.equal(profile.body.user.isProtectedDemo, false);
+  assert.equal(profile.body.user.email, 'gardener@example.com');
   assert.equal(users[1].username, 'Updated Gardener');
+  assert.equal(users[1].email, 'gardener@example.com');
   assert.equal(users[0].username, 'Demo');
   const preferences = await request('/users/preferences', 'PUT', { garden: { defaultUnits: 'metric' } }, options);
   assert.equal(preferences.status, 200);
@@ -178,10 +186,57 @@ test('normal profile and preferences updates ignore misleading demo fields in bo
   assert.deepEqual(preferences.body.user.preferences, { garden: { defaultUnits: 'metric' } });
 });
 
-test('normal profile validation and email uniqueness checks remain active', async () => {
-  assert.equal((await request('/users/profile', 'PUT', { username: '', email: 'gardener@example.com' }, { userId: 12 })).status, 400);
-  assert.equal((await request('/users/profile', 'PUT', { username: 'Demo', email: 'demo@plantplotter.com' }, { userId: 12 })).status, 409);
+test('normal profile requires a nonblank display name without requiring email', async () => {
+  const original = structuredClone(users);
+  for (const body of [{}, { username: '' }, { username: '   ' }, { username: null }, { username: 123 }]) {
+    const response = await request('/users/profile', 'PUT', body, { userId: 12 });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, 'VALIDATION_ERROR');
+    assert.equal(response.body.message, 'Username is required');
+  }
+  assert.deepEqual(users, original);
+  assert.ok(queries.every(query => query.sql.startsWith('SELECT')));
+});
+
+for (const email of ['replacement@example.com', 'gardener@example.com', 'demo@plantplotter.com', '', null, 123, {}, []]) {
+  test(`normal profile rejects email field ${JSON.stringify(email)} without changing any profile data`, async () => {
+    const original = structuredClone(users);
+    const response = await request('/users/profile', 'PUT', { username: 'Changed', email }, { userId: 12 });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, 'EMAIL_READ_ONLY');
+    assert.equal(response.body.message, 'Email cannot be changed in profile settings.');
+    assert.deepEqual(users, original);
+    assert.ok(queries.every(query => query.sql.startsWith('SELECT')));
+  });
+}
+
+test('display-name updates allow duplicates and keep profile, login, and recovery on the original email', async () => {
+  const profile = await request('/users/profile', 'PUT', { username: '  Demo  ' }, { userId: 12 });
+  assert.equal(profile.status, 200);
+  assert.equal(profile.body.user.username, 'Demo');
+  assert.equal(profile.body.user.email, 'gardener@example.com');
+  assert.deepEqual(profile.body.user.preferences, {});
+  assert.equal(users[1].username, 'Demo');
   assert.equal(users[1].email, 'gardener@example.com');
+
+  const refreshed = await request('/users/profile', 'GET', undefined, { userId: 12 });
+  assert.equal(refreshed.status, 200);
+  assert.equal(refreshed.body.username, 'Demo');
+  assert.equal(refreshed.body.email, 'gardener@example.com');
+
+  const login = await request('/auth/login', 'POST', {
+    email: 'gardener@example.com', password: 'TestPass123'
+  }, { userId: null });
+  assert.equal(login.status, 200);
+  assert.equal(login.body.user.email, 'gardener@example.com');
+  assert.ok(login.cookie);
+
+  const recovery = await request('/auth/forgot-password', 'POST', { email: 'gardener@example.com' }, { userId: null });
+  assert.equal(recovery.status, 200);
+  assert.equal(recovery.body.message, PASSWORD_RESET_SUCCESS_MESSAGE);
+  assert.equal(sentEmails.length, 1);
+  assert.equal(sentEmails[0].to, 'gardener@example.com');
+  assert.ok(users[1].reset_password_token_hash);
 });
 
 test('normal account deletion commits and clears the session without affecting the demo account', async () => {

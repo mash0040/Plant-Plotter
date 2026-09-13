@@ -24,6 +24,7 @@ describe('protected demo profile', () => {
     const email = screen.getByRole('textbox', { name: 'Email Address' });
     expect(name).toHaveAttribute('readonly');
     expect(email).toHaveAttribute('readonly');
+    expect(email).toBeDisabled();
     expect(name).toHaveAccessibleDescription(/shared demo account/);
     await user.type(name, 'Changed');
     await user.type(email, 'changed@example.com');
@@ -42,7 +43,8 @@ describe('protected demo profile', () => {
     render(<ProfileForm />);
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Delete Account' })).toBeEnabled();
-    expect(screen.getByLabelText('Email Address')).not.toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Display Name')).not.toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Email Address')).toHaveAttribute('readonly');
   });
 
   it('removes an open deletion confirmation if the server profile becomes protected', async () => {
@@ -64,6 +66,48 @@ describe('protected demo profile', () => {
 });
 
 describe('normal profile', () => {
+  it('keeps email readable and read-only while submitting only the display name', async () => {
+    const user = userEvent.setup();
+    render(<ProfileForm />);
+    const email = screen.getByLabelText('Email Address');
+    expect(email).toHaveValue('gardener@example.com');
+    expect(email).toHaveAttribute('readonly');
+    expect(email).toBeDisabled();
+    await user.type(email, 'replacement@example.com');
+    expect(email).toHaveValue('gardener@example.com');
+
+    const name = screen.getByLabelText('Display Name');
+    await user.clear(name);
+    await user.type(name, '  Updated Gardener  ');
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await waitFor(() => expect(auth.updateProfile).toHaveBeenCalledExactlyOnceWith({ username: 'Updated Gardener' }));
+    expect(email).toHaveValue('gardener@example.com');
+    expect(screen.getByRole('status')).toHaveTextContent('Profile updated.');
+  });
+
+  it('keeps email read-only while saving and after the refreshed profile arrives', async () => {
+    let finishSave;
+    auth.updateProfile.mockReturnValueOnce(new Promise(resolve => { finishSave = resolve; }));
+    const user = userEvent.setup();
+    const page = render(<ProfileForm />);
+    const name = screen.getByLabelText('Display Name');
+    await user.clear(name);
+    await user.type(name, 'Updated Gardener');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    expect(name).toBeDisabled();
+    expect(screen.getByLabelText('Email Address')).toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Email Address')).toBeDisabled();
+    auth = { ...auth, user: { ...auth.user, username: 'Updated Gardener' } };
+    page.rerender(<ProfileForm />);
+    finishSave({});
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled());
+    expect(name).toHaveValue('Updated Gardener');
+    expect(screen.getByLabelText('Email Address')).toHaveValue('gardener@example.com');
+    expect(screen.getByLabelText('Email Address')).toHaveAttribute('readonly');
+  });
+
   it('retains validation and saves corrected profile changes', async () => {
     const user = userEvent.setup();
     render(<ProfileForm />);
@@ -74,7 +118,7 @@ describe('normal profile', () => {
     expect(auth.updateProfile).not.toHaveBeenCalled();
     await user.type(name, 'Updated Gardener');
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
-    await waitFor(() => expect(auth.updateProfile).toHaveBeenCalledWith(expect.objectContaining({ username: 'Updated Gardener' })));
+    await waitFor(() => expect(auth.updateProfile).toHaveBeenCalledWith({ username: 'Updated Gardener' }));
     expect(screen.getByText('Profile updated.')).toBeInTheDocument();
   });
 
@@ -88,8 +132,11 @@ describe('normal profile', () => {
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Service temporarily unavailable.');
     expect(name).toHaveValue('Updated Gardener');
+    expect(screen.getByLabelText('Email Address')).toHaveValue('gardener@example.com');
+    expect(screen.getByLabelText('Email Address')).toHaveAttribute('readonly');
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
     expect(auth.updateProfile).toHaveBeenCalledTimes(2);
+    expect(auth.updateProfile).toHaveBeenNthCalledWith(2, { username: 'Updated Gardener' });
   });
 
   it('retains cancellation, typed confirmation, and deletion error recovery', async () => {
