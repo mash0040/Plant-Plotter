@@ -1,303 +1,105 @@
 # Plant Plotter
 
-Plant Plotter is a full-stack garden planning and tracking app. Users can create gardens, visually plan plant placement, review companion planting guidance, and track garden care through activity logs and scheduled tasks.
+Plant Plotter is a full-stack garden planning and tracking app. Create gardens, arrange plants in a visual planner, explore companion planting guidance, and keep track of garden care.
 
-Live site: https://www.plantplotter.me
-
-## Project Background
-
-Plant Plotter began as a client-focused final group project. After the initial delivery, I continued developing it independently to make the application more stable, complete, mobile-friendly, and production-ready.
-
-My continued work focused on authentication, validation, garden management, planner UX, tracker workflows, password reset, mobile responsiveness, performance, documentation, and live deployment.
-
-## My Continued Contributions
-
-After the group project delivery, I independently improved and expanded the application by:
-
-- Strengthening authentication, protected routes, expired-session handling, and account management.
-- Implementing secure password reset with expiring single-use tokens and Resend email delivery.
-- Improving the garden planner with footprint validation, row planting, mobile-safe planning controls, and clearer save/navigation flows.
-- Refactoring tracker workflows for activity logs, scheduled tasks, task status handling, and mobile-friendly modals.
-- Improving production performance by reducing duplicate API calls, adding lightweight garden summary loading, caching plant library data, applying MySQL indexes, and upgrading database VM resources.
-- Deploying and operating the application across Vercel, Render, and Aiven MySQL.
-- Configuring environment variables, TLS database connections, CORS, custom API domain routing, DNS, CI with GitHub Actions, and transactional email.
-
-## Current Features
-
-- Public landing page with dedicated login and create-account flows
-- User registration and login with an httpOnly cookie-backed JWT session
-- Secure password reset via email
-- Garden create, edit, delete, and detail views
-- Visual garden planner with plant placement, footprint validation, row planting, and save flow
-- Mobile-friendly planner flow that prioritizes row planting over drag-and-drop
-- Plant library with categories and plant details
-- Companion planting guidance based on the app’s plant dataset
-- Garden tracker with activity logs and planned care tasks
-- Today, upcoming, and overdue task organization
-- Recurring care tasks with daily, every-two-days, weekly, and monthly schedules
-- Task types for planting, watering, fertilizing, pruning, weeding, harvesting, inspection, treatment, and general tasks
-- Location-based tracker weather using browser coordinates and Open-Meteo
-- Profile settings and account deletion
-- Responsive mobile layout improvements across planner, tracker, garden details, forms, and modals
-
-Quick Log records completed care for an explicitly selected plant; whole-garden logging is not currently offered. The Planted action records planting history for a plant already in the garden, while the planner manages plant placement. Failed saves keep the modal and draft open with an explicit retry action. Successful saves use the returned activity's date, time, and identifiers, and activity mutations are never retried automatically.
-
-Completed tasks also appear in the tracking calendar's Activities history, on the local date of their recorded completion rather than their due date. Entries show the task title, plant or area, notes, and completion time, with a View task action for the existing editor. Each completed recurring occurrence remains in history while its next occurrence stays in the care queue. History uses the saved task records without creating duplicate Quick Log entries: reopening a task removes its completion entry, and deleting a task removes its history. Older completed tasks without a recorded completion date are available in a separate expandable list below the calendar.
-
-Activities history is collapsible, with compact entries that expand to show notes and actions. Quick Log and completed tasks share note styling and a 12-hour time display. Entries are ordered by performed time, newest first, with unknown times last. Quick Log's optional Time performed field defaults to the current local time for today and stays blank for a past date; it can also be corrected or cleared in the activity editor. Editing notes preserves the recorded time. The API accepts `activity_time` as `HH:mm`, `HH:mm:ss`, or `null` for an unknown time and keeps `created_at` separate. For older clients, an omitted POST time retains the existing server-time default, and an omitted PUT time leaves the stored time unchanged. Existing recorded times are preserved as stored because legacy records do not identify their time zone.
-
-## Tech Stack
-
-### Frontend
-
-- Next.js 15
-- React 19
-- Tailwind CSS
-- Deployed on Vercel
-
-### Backend
-
-- Node.js
-- Express.js
-- JWT authentication
-- bcrypt password hashing
-- Rate limiting
-- Deployed on Render
-- CI checks via GitHub Actions
-
-### Database
-
-- MySQL 8
-- Hosted on Aiven managed MySQL
-- Schema, seed data, and migration scripts included
-
-### Integrations
-
-- Open-Meteo API for weather data
-- Resend for transactional password reset emails
-
-### Browser Security Headers
-
-The Next.js frontend applies its browser security-header baseline in `plantplotter/next.config.js` so the same policy is used locally and on Vercel:
-
-- Content Security Policy restricts content to the app origin and permits browser connections only to the configured `NEXT_PUBLIC_API_URL` origin and Open-Meteo.
-- `X-Content-Type-Options: nosniff` prevents MIME-type sniffing.
-- `Referrer-Policy: strict-origin-when-cross-origin` limits cross-origin referrer details.
-- `Permissions-Policy` keeps same-origin geolocation available for tracker weather while disabling camera and microphone access.
-- CSP `frame-ancestors` and `X-Frame-Options` prevent the app from being embedded by another site.
-
-The policy is enforced rather than report-only. Production builds also upgrade insecure subresource requests. Development permits WebSocket connections for Next.js Fast Refresh and `unsafe-eval` for React development diagnostics; neither exception is included in production.
-
-Authentication cookie, session, and CSRF details are documented in [SECURITY.md](./SECURITY.md).
-
-## Project Structure
-
-```text
-plantplotter/          Next.js frontend
-plantplotter_backend/  Express API
-plantplotter_db/       MySQL schema, seed data, migrations, and database notes
-```
-
-## Local Setup
-
-### Prerequisites
-
-- Node.js and npm
-- MySQL
-- A local MySQL user with permission to create and use the `garden_plotter` database
-
-### Install dependencies
-
-```sh
-npm install
-```
-
-### Create environment files
-
-```sh
-cp plantplotter/.env.local.example plantplotter/.env.local
-cp plantplotter_backend/.env.example plantplotter_backend/.env
-```
-
-On Windows PowerShell:
-
-```powershell
-Copy-Item plantplotter/.env.local.example plantplotter/.env.local
-Copy-Item plantplotter_backend/.env.example plantplotter_backend/.env
-```
-
-Update the local files with your own values. Do not commit real `.env` or `.env.local` files.
-
-The committed example files are safe templates only. Keep real secrets in local environment files and in the hosting provider's environment variable settings.
-
-### Frontend environment
-
-`plantplotter/.env.local` is read by Next.js during local development and builds.
-
-| Variable | Local value | Production value |
-| --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:5001/api` | `https://api.plantplotter.me/api` |
-| `NEXT_PUBLIC_APP_NAME` | `PlantPlotter` | `PlantPlotter` |
-| `NEXT_PUBLIC_APP_VERSION` | placeholder app version | placeholder app version |
-
-Only `NEXT_PUBLIC_*` values are exposed to the browser. Do not put private secrets in frontend environment files.
-
-### Backend environment
-
-`plantplotter_backend/.env` is read by the Express API through `dotenv`.
-
-| Variable | Purpose |
-| --- | --- |
-| `PORT` | Local API port. Default local value is `5001`. |
-| `NODE_ENV` | Runtime mode, usually `development`, `test`, or `production`. |
-| `FRONTEND_URL` | Comma-separated list of exact browser origins allowed to make credentialed CORS requests. Local value is `http://localhost:3000`; production uses `https://www.plantplotter.me`. |
-| `DB_HOST` | MySQL host. Use your local MySQL host locally and the Aiven host in production. |
-| `DB_PORT` | MySQL port. Default is `3306`. |
-| `DB_USER` | MySQL username. |
-| `DB_PASSWORD` | MySQL password. |
-| `DB_NAME` | MySQL database name. The active local database is `garden_plotter`. |
-| `DB_CONNECTION_LIMIT` | Maximum open MySQL connections in the shared pool. Default is `10`. |
-| `DB_QUEUE_LIMIT` | Maximum queued pool waiters when all connections are busy. Default is `50`; invalid or `0` values fall back to this finite limit. |
-| `DB_CONNECT_TIMEOUT_MS` | MySQL connection establishment timeout in milliseconds. Default is `30000`. |
-| `DB_IDLE_TIMEOUT_MS` | Idle pooled connection timeout in milliseconds. Default is `60000`. |
-| `DB_SSL` | Enables MySQL TLS. Local default is `false`; production must be `true`. |
-| `DB_SSL_REJECT_UNAUTHORIZED` | Verifies the database certificate. Production must be `true`. |
-| `DB_SSL_CA_PATH` | Filesystem path to the trusted Aiven CA certificate in production. |
-| `JWT_SECRET` | Required signing secret for the JWT stored in the httpOnly session cookie. Use a long private value. |
-| `JWT_EXPIRES_IN` | Session JWT and cookie lifetime, for example `1h` locally. |
-| `PASSWORD_RESET_BASE_URL` | Frontend password reset URL. Local value is `http://localhost:3000/reset-password`. |
-| `EMAIL_PROVIDER` | Email provider for password reset, currently `resend` or `sendgrid`. |
-| `EMAIL_FROM` | Verified sender address for password reset email. |
-| `RESEND_API_KEY` | Resend API key when `EMAIL_PROVIDER=resend`. |
-| `SENDGRID_API_KEY` | SendGrid API key when `EMAIL_PROVIDER=sendgrid`. |
-
-Production database TLS must remain fail-closed:
-
-```text
-DB_SSL=true
-DB_SSL_REJECT_UNAUTHORIZED=true
-DB_SSL_CA_PATH=/etc/secrets/aiven-ca.pem
-```
-
-The backend refuses to start in production unless verified TLS and a CA certificate path are configured.
-
-The MySQL pool uses a finite wait queue so slow, unavailable, or saturated database conditions cannot build an unbounded in-memory request backlog. When the mysql2 pool reports `Queue limit reached.`, the API treats it as temporary database unavailability and returns the same sanitized `503` response used for connectivity outages.
-
-`DB_CONNECT_TIMEOUT_MS` bounds initial connection establishment. The app does not currently apply a global query timeout or automatic write retry, because that would affect every DB-backed route and should be designed separately if slow in-flight queries become an observed production issue.
-
-The backend does not ping the database before each request and does not run a periodic SQL keep-alive query. It relies on mysql2 TCP keepalive plus normal request traffic instead of using database queries to keep the managed database awake.
-
-## Database Setup
-
-The active database files are:
-
-- `plantplotter_db/plantPlotterSchema.sql`
-- `plantplotter_db/data_instance.sql`
-
-For a fresh installation, run the schema against an empty database first, then the local/demo seed file:
-
-```sh
-cd plantplotter_db
-mysql -u <user> -p < plantPlotterSchema.sql
-mysql -u <user> -p < data_instance.sql
-```
-
-The active database name is `garden_plotter`. The seed file is optional and intended for local/demo setup only. **Fresh installations must skip all upgrade migrations:** the base schema includes the current password-reset fields, session version, task notes, task types, recurrence constraint, and performance indexes.
-
-For existing databases, apply only missing upgrades from the [database migration instructions](plantplotter_db/README.md#migrations). Do not rerun the base schema or demo seed against an existing deployment. The [database README](plantplotter_db/README.md#fresh-installation) also includes PowerShell setup instructions and a disposable MySQL validation command.
-
-Before deploying task notes support to an existing database, apply `plantplotter_db/task_notes_migration.sql` once. Fresh schema installations already include the column and must skip this migration. Notes persist through creation, editing, reload, and recurring occurrences, with a 2,000-character limit. See [database migration instructions](plantplotter_db/README.md#migrations) for setup and empty-value behavior.
-
-Before deploying password-reset session revocation to an existing database, apply `plantplotter_db/session_version_migration.sql` once. Fresh schemas already include this column. The updated API rejects pre-deployment cookies, so users must sign in once; successful password resets then invalidate all earlier sessions for that account. See [database migration instructions](plantplotter_db/README.md#migrations) and [security notes](SECURITY.md#password-reset).
-
-Recurring tasks support `daily`, `every-2-days`, `weekly`, and `monthly` schedules. Completing one atomically marks the current occurrence complete and creates exactly one pending occurrence. When the original schedule is overdue, missed occurrences are skipped and the next task keeps the original cadence after the completion date. Monthly schedules retain their calendar day when possible and otherwise use the target month's last day.
-
-The task editor supports legacy Maintenance tasks, including the seeded Soil amendment task. Ordinary edits preserve existing titles and saved plant/area labels, even when those labels are absent from current plant options. Changing the task type or plant regenerates the title; for Other tasks, changing the description also regenerates it. Unknown task types or recurrence schedules remain visible and require an explicit supported replacement before saving. Task validation messages identify the affected field in plain language while retaining structured API field keys.
-
-Task completion uses authenticated `PATCH /api/tasks/:id` with `{ "status": "completed" }` and the standard CSRF header. It updates only status and `completed_at`, so unrelated legacy task metadata does not need to pass editor validation. The endpoint also accepts `pending`, `overdue`, and `cancelled`, which clear `completed_at`; full `PUT` edits maintain the same timestamp behavior. Repeating completion preserves its timestamp and does not schedule another occurrence. Recurring tasks still need a valid stored due date and recurrence pattern to schedule their next occurrence atomically. The tracker disables each task's completion and edit controls while its request is pending, leaves failed completions available for an explicit retry, and never automatically retries mutations.
-
-## Running Locally
-
-Start the frontend and backend together:
-
-```sh
-npm run dev
-```
-
-Or run them separately:
-
-```sh
-npm run dev:backend
-npm run dev:frontend
-```
-
-Default local URLs:
-
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:5001/api`
-
-## Checks
-
-GitHub Actions runs the frontend and backend test suites, frontend linting, and the
-production frontend build on every configured push and pull request.
-
-```sh
-npm test --workspace=plantplotter
-npm run lint --workspace=plantplotter
-npm test --workspace=plantplotter_backend
-```
-
-For the same frontend build environment used in CI, set the production API URL:
-
-```sh
-NEXT_PUBLIC_API_URL=https://api.plantplotter.me/api npm run build --workspace=plantplotter
-```
-
-On Windows PowerShell:
-
-```powershell
-$env:NEXT_PUBLIC_API_URL='https://api.plantplotter.me/api'
-npm run build --workspace=plantplotter
-```
-
-## Deployment
-
-The live version uses:
-
-- Frontend: Vercel
-- Backend API: Render
-- Database: Aiven MySQL
-- Email: Resend
-- CI: GitHub Actions
-- Domain/DNS: `plantplotter.me` with `api.plantplotter.me` routing to the backend
-
-Production secrets should live in the platform that uses them:
-
-- Vercel stores frontend public build/runtime variables such as `NEXT_PUBLIC_API_URL`.
-- Render stores backend variables such as database credentials, CORS origins, JWT secret, password reset URL, and email provider credentials.
-- Aiven provides the MySQL host, port, user, password, database name, and CA certificate.
-- GitHub Actions sets `NEXT_PUBLIC_API_URL=https://api.plantplotter.me/api` for frontend builds and should not store database or JWT secrets for the current test/build workflow.
+**[Open the live app](https://www.plantplotter.me)**
 
 ## Demo
 
-Try the app live at https://www.plantplotter.me
-
-**Demo account:**
+Explore the app with the shared demo account:
 
 - Email: demo@plantplotter.com
 - Password: demo123
 
+The demo includes five sample gardens with saved layouts and care history. Its account details are protected; you can still manage gardens, use the planner, and track care. Create your own account for a personal workspace.
+
+## Project Background
+
+Plant Plotter began as a client-focused final group project. After the initial delivery, I continued developing it independently, focusing on authentication and password reset, validation, planner and tracker workflows, mobile usability, performance, automated checks, and live deployment.
+
+## Features
+
+- Garden creation, editing, and saved layouts.
+- Visual plant placement, footprint validation, and row planting with mobile-friendly controls.
+- Plant library with growing information and companion planting guidance.
+- Care activity logs, completion history, and recurring tasks organized into today, upcoming, and overdue views.
+- Local weather in the tracker using browser location access.
+- Account registration, sign-in, email password reset, display-name editing, and account deletion.
+
+## Stack and Architecture
+
+| Layer | Technology | Live deployment |
+| --- | --- | --- |
+| Frontend | Next.js 15, React 19, Tailwind CSS | Vercel |
+| API | Node.js, Express, JWT sessions in httpOnly cookies, bcrypt | Render |
+| Database | MySQL 8 | Aiven |
+
+The frontend calls the Express API at `api.plantplotter.me`; the API validates requests and persists garden and account data in MySQL. Open-Meteo supplies weather data, Resend delivers password-reset emails, and GitHub Actions runs tests, lint, and the frontend build.
+
+```text
+plantplotter/          Next.js frontend
+plantplotter_backend/  Express API
+plantplotter_db/       MySQL schema, demo seed, and migrations
+```
+
+## Local Setup
+
+Prerequisites: Node.js 22, npm, and MySQL 8 with a user able to create and use the `garden_plotter` database.
+
+1. Clone the repository and install dependencies:
+
+   ```sh
+   git clone https://github.com/mash0040/Plant-Plotter.git
+   cd Plant-Plotter
+   npm ci
+   ```
+
+2. Copy the environment templates:
+
+   ```sh
+   cp plantplotter/.env.local.example plantplotter/.env.local
+   cp plantplotter_backend/.env.example plantplotter_backend/.env
+   ```
+
+   In Windows PowerShell, use `Copy-Item` in place of `cp`.
+
+3. Set your MySQL credentials and a private `JWT_SECRET` in `plantplotter_backend/.env`. Keep the templates' localhost URLs for local development. Email settings can stay blank locally; password-reset links then appear in the backend terminal. See the [backend environment template](plantplotter_backend/.env.example) for email and production TLS settings. Keep real secrets out of Git and frontend variables.
+
+4. Follow the [database setup instructions](plantplotter_db/README.md#fresh-installation) to import the schema and optional local/demo seed. Fresh installations must skip all upgrade migrations. Existing databases should follow the [migration guide](plantplotter_db/README.md#migrations).
+
+5. Start both applications from the repository root:
+
+   ```sh
+   npm run dev
+   ```
+
+   Open [localhost:3000](http://localhost:3000). The API runs at `http://localhost:5001/api`. To run each service separately, use `npm run dev:frontend` and `npm run dev:backend` in separate terminals.
+
+## Checks
+
+Run from the repository root:
+
+```sh
+npm test --workspace=plantplotter
+npm test --workspace=plantplotter_backend
+npm run lint --workspace=plantplotter
+npm run build --workspace=plantplotter
+```
+
+The build reads `NEXT_PUBLIC_API_URL` from the frontend environment. CI uses `https://api.plantplotter.me/api`. See the [database validation guide](plantplotter_db/README.md#validation) for testing a fresh database with Docker.
+
 ## Known Limitations
 
-- The application currently supports a light theme only, regardless of operating-system or browser appearance. Existing dark styles remain inactive until explicitly enabled at the application root. Full dark mode, theme selection, and preference persistence are future work.
-- Refresh tokens are not implemented yet; expired sessions redirect users to sign in again.
-- Tracker weather requires browser location access. When permission is denied or location cannot be resolved, the tracker does not substitute another location and instead provides a retryable message. Garden placement labels such as `Backyard` are not treated as geographic addresses.
-- Email reminders, weather alerts, public garden sharing, and public profiles are planned future improvements.
+- Light theme only.
+- Sessions expire and require signing in again; refresh tokens are not implemented.
+- Tracker weather requires browser location permission and cannot use garden labels as geographic addresses.
+- Quick Log requires a selected plant; whole-garden logging is not available.
+- Email reminders, weather alerts, public garden sharing, and public profiles are not implemented.
 
-## Status
+## Security
 
-This repository represents my continued development version of Plant Plotter after the original client-focused group project delivery. The current version focuses on stable full-stack functionality, mobile-friendly user flows, secure account features, production performance, and live deployment.
+See [SECURITY.md](SECURITY.md) for authentication, session handling, CSRF, deployment requirements, and browser security headers.
 
 ## License
 
-This continued-development version is shared for portfolio and educational purposes. See the [license](./license) file for details.
+[MIT License](license).
