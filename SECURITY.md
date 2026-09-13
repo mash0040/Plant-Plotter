@@ -6,11 +6,12 @@ Plant Plotter uses a signed JWT inside an httpOnly authentication cookie. The br
 
 - Login and registration are handled by the Express API in `plantplotter_backend/controllers/userController.js`.
 - A successful login or registration signs a JWT with `jsonwebtoken` and sets it as an httpOnly cookie. The token is not included in the JSON response.
-- The JWT payload includes the user id, email, username, and role.
+- The JWT payload includes the user id, email, username, role, and `sessionVersion`.
 - `JWT_EXPIRES_IN` controls both the JWT expiry and the cookie lifetime; the backend defaults to `24h` when it is unset.
 - Local development uses the host-only `plantplotter_session` cookie with `SameSite=Lax` and `Path=/`.
 - Production uses `__Host-plantplotter_session`, which is host-only, `Secure`, httpOnly, `SameSite=Lax`, and has `Path=/`.
-- Protected backend routes read and verify the cookie in `plantplotter_backend/middleware/verifyToken.js`.
+- Protected backend routes read and verify the cookie in `plantplotter_backend/middleware/verifyToken.js`, then compare its version with the active user's `users.session_version` on every request. Missing/inactive accounts and mismatched or missing versions receive `401 INVALID_TOKEN` and the cookie is cleared.
+- Session verification requires one indexed user lookup per protected request. Database failures deny access without clearing the cookie; temporary outages use the existing `503 SERVICE_UNAVAILABLE` response.
 - The frontend uses `credentials: include` for API requests and never reads the authentication cookie.
 - Logout calls `POST /api/auth/logout`; logout and successful account deletion expire the authentication cookie in the backend response.
 - Invalid or expired cookies are also cleared when authentication verification fails.
@@ -45,6 +46,12 @@ API tools used for manual testing must send both the authentication cookie and t
 
 Password-reset tokens are separate from authentication sessions. They remain short-lived, single-use values delivered through the reset link and are not stored as browser authentication credentials.
 
+A successful reset increments `users.session_version` in the same conditional database update that changes the password hash and consumes the reset token. All previously issued sessions for that account are rejected on their next protected request. Requests already authenticated before the reset completes may finish. Resetting a password does not automatically sign in; signing in with the new password issues a cookie with the current version. Other accounts remain signed in.
+
+Requesting a reset link, invalid/expired/reused links, validation failures, and failed password updates do not increment the version. Any future password-changing flow must increment it atomically with the password change as well.
+
+Before deploying this API to an existing database, apply [session_version_migration.sql](plantplotter_db/session_version_migration.sql) once; fresh schemas already include the column. Cookies issued before this deployment lack a version and require a one-time sign-in. Deploy the API consistently across instances: an older API instance does not enforce revocation. See [database migration instructions](plantplotter_db/README.md#migrations).
+
 ## Shared Recruiter Demo Account
 
 The seeded `demo@plantplotter.com` address is reserved for the public recruiter
@@ -69,7 +76,7 @@ reserved identity when maintaining the demo account.
 
 ## Known Limitation
 
-Refresh tokens and server-side JWT revocation are not implemented. Session JWTs expire according to `JWT_EXPIRES_IN`; signing out removes the browser cookie, while changing `JWT_SECRET` invalidates all outstanding sessions.
+Refresh tokens, individual-session revocation, and a server-side session store are not implemented. Password resets revoke sessions at the account level. Session JWTs still expire according to `JWT_EXPIRES_IN`; signing out only removes that browser's cookie and does not invalidate a copied JWT. Changing `JWT_SECRET` invalidates all outstanding sessions.
 
 ## Developer Guidance
 

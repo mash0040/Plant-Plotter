@@ -12,7 +12,12 @@ let queries;
 let execute;
 const dbPath = require.resolve('../config/db');
 require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
-  execute: async (sql, params) => { queries.push({ sql, params }); return execute(sql, params); }
+  execute: async (sql, params) => {
+    // Keep activity-query assertions separate from the authentication lookup.
+    if (sql === 'SELECT session_version FROM users WHERE id = ? AND is_active = TRUE') return [[{ session_version: 0 }]];
+    queries.push({ sql, params });
+    return execute(sql, params);
+  }
 } };
 const router = require('../routes/activities');
 const { requireCsrfProtection } = require('../middleware/csrfProtection');
@@ -37,7 +42,7 @@ beforeEach(() => {
 const request = async (method, body, { userId = 12, csrf = true } = {}) => {
   const headers = { 'Content-Type': 'application/json' };
   if (csrf) headers['X-CSRF-Protection'] = '1';
-  if (userId !== null) headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ id: userId }, process.env.JWT_SECRET)}`;
+  if (userId !== null) headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ id: userId, sessionVersion: 0 }, process.env.JWT_SECRET)}`;
   const response = await fetch(`${baseUrl}${method === 'PUT' ? '/15' : ''}`, {
     method, headers, body: JSON.stringify(body)
   });

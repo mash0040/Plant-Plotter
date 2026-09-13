@@ -11,6 +11,8 @@ process.env.NODE_ENV = 'development';
 let steps;
 let calls;
 const execute = async (sql, params) => {
+  // Business-query counts below exclude the authentication lookup.
+  if (sql === 'SELECT session_version FROM users WHERE id = ? AND is_active = TRUE') return [[{ session_version: 0 }]];
   calls += 1;
   const step = steps.shift();
   assert.ok(step, `Unexpected SQL: ${sql}`);
@@ -49,7 +51,7 @@ const request = async (method, body) => {
   const response = await fetch(`${baseUrl}${method === 'POST' ? '' : '/16'}`, {
     method,
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1',
-      Cookie: `${getAuthCookieName()}=${jwt.sign({ id: 12 }, process.env.JWT_SECRET, { expiresIn: '1h' })}` },
+      Cookie: `${getAuthCookieName()}=${jwt.sign({ id: 12, sessionVersion: 0 }, process.env.JWT_SECRET, { expiresIn: '1h' })}` },
     body: JSON.stringify(body)
   });
   return { status: response.status, body: await response.json() };

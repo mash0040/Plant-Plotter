@@ -124,10 +124,11 @@ const resetPassword = async ({ db, token, password, confirmPassword, now = () =>
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  // Consume the still-valid token in the same statement that changes the password.
+  // Consume the token and revoke existing sessions atomically with the password change.
   const [result] = await db.execute(
     `UPDATE users
      SET password_hash = ?,
+         session_version = session_version + 1,
          reset_password_token_hash = NULL,
          reset_password_expires = NULL,
          updated_at = NOW()

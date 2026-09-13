@@ -18,6 +18,7 @@ CREATE TABLE users (
     username VARCHAR(255) NOT NULL,  -- Changed from 'name' to 'username'
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    session_version INT UNSIGNED NOT NULL DEFAULT 0,
     role ENUM('admin', 'user') DEFAULT 'user',
     avatar VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

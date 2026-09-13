@@ -17,7 +17,10 @@ require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
     if (acquisitionError) throw acquisitionError;
     return connection;
   },
-  async execute() { assert.fail('Replacement must use its transaction connection'); }
+  async execute(sql) {
+    if (sql === 'SELECT session_version FROM users WHERE id = ? AND is_active = TRUE') return [[{ session_version: 0 }]];
+    assert.fail('Replacement must use its transaction connection');
+  }
 } };
 const gardenRouter = require('../routes/gardens');
 const { replacePlantedItemsForGarden } = require('../services/gardenService');
@@ -117,7 +120,7 @@ const request = async (plantedItems, { userId = 12, gardenId = 4, csrf = true } 
   const headers = { 'Content-Type': 'application/json' };
   if (csrf) headers['X-CSRF-Protection'] = '1';
   if (userId !== null) {
-    headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '1h' })}`;
+    headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ id: userId, sessionVersion: 0 }, process.env.JWT_SECRET, { expiresIn: '1h' })}`;
   }
   const response = await fetch(`${baseUrl}/${gardenId}/complete`, {
     method: 'PUT', headers, body: JSON.stringify({ plantedItems })
