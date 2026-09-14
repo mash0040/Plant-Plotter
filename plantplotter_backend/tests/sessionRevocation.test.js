@@ -28,10 +28,10 @@ require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
       return [found];
     }
     if (sql.startsWith('INSERT INTO users')) {
-      assert.match(sql, /session_version, created_at, updated_at\) VALUES \(\?, \?, \?, \?, \?, 0, NOW\(\), NOW\(\)\)/);
-      const [username, email, password_hash, role, is_active] = params;
+      assert.match(sql, /session_version, created_at, updated_at\) VALUES \(\?, \?, \?, \?, 0, NOW\(\), NOW\(\)\)/);
+      const [username, email, password_hash, is_active] = params;
       const id = users.length + 1;
-      users.push({ id, username, email, password_hash, role, is_active, session_version: 0 });
+      users.push({ id, username, email, password_hash, is_active, session_version: 0 });
       return [{ insertId: id }];
     }
     if (sql.includes('SET reset_password_token_hash = ?')) {
@@ -76,7 +76,7 @@ before(async () => {
 after(async () => { await new Promise(resolve => server.close(resolve)); });
 beforeEach(() => {
   users = [1, 2].map(id => ({ id, username: `Gardener ${id}`, email: `user${id}@example.com`,
-    password_hash: passwordHash, role: 'user', is_active: true, session_version: 0 }));
+    password_hash: passwordHash, is_active: true, session_version: 0 }));
   sentEmails = [];
   pauseLogin = null;
 });
@@ -98,6 +98,17 @@ const getResetToken = async () => {
 };
 const reset = (token, password = 'NewPass123') => request('reset-password', { token, password, confirmPassword: password });
 const claims = cookie => jwt.verify(cookie.slice(cookie.indexOf('=') + 1), process.env.JWT_SECRET);
+
+test('login and verification omit account roles even for a previously privileged account', async () => {
+  users[0].role = 'admin'; // Legacy database values confer no application privileges.
+  const response = await login();
+  assert.equal(response.status, 200);
+  assert.equal(Object.hasOwn(response.body.user, 'role'), false);
+  assert.equal(Object.hasOwn(claims(response.cookie), 'role'), false);
+  const verified = await verify(response.cookie);
+  assert.equal(verified.status, 200);
+  assert.equal(Object.hasOwn(verified.body.user, 'role'), false);
+});
 
 test('successful reset revokes all old sessions, preserves other accounts, and allows a fresh login', async () => {
   const first = await login();
@@ -148,6 +159,8 @@ test('invalid, expired and validation-failing resets preserve the password and e
 test('registration issues a versioned cookie that can access protected endpoints', async () => {
   const response = await request('register', { username: 'New gardener', email: 'new@example.com', password: 'NewPass123' });
   assert.equal(response.status, 201);
+  assert.equal(Object.hasOwn(response.body.user, 'role'), false);
+  assert.equal(Object.hasOwn(claims(response.cookie), 'role'), false);
   assert.equal(claims(response.cookie).sessionVersion, 0);
   assert.equal((await verify(response.cookie)).status, 200);
   assert.equal(response.body.token, undefined);

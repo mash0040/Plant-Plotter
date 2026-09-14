@@ -1,10 +1,10 @@
 'use client';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Info, Edit3, Grid } from 'lucide-react';
+import { Info, Grid } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
-export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, showEditButton = true, disableDrag = false }) {
+export default function PlantLibraryItem({ plant, onPlantRow, onInfo, disableDrag = false }) {
   const [isDragReady, setIsDragReady] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const longPressTimer = useRef(null);
@@ -126,17 +126,6 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
 
   const colors = getCategoryColors(plant.category);
 
-  const handleEditClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (onEdit) {
-      onEdit(plant);
-    } else {
-      console.error('onEdit function is not available');
-    }
-  };
-
   const handleRowPlantClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -244,26 +233,6 @@ export default function PlantLibraryItem({ plant, onEdit, onPlantRow, onInfo, sh
                 >
                   <Grid className="w-3 h-3 text-blue-600" />
                   <span className="text-[11px] font-semibold text-blue-700 sm:hidden">Plant in Row</span>
-                </button>
-              )}
-
-              {showEditButton && onEdit && (
-                <button
-                  className="
-                    touch-target w-6 h-6 bg-orange-100 hover:bg-orange-200 active:bg-orange-300
-                    rounded-full flex items-center justify-center transition-all duration-200
-                    cursor-pointer z-10 touch-manipulation
-                    hover:scale-110 active:scale-95 flex-shrink-0
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2
-                  "
-                  onClick={handleEditClick}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onTouchStart={handleActionTouchStart}
-                  title="Edit plant"
-                  aria-label={`Edit ${plant.name}`}
-                  type="button"
-                >
-                  <Edit3 className="w-3 h-3 text-orange-600" />
                 </button>
               )}
 

@@ -6,7 +6,6 @@ import apiClient from '@/lib/api';
 import PlantLibrary from './PlantLibrary';
 
 vi.mock('@/lib/api', () => ({ default: { getPlantLibrary: vi.fn() } }));
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { role: 'user' } }) }));
 
 const longDescription = 'Grow in rich soil and water regularly. '.repeat(80).trim();
 const plants = [
@@ -18,15 +17,16 @@ const plants = [
   { id: 'basil', name: 'Basil', emoji: '🌿', category: 'herbs' }
 ];
 
-function LibraryHarness({ searchTerm = '', isOpen = true }) {
+function LibraryHarness({ searchTerm = '', isOpen = true, setSearchTerm = vi.fn(), onPlantRow = vi.fn() }) {
   return (
     <DndContext>
       <div data-sidebar>
         <PlantLibrary
           searchTerm={searchTerm}
-          setSearchTerm={vi.fn()}
+          setSearchTerm={setSearchTerm}
           isOpen={isOpen}
           onToggle={vi.fn()}
+          onPlantRow={onPlantRow}
           disableDrag
         />
       </div>
@@ -49,6 +49,31 @@ describe('Plant library details', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it('browses and searches the catalogue without editor controls while preserving row planting', async () => {
+    const user = userEvent.setup();
+    const setSearchTerm = vi.fn();
+    const onPlantRow = vi.fn();
+    const { rerender } = render(<LibraryHarness setSearchTerm={setSearchTerm} onPlantRow={onPlantRow} />);
+    await screen.findByRole('button', { name: 'View information for Tomato' });
+    expect(screen.getByRole('heading', { name: 'vegetables (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'herbs (1)' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add new plant|edit|delete/i })).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search plants' }), { target: { value: 'BAS' } });
+    expect(setSearchTerm).toHaveBeenCalledWith('BAS');
+    rerender(<LibraryHarness searchTerm="BAS" setSearchTerm={setSearchTerm} onPlantRow={onPlantRow} />);
+    expect(screen.queryByRole('button', { name: 'View information for Tomato' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View information for Basil' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Plant Basil in a row' }));
+    expect(onPlantRow).toHaveBeenCalledWith(expect.objectContaining({ id: 'basil', name: 'Basil' }));
+
+    rerender(<LibraryHarness searchTerm="missing" />);
+    expect(screen.getByText('No plants found')).toBeInTheDocument();
+    rerender(<LibraryHarness />);
+    expect(screen.getByRole('button', { name: 'View information for Tomato' })).toBeInTheDocument();
+    expect(apiClient.getPlantLibrary).toHaveBeenCalledTimes(1);
   });
 
   it('keeps a mobile drawer locked after details close, then releases on drawer close', async () => {

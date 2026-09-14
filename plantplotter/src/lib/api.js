@@ -631,51 +631,6 @@ class ApiClient {
     }
   }
 
-  clearPlantLibraryCache() {
-    this.plantLibraryCache = null;
-  }
-
-  async updatePlant(plantId, plantData) {
-    try {
-      const response = await this.request(`/plants/${plantId}`, {
-        method: 'PUT',
-        body: JSON.stringify(plantData),
-      });
-      this.clearPlantLibraryCache();
-      return response;
-    } catch (error) {
-      console.error('Failed to update plant in library:', error);
-      throw error;
-    }
-  }
-
-  async addPlantToLibrary(plantData) {
-    try {
-      const response = await this.request('/plants', {
-        method: 'POST',
-        body: JSON.stringify(plantData),
-      });
-      this.clearPlantLibraryCache();
-      return response;
-    } catch (error) {
-      console.error('Failed to add plant to library:', error);
-      throw error;
-    }
-  }
-
-  async deletePlantFromLibrary(plantId) {
-    try {
-      const response = await this.request(`/plants/${plantId}`, {
-        method: 'DELETE',
-      });
-      this.clearPlantLibraryCache();
-      return response;
-    } catch (error) {
-      console.error('Failed to delete plant from library:', error);
-      throw error;
-    }
-  }
-
   // Activity methods
   async addActivity(activityData) {
     try {

@@ -50,7 +50,6 @@ test('authenticates a protected request from the session cookie', async () => {
     id: 12,
     email: 'garden@example.com',
     username: 'Garden User',
-    role: 'user',
     sessionVersion: 0
   }, process.env.JWT_SECRET, { expiresIn: '1h' });
   const request = {
@@ -69,8 +68,7 @@ test('authenticates a protected request from the session cookie', async () => {
   assert.deepEqual(request.user, {
     id: 12,
     email: 'garden@example.com',
-    username: 'Garden User',
-    role: 'user'
+    username: 'Garden User'
   });
 });
 
@@ -116,6 +114,13 @@ const checkToken = async token => {
 const sign = (claims = {}, options = {}) => jwt.sign(
   { id: 12, sessionVersion: 0, ...claims }, process.env.JWT_SECRET, { expiresIn: '1h', ...options }
 );
+
+test('ignores account role claims in existing versioned cookies', async () => {
+  const { request, nextCalled } = await checkToken(sign({ role: 'admin' }));
+  assert.equal(nextCalled, true);
+  assert.equal(Object.hasOwn(request.user, 'role'), false);
+  assert.equal(lookups, 1);
+});
 
 for (const version of [undefined, null, '0', -1, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
   test(`rejects missing or malformed session version ${version} without DB access`, async () => {

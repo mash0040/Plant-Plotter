@@ -30,6 +30,26 @@ The schema does not drop existing data, but its `CREATE TABLE` statements are no
 
 ## Migrations
 
+### Deferred account-role cleanup
+
+The application treats the shared plant catalogue as read-only. Maintain catalogue
+records through reviewed database or seed changes outside the application; ordinary
+garden and placed-plant editing still belongs to each authenticated garden owner.
+
+`users.role` and `idx_role` are retained for deployment compatibility. Application
+authentication, JWTs, and profile responses no longer read, write, or expose account
+roles. Older versioned cookies can still authenticate, but their role claims are ignored.
+The schema, demo seed, and database validation checks retain the legacy column until
+a separate cleanup is deployed.
+
+Any future column-removal migration must run **after** all deployed API instances
+and operational scripts have stopped reading or writing `users.role`. Update the
+fresh-install schema, seed, and validators together with that narrowly scoped
+migration. Do not apply a role-column drop as a pre-deployment migration or roll back
+to role-dependent application code after dropping it.
+
+### Existing upgrade migrations
+
 These files remain available only for upgrading older databases. Back up the database and inspect its current definitions before applying the relevant files **before deploying the updated API**. Skip changes already present; do not run every SQL file in the directory. Each command below is run from this directory.
 
 | Upgrade file | Apply when the existing database is missing | Repeat behavior |

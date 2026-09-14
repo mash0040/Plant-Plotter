@@ -85,8 +85,7 @@ const verifyToken = async (req, res, next) => {
   req.user = {
     id: userId,
     email: decoded.email,
-    username: decoded.username,
-    role: decoded.role || 'user'
+    username: decoded.username
   };
   next();
 };

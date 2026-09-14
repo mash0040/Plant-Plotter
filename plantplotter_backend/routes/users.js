@@ -13,7 +13,7 @@ router.get('/profile', verifyToken, async (req, res) => {
     const db = require('../config/db');
     
     const [user] = await db.execute(
-      'SELECT id, username, email, preferences, avatar, role, created_at FROM users WHERE id = ?',
+      'SELECT id, username, email, preferences, avatar, created_at FROM users WHERE id = ?',
       [req.user.id]
     );
 
@@ -67,7 +67,7 @@ router.put('/profile', verifyToken, requireMutableAccount, async (req, res) => {
 
     // Return updated user with preferences
     const [updatedUser] = await db.execute(
-      'SELECT id, username, email, preferences, avatar, role, created_at FROM users WHERE id = ?',
+      'SELECT id, username, email, preferences, avatar, created_at FROM users WHERE id = ?',
       [req.user.id]
     );
 

@@ -46,7 +46,6 @@ const userFacingAndDemoFiles = [
   'README.md',
   'plantplotter/src/components/Garden/Constants/PlantData.js',
   'plantplotter/src/components/Garden/LoadGardenModel.jsx',
-  'plantplotter/src/components/Garden/PlantEditModal.jsx',
   'plantplotter/src/components/Garden/PlantLibrary.jsx',
   'plantplotter/src/components/Tracker/Constants/ActivitiesData.js',
   'plantplotter/src/components/Tracker/Constants/TrackerData.js',
