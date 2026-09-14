@@ -55,8 +55,8 @@ const registerUser = async (req, res) => {
 
     // Insert user into database
     const [result] = await db.execute(
-      'INSERT INTO users (username, email, password_hash, role, is_active, session_version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, NOW(), NOW())',
-      [trimmedUsername, trimmedEmail, hashedPassword, 'user', true]
+      'INSERT INTO users (username, email, password_hash, is_active, session_version, created_at, updated_at) VALUES (?, ?, ?, ?, 0, NOW(), NOW())',
+      [trimmedUsername, trimmedEmail, hashedPassword, true]
     );
 
     const userId = result.insertId;
@@ -66,7 +66,6 @@ const registerUser = async (req, res) => {
       id: userId, 
       email: trimmedEmail,
       username: trimmedUsername,
-      role: 'user',
       sessionVersion: 0
     };
 
@@ -84,7 +83,6 @@ const registerUser = async (req, res) => {
         id: userId,
         username: trimmedUsername,
         email: trimmedEmail,
-        role: 'user',
         isProtectedDemo: isProtectedDemoAccount({ email: trimmedEmail })
       }
     });
@@ -106,7 +104,7 @@ const loginUser = async (req, res) => {
 
   try {
     // Find user in database
-    const [rows] = await db.execute('SELECT id, email, username, role, password_hash, session_version FROM users WHERE email = ? AND is_active = TRUE', [trimmedEmail]);
+    const [rows] = await db.execute('SELECT id, email, username, password_hash, session_version FROM users WHERE email = ? AND is_active = TRUE', [trimmedEmail]);
 
     if (rows.length === 0) {
       return sendErrorResponse(res, 401, 'Invalid credentials', {
@@ -135,7 +133,6 @@ const loginUser = async (req, res) => {
       id: user.id, 
       email: user.email,
       username: user.username,
-      role: user.role || 'user',
       sessionVersion: user.session_version
     };
 
@@ -153,7 +150,6 @@ const loginUser = async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role || 'user',
         isProtectedDemo: isProtectedDemoAccount(user)
       }
     });

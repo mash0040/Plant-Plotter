@@ -21,6 +21,7 @@ const execute = async (sql, params) => {
     return [users.filter(user => user.id === params[0]).map(user => ({ session_version: user.session_version }))];
   }
   queries.push({ sql, params });
+  assert.doesNotMatch(sql, /\brole\b/, 'Account queries must not depend on the legacy role column');
   if (lookupError) throw lookupError;
   if (sql.startsWith('SELECT')) {
     if (sql.includes('reset_password_token_hash = ?')) {
@@ -37,7 +38,7 @@ const execute = async (sql, params) => {
     if (sql === 'SELECT id, email FROM users WHERE id = ?') {
       return [found.map(({ id, email }) => ({ id, email }))];
     }
-    return [found.map(({ id, username, email, preferences, role }) => ({ id, username, email, preferences, role }))];
+    return [found.map(({ id, username, email, preferences }) => ({ id, username, email, preferences }))];
   }
   if (sql.startsWith('UPDATE users SET username')) {
     assert.equal(sql, 'UPDATE users SET username = ?, updated_at = NOW() WHERE id = ?');
@@ -97,8 +98,8 @@ before(async () => {
 after(async () => { await new Promise(resolve => server.close(resolve)); });
 beforeEach(() => {
   users = [
-    { id: 7, username: 'Demo', email: 'demo@plantplotter.com', password_hash: passwordHash, session_version: 0, role: 'user', preferences: '{}' },
-    { id: 12, username: 'Gardener', email: 'gardener@example.com', password_hash: passwordHash, session_version: 0, role: 'user', preferences: '{}' }
+    { id: 7, username: 'Demo', email: 'demo@plantplotter.com', password_hash: passwordHash, session_version: 0, preferences: '{}' },
+    { id: 12, username: 'Gardener', email: 'gardener@example.com', password_hash: passwordHash, session_version: 0, preferences: '{}' }
   ];
   gardens = [{ id: 1, user_id: 7 }, { id: 2, user_id: 12 }];
   queries = [];
@@ -160,6 +161,7 @@ for (const [userId, isProtectedDemo] of [[7, true], [12, false]]) {
     const profile = await request('/users/profile', 'GET', undefined, { userId });
     assert.equal(profile.status, 200);
     assert.equal(profile.body.isProtectedDemo, isProtectedDemo);
+    assert.equal(Object.hasOwn(profile.body, 'role'), false);
     const login = await request('/auth/login', 'POST', {
       email: users.find(user => user.id === userId).email, password: 'TestPass123', isProtectedDemo: !isProtectedDemo
     }, { userId: null });
@@ -176,6 +178,7 @@ test('normal profile updates ignore misleading demo fields in body and JWT', asy
   }, options);
   assert.equal(profile.status, 200);
   assert.equal(profile.body.user.isProtectedDemo, false);
+  assert.equal(Object.hasOwn(profile.body.user, 'role'), false);
   assert.equal(profile.body.user.email, 'gardener@example.com');
   assert.equal(users[1].username, 'Updated Gardener');
   assert.equal(users[1].email, 'gardener@example.com');

@@ -9,7 +9,6 @@ import GardenCanvas from '@/components/Garden/GardenCanvas';
 import ControlPanel from '@/components/Garden/ControlPanel';
 import DraggablePlant from '@/components/Garden/DraggablePlant';
 import LoadGardenModel from '@/components/Garden/LoadGardenModel';
-import PlantEditModal from '@/components/Garden/PlantEditModal';
 import RowPlantingModal from '@/components/Garden/RowPlantingModal';
 import GardenForm from '@/components/Gardens/GardenForm';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -76,13 +75,6 @@ function GardenPlannerPageContent() {
     return () => window.clearTimeout(timeoutId);
   }, [layoutSaveMessage]);
 
-  // Store refresh function
-  const [refreshPlantsFunction, setRefreshPlantsFunction] = useState(null);
-
-  // Plant Edit Modal state
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingPlant, setEditingPlant] = useState(null);
-
   // Row Planting Modal state
   const [showRowPlantingModal, setShowRowPlantingModal] = useState(false);
   const [rowPlantingPlant, setRowPlantingPlant] = useState(null);
@@ -123,21 +115,6 @@ function GardenPlannerPageContent() {
     );
   };
 
-  // Enhanced callback to receive plants AND refresh function
-  const handlePlantsLoaded = (plants, refreshFunction) => {
-    setLibraryPlants(plants);
-    
-    if (refreshFunction) {
-      setRefreshPlantsFunction(() => refreshFunction);
-    }
-  };
-
-  // Handle edit plant requests from PlantLibrary
-  const handleEditPlant = (plant) => {
-    setEditingPlant(plant);
-    setShowEditModal(true);
-  };
-
   // Handle row planting requests from PlantLibrary
   const handlePlantRow = (plant) => {
     setRowPlantingPlant(plant);
@@ -145,75 +122,6 @@ function GardenPlannerPageContent() {
     // Close sidebar on mobile
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
-    }
-  };
-
-  // Enhanced save plant function
-  const handleSavePlant = async (updatedPlant) => {
-    try {
-      // Transform data for API with correct enum values
-      const plantData = {
-        name: updatedPlant.name,
-        emoji: updatedPlant.emoji,
-        size: updatedPlant.size,
-        category: updatedPlant.category,
-        description: updatedPlant.description,
-        spacing: updatedPlant.spacing,
-        
-        // Map frontend values to database enum values
-        sunlight: updatedPlant.sunlight,
-        water_needs: updatedPlant.waterNeeds,
-        difficulty: updatedPlant.difficulty,
-        
-        days_to_maturity: updatedPlant.daysToMaturity ? parseInt(updatedPlant.daysToMaturity) : null,
-        companion_plants: JSON.stringify(updatedPlant.companionPlants || []),
-        avoid_plants: JSON.stringify(updatedPlant.avoidPlants || []),
-        soil_types: JSON.stringify(updatedPlant.soilTypes || []),
-        planting_depth: updatedPlant.plantingDepth
-      };
-
-      if (updatedPlant.id) {
-        // Update existing plant
-        await apiClient.updatePlant(updatedPlant.id, plantData);
-      } else {
-        // Add new plant - generate ID from name
-        const newId = updatedPlant.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-        plantData.id = newId;
-        await apiClient.addPlantToLibrary(plantData);
-      }
-      
-      // Auto-refresh plant library
-      if (refreshPlantsFunction) {
-        try {
-          await refreshPlantsFunction();
-        } catch (refreshError) {
-          console.error('Failed to refresh plant library:', refreshError);
-        }
-      }
-      
-    } catch (error) {
-      console.error('Failed to save plant:', error);
-      throw error;
-    }
-  };
-
-  // Enhanced delete plant function
-  const handleDeletePlant = async (plant) => {
-    try {
-      await apiClient.deletePlantFromLibrary(plant.id);
-      
-      // Auto-refresh plant library
-      if (refreshPlantsFunction) {
-        try {
-          await refreshPlantsFunction();
-        } catch (refreshError) {
-          console.error('Failed to refresh plant library after delete:', refreshError);
-        }
-      }
-      
-    } catch (error) {
-      console.error('Failed to delete plant:', error);
-      throw error;
     }
   };
 
@@ -1197,8 +1105,7 @@ function GardenPlannerPageContent() {
             isOpen={sidebarOpen}
             onToggle={() => setSidebarOpen(!sidebarOpen)}
             placedPlants={placedPlants}
-            onPlantsLoaded={handlePlantsLoaded}
-            onEditPlant={handleEditPlant}
+            onPlantsLoaded={setLibraryPlants}
             onPlantRow={handlePlantRow}
             disableDrag={isTouchPlanner}
           />
@@ -1291,19 +1198,6 @@ function GardenPlannerPageContent() {
         )}
         
       </DndContext>
-
-      {/* Plant Edit Modal */}
-      <PlantEditModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingPlant(null);
-        }}
-        plant={editingPlant}
-        onSave={handleSavePlant}
-        onDelete={editingPlant?.id ? handleDeletePlant : null}
-        isPlaced={false}
-      />
 
       {/* Row Planting Modal */}
       <RowPlantingModal

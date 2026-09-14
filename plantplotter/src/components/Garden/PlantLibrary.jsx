@@ -1,11 +1,10 @@
 'use client';
-import { ArrowLeft, X, Search, ChevronDown, ChevronUp, Heart, AlertTriangle, Info, Plus } from 'lucide-react';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { ArrowLeft, X, Search, ChevronDown, ChevronUp, Heart, AlertTriangle, Info } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import PlantLibraryItem from './PlantLibraryItem';
 import apiClient from '@/lib/api';
 import { getActionErrorMessage } from '@/lib/apiErrors';
-import { useAuth } from '@/hooks/useAuth';
 import useAccessibleDialog from '@/hooks/useAccessibleDialog';
 import useBodyScrollLock from '@/hooks/useBodyScrollLock';
 
@@ -168,12 +167,9 @@ export default function PlantLibrary({
   onToggle,
   placedPlants = [],
   onPlantsLoaded, 
-  onEditPlant,
-  onPlantRow,  // Add this new prop
+  onPlantRow,
   disableDrag = false
 }) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
   const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -335,20 +331,15 @@ export default function PlantLibrary({
     }
   };
 
-  const refreshPlants = useCallback(async () => {
-    const refreshedPlants = await loadPlants();
-    return refreshedPlants;
-  }, []);
-
   useEffect(() => {
     loadPlants();
   }, []);
 
   useEffect(() => {
     if (onPlantsLoaded && plants.length > 0) {
-      onPlantsLoaded(plants, refreshPlants);
+      onPlantsLoaded(plants);
     }
-  }, [plants.length, onPlantsLoaded, refreshPlants]);
+  }, [plants, onPlantsLoaded]);
 
   const filteredPlants = plants.filter(plant => 
     plant.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -495,54 +486,12 @@ export default function PlantLibrary({
     return suggestions;
   }, [placedPlants, plants]);
 
-  // Plant editing functions
-  const handleEditPlant = (plant) => {
-    if (!isAdmin) {
-      return;
-    }
-
-    if (onEditPlant) {
-      onEditPlant(plant);
-    } else {
-      console.error('onEditPlant callback not provided to PlantLibrary');
-    }
-  };
-
   // Row planting function
   const handlePlantRow = (plant) => {
     if (onPlantRow) {
       onPlantRow(plant);
     } else {
       console.error('onPlantRow callback not provided to PlantLibrary');
-    }
-  };
-
-  const handleAddNewPlant = () => {
-    if (!isAdmin) {
-      return;
-    }
-
-    const newPlantTemplate = {
-      name: '',
-      emoji: '🌱',
-      size: 1,
-      category: 'vegetables',
-      description: '',
-      spacing: '',
-      sunlight: 'Full Sun',
-      waterNeeds: 'Moderate',
-      daysToMaturity: '',
-      companionPlants: [],
-      avoidPlants: [],
-      soilTypes: [],
-      difficulty: 'Medium',
-      plantingDepth: ''
-    };
-    
-    if (onEditPlant) {
-      onEditPlant(newPlantTemplate);
-    } else {
-      console.error('onEditPlant callback not provided to PlantLibrary');
     }
   };
 
@@ -643,17 +592,6 @@ export default function PlantLibrary({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={handleAddNewPlant}
-                aria-label="Add new plant"
-                className="p-2 bg-green-100 hover:bg-green-200 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
-                title="Add new plant"
-              >
-                <Plus className="w-4 h-4 text-green-600" />
-              </button>
-            )}
             <button
               type="button"
               onClick={onToggle}
@@ -825,10 +763,8 @@ export default function PlantLibrary({
                   <PlantLibraryItem 
                     key={plant.id} 
                     plant={plant}
-                    onEdit={handleEditPlant}
                     onPlantRow={handlePlantRow}
                     onInfo={setSelectedInfoPlant}
-                    showEditButton={isAdmin}
                     isInScrollContainer={true}
                     disableDrag={disableDrag}
                   />
