@@ -1,6 +1,6 @@
 // hooks/useAuth.js
 'use client';
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { createContext, createElement, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api';
 import { getUserFacingErrorMessage, isAuthenticationError } from '@/lib/apiErrors';
@@ -212,11 +212,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const deleteAccount = async () => {
+  const deleteAccount = async (password) => {
     try {
       setError(null);
-      setLoading(true);
-      const response = await apiClient.deleteAccount();
+      const response = await apiClient.deleteAccount(password);
       apiClient.clearUserSessionStorage();
       hadActiveSessionRef.current = false;
       setUser(null);
@@ -232,8 +231,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       setError(getUserFacingErrorMessage(error));
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -273,11 +270,7 @@ export const AuthProvider = ({ children }) => {
     refreshProfile: fetchUserProfile
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return createElement(AuthContext.Provider, { value }, children);
 };
 
 export const useAuth = () => {

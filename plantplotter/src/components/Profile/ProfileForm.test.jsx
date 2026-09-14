@@ -144,14 +144,34 @@ describe('normal profile', () => {
     const user = userEvent.setup();
     render(<ProfileForm />);
     await user.click(screen.getByRole('button', { name: 'Delete Account' }));
+    await user.type(screen.getByLabelText('Current password'), 'discarded-password');
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(auth.deleteAccount).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Delete Account' }));
     expect(screen.getByRole('button', { name: 'Permanently Delete Account' })).toBeDisabled();
+    const password = screen.getByLabelText('Current password');
+    expect(password).toHaveValue('');
+    expect(password).toHaveAttribute('type', 'password');
+    expect(password).toHaveAttribute('autocomplete', 'current-password');
     await user.type(screen.getByLabelText(/Type DELETE/), 'DELETE');
+    expect(screen.getByRole('button', { name: 'Permanently Delete Account' })).toBeDisabled();
+    await user.type(password, '  CurrentPass123  ');
     await user.click(screen.getByRole('button', { name: 'Permanently Delete Account' }));
-    expect(await screen.findByText('Please try again.')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Please try again.');
+    expect(password).toHaveValue('  CurrentPass123  ');
+    expect(screen.getByLabelText(/Type DELETE/)).toHaveValue('DELETE');
     await user.click(screen.getByRole('button', { name: 'Permanently Delete Account' }));
     expect(auth.deleteAccount).toHaveBeenCalledTimes(2);
+    expect(auth.deleteAccount).toHaveBeenNthCalledWith(2, '  CurrentPass123  ');
+  });
+
+  it('requires the exact DELETE confirmation even when a password is present', async () => {
+    const user = userEvent.setup();
+    render(<ProfileForm />);
+    await user.click(screen.getByRole('button', { name: 'Delete Account' }));
+    await user.type(screen.getByLabelText('Current password'), 'CurrentPass123');
+    await user.type(screen.getByLabelText(/Type DELETE/), 'delete');
+    expect(screen.getByRole('button', { name: 'Permanently Delete Account' })).toBeDisabled();
+    expect(auth.deleteAccount).not.toHaveBeenCalled();
   });
 });

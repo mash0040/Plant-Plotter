@@ -38,6 +38,10 @@ const execute = async (sql, params) => {
     if (sql === 'SELECT id, email FROM users WHERE id = ?') {
       return [found.map(({ id, email }) => ({ id, email }))];
     }
+    if (sql === 'SELECT password_hash FROM users WHERE id = ?') {
+      assert.deepEqual(transactions, [], 'Password lookup must precede the transaction');
+      return [found.map(({ password_hash }) => ({ password_hash }))];
+    }
     return [found.map(({ id, username, email, preferences }) => ({ id, username, email, preferences }))];
   }
   if (sql.startsWith('UPDATE users SET username')) {
@@ -258,13 +262,57 @@ test('display-name updates allow duplicates and keep profile, login, and recover
   assert.ok(users[1].reset_password_token_hash);
 });
 
+for (const password of [undefined, '', null, 123, {}, []]) {
+  test(`account deletion rejects missing or invalid password ${JSON.stringify(password)}`, async () => {
+    const original = structuredClone({ users, gardens });
+    const response = await request('/users/account', 'DELETE', { password }, { userId: 12 });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, 'VALIDATION_ERROR');
+    assert.match(response.body.message, /current password/);
+    assert.deepEqual({ users, gardens }, original);
+    assert.deepEqual(transactions, []);
+    assert.equal(response.cookie, null);
+    assert.ok(queries.every(query => query.sql.startsWith('SELECT')));
+  });
+}
+
+test('incorrect password leaves all account data and the session intact before any transaction', async () => {
+  const original = structuredClone({ users, gardens });
+  const response = await request('/users/account', 'DELETE', { password: 'WrongPass123', id: 7 }, { userId: 12 });
+  assert.equal(response.status, 403);
+  assert.equal(response.body.code, 'INVALID_PASSWORD');
+  assert.match(response.body.message, /incorrect.*try again/);
+  assert.deepEqual({ users, gardens }, original);
+  assert.deepEqual(transactions, []);
+  assert.equal(response.cookie, null);
+  assert.ok(queries.every(query => query.sql.startsWith('SELECT')));
+  assert.ok(queries.every(query => query.params[0] === 12));
+});
+
+for (const password of ['TestPass123', 'WrongPass123']) {
+  test(`demo deletion remains blocked with supplied password ${password}`, async () => {
+    const original = structuredClone({ users, gardens });
+    const response = await request('/users/account', 'DELETE', { password });
+    assert.equal(response.status, 403);
+    assert.equal(response.body.code, 'DEMO_ACCOUNT_PROTECTED');
+    assert.deepEqual({ users, gardens }, original);
+    assert.deepEqual(transactions, []);
+    assert.equal(queries.length, 1);
+  });
+}
+
 test('normal account deletion commits and clears the session without affecting the demo account', async () => {
-  const response = await request('/users/account', 'DELETE', { id: 7 }, { userId: 12 });
+  // Distinct hashes establish that verification uses the session's account too.
+  users[1].password_hash = await bcrypt.hash('  MyCurrentPass123  ', 4);
+  const response = await request('/users/account', 'DELETE', {
+    id: 7, userId: 7, email: 'demo@plantplotter.com', password: '  MyCurrentPass123  '
+  }, { userId: 12 });
   assert.equal(response.status, 200);
   assert.deepEqual(transactions, ['connection', 'begin', 'commit', 'release']);
   assert.deepEqual(users.map(user => user.id), [7]);
   assert.deepEqual(gardens, [{ id: 1, user_id: 7 }]);
   assert.match(response.cookie, /Expires=Thu, 01 Jan 1970/);
+  assert.ok(queries.every(query => query.params[0] === 12));
 });
 
 test('a missing account is rejected by session verification and clears its cookie', async () => {

@@ -92,12 +92,36 @@ router.put('/profile', verifyToken, requireMutableAccount, async (req, res) => {
   }
 });
 
-// DELETE /api/users/account - Delete the authenticated user's own account
+// DELETE /api/users/account - Confirm the password before deleting the user's own account
 router.delete('/account', verifyToken, requireMutableAccount, async (req, res) => {
   const db = require('../config/db');
   let connection;
 
   try {
+    const { password } = req.body ?? {};
+    if (typeof password !== 'string' || password.length === 0) {
+      return sendErrorResponse(res, 400, 'Enter your current password to delete your account.', {
+        code: 'VALIDATION_ERROR'
+      });
+    }
+
+    const [accounts] = await db.execute(
+      'SELECT password_hash FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (accounts.length === 0) {
+      clearAuthCookie(res);
+      return sendErrorResponse(res, 404, 'User not found', { code: 'USER_NOT_FOUND' });
+    }
+
+    const bcrypt = require('bcrypt');
+    if (!await bcrypt.compare(password, accounts[0].password_hash)) {
+      // The session is still valid; allow password correction without signing out.
+      return sendErrorResponse(res, 403, 'Current password is incorrect. Check it and try again.', {
+        code: 'INVALID_PASSWORD'
+      });
+    }
+
     connection = await db.getConnection();
     await connection.beginTransaction();
 

@@ -18,7 +18,9 @@ export default function ProfileForm() {
   const [errors, setErrors] = useState({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const deletionPendingRef = useRef(false);
   const messageRef = useRef(null);
 
   // Update form data when user data changes
@@ -97,7 +99,7 @@ export default function ProfileForm() {
   };
 
   const handleDeleteAccount = async () => {
-    if (isProtectedDemo) return;
+    if (isProtectedDemo || deletionPendingRef.current) return;
     setDeleteError('');
     setMessage({ type: '', text: '' });
 
@@ -106,11 +108,19 @@ export default function ProfileForm() {
       return;
     }
 
+    if (!deletePassword) {
+      setDeleteError('Enter your current password to delete your account.');
+      return;
+    }
+
+    deletionPendingRef.current = true;
     setIsDeletingAccount(true);
     try {
-      await deleteAccount();
+      await deleteAccount(deletePassword);
+      setDeletePassword('');
     } catch (error) {
-      setDeleteError(getActionErrorMessage(error, 'Your account could not be deleted.', 'No account data was removed.'));
+      setDeleteError(getActionErrorMessage(error, 'Your account could not be deleted.', 'Please try again.'));
+      deletionPendingRef.current = false;
       setIsDeletingAccount(false);
     }
   };
@@ -267,6 +277,7 @@ export default function ProfileForm() {
                     setShowDeleteConfirm(true);
                     setDeleteError('');
                     setDeleteConfirmation('');
+                    setDeletePassword('');
                   }}
                   disabled={isSubmitting || isDeletingAccount}
                   className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
@@ -276,6 +287,21 @@ export default function ProfileForm() {
                 </button>
               ) : (
                 <div className="mt-4 space-y-3">
+                  <label className="block text-sm font-medium text-red-900" htmlFor="delete-account-password">
+                    Current password
+                  </label>
+                  <input
+                    id="delete-account-password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={deletePassword}
+                    onChange={(event) => setDeletePassword(event.target.value)}
+                    aria-describedby={deleteError ? 'delete-account-error' : undefined}
+                    disabled={isDeletingAccount}
+                    className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-red-500 focus:ring-2 focus:ring-red-500"
+                  />
                   <label className="block text-sm font-medium text-red-900" htmlFor="delete-account-confirmation">
                     Type DELETE to permanently delete your account.
                   </label>
@@ -292,7 +318,7 @@ export default function ProfileForm() {
                     disabled={isDeletingAccount}
                   />
                   {deleteError && (
-                    <p className="text-sm text-red-700">{deleteError}</p>
+                    <p id="delete-account-error" role="alert" className="text-sm text-red-700">{deleteError}</p>
                   )}
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <button
@@ -300,6 +326,7 @@ export default function ProfileForm() {
                       onClick={() => {
                         setShowDeleteConfirm(false);
                         setDeleteConfirmation('');
+                        setDeletePassword('');
                         setDeleteError('');
                       }}
                       disabled={isDeletingAccount}
@@ -310,7 +337,7 @@ export default function ProfileForm() {
                     <button
                       type="button"
                       onClick={handleDeleteAccount}
-                      disabled={isDeletingAccount || deleteConfirmation !== 'DELETE'}
+                      disabled={isDeletingAccount || deleteConfirmation !== 'DELETE' || !deletePassword}
                       className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
                     >
                       {isDeletingAccount ? (

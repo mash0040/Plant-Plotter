@@ -52,6 +52,15 @@ Requesting a reset link, invalid/expired/reused links, validation failures, and 
 
 Before deploying this API to an existing database, apply [session_version_migration.sql](plantplotter_db/session_version_migration.sql) once; fresh schemas already include the column. Cookies issued before this deployment lack a version and require a one-time sign-in. Deploy the API consistently across instances: an older API instance does not enforce revocation. See [database migration instructions](plantplotter_db/README.md#migrations).
 
+## Account Deletion
+
+`DELETE /api/users/account` requires the authenticated user's current password in
+the JSON request body. The API verifies it against that user's stored hash before
+opening the deletion transaction and always targets the authenticated user ID.
+Missing passwords return `400`; incorrect passwords return `403 INVALID_PASSWORD`
+without expiring the session. The UI also requires typing `DELETE` and keeps
+pending and retry feedback within the account-deletion confirmation.
+
 ## Shared Demo Account
 
 The seeded `demo@plantplotter.com` address is reserved for the general testing of the app 
