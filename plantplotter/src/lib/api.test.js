@@ -407,10 +407,11 @@ describe('apiClient error handling', () => {
       headers: { 'content-type': 'application/json' }
     }));
 
-    await apiClient.deleteAccount();
+    await apiClient.deleteAccount('  CurrentPass123  ');
 
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/users/account'), expect.objectContaining({
       method: 'DELETE',
+      body: JSON.stringify({ password: '  CurrentPass123  ' }),
       credentials: 'include',
       headers: expect.objectContaining({
         'X-CSRF-Protection': '1'

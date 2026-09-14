@@ -778,10 +778,11 @@ class ApiClient {
     }
   }
 
-  async deleteAccount() {
+  async deleteAccount(password) {
     try {
       const response = await this.request('/users/account', {
         method: 'DELETE',
+        body: JSON.stringify({ password }),
       });
       this.clearUserSessionStorage();
       return response;
