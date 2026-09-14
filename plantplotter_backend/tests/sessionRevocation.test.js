@@ -99,6 +99,61 @@ const getResetToken = async () => {
 const reset = (token, password = 'NewPass123') => request('reset-password', { token, password, confirmPassword: password });
 const claims = cookie => jwt.verify(cookie.slice(cookie.indexOf('=') + 1), process.env.JWT_SECRET);
 
+for (const [label, password] of [
+  ['ASCII', 'Aa1' + 'x'.repeat(69)],
+  ['multibyte', 'Aa1x' + '\ud83c\udf31'.repeat(17)]
+]) {
+  test(`registration and reset accept 72-byte ${label} passwords that can sign in`, async () => {
+    const email = 'boundary@example.com';
+    assert.equal(Buffer.byteLength(password, 'utf8'), 72);
+    assert.equal((await request('register', { username: 'Boundary gardener', email, password })).status, 201);
+    assert.equal((await login(password, email)).status, 200);
+    const token = await getResetToken();
+    assert.equal((await reset(token, password)).status, 200);
+    assert.equal((await login(password)).status, 200);
+    assert.equal(users[0].session_version, 1);
+  });
+}
+
+for (const [label, password] of [
+  ['ASCII suffix a', 'Aa1' + 'x'.repeat(69) + 'a'],
+  ['ASCII suffix b', 'Aa1' + 'x'.repeat(69) + 'b'],
+  ['accented', 'Aa1' + '\u00e9'.repeat(35)],
+  ['emoji', 'Aa1xx' + '\ud83c\udf31'.repeat(17)]
+]) {
+  test(`registration and reset reject over-limit ${label} before database or bcrypt work`, async t => {
+    const token = await getResetToken();
+    const original = structuredClone(users);
+    const hash = t.mock.method(bcrypt, 'hash', () => assert.fail('Must reject before hashing'));
+    const compare = t.mock.method(bcrypt, 'compare', () => assert.fail('Must reject before comparison'));
+    const execute = t.mock.method(require('../config/db'), 'execute', () => assert.fail('Must reject before database work'));
+    for (const response of [
+      await request('register', { username: 'Boundary gardener', email: 'boundary@example.com', password }),
+      await reset(token, password)
+    ]) {
+      assert.equal(response.status, 400);
+      assert.match(response.body.message, /too long.*72 UTF-8 bytes/);
+    }
+    assert.equal(hash.mock.callCount(), 0);
+    assert.equal(compare.mock.callCount(), 0);
+    assert.equal(execute.mock.callCount(), 0);
+    assert.deepEqual(users, original, 'Invalid passwords preserve reset tokens, hashes and sessions');
+    t.mock.restoreAll();
+    assert.equal((await reset(token)).status, 200, 'The same reset link works after correction');
+  });
+}
+
+test('existing over-limit passwords can still sign in and be replaced by reset', async () => {
+  const legacyPassword = 'Aa1' + 'x'.repeat(70);
+  users[0].password_hash = await bcrypt.hash(legacyPassword, 4);
+  assert.equal((await login(legacyPassword)).status, 200);
+  const token = await getResetToken();
+  assert.equal((await reset(token)).status, 200);
+  assert.equal((await login()).status, 401);
+  assert.equal((await login(legacyPassword)).status, 401);
+  assert.equal((await login('NewPass123')).status, 200);
+});
+
 test('login and verification omit account roles even for a previously privileged account', async () => {
   users[0].role = 'admin'; // Legacy database values confer no application privileges.
   const response = await login();

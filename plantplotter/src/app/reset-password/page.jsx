@@ -99,6 +99,7 @@ function ResetPasswordContent() {
                   </div>
                   <input
                     id="reset-password"
+                    aria-describedby="reset-password-rules"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="New password"
                     autoComplete="new-password"
@@ -163,7 +164,7 @@ function ResetPasswordContent() {
                 </div>
               </div>
 
-              <p className="text-xs text-gray-600">{PASSWORD_RULES_HINT}</p>
+              <p id="reset-password-rules" className="text-xs text-gray-600">{PASSWORD_RULES_HINT}</p>
             </div>
 
             <button
