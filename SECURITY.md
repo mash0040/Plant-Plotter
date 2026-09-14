@@ -42,6 +42,26 @@ Vercel preview domains are cross-site with `api.plantplotter.me` and are not par
 
 API tools used for manual testing must send both the authentication cookie and the CSRF header for unsafe endpoints. Safe methods such as `GET`, `HEAD`, and `OPTIONS` do not require the header.
 
+## Password Policy
+
+New passwords must be at least 8 JavaScript string units long, contain an ASCII
+uppercase letter, lowercase letter, and number, and fit within **72 UTF-8 bytes**.
+The minimum and complexity rules are unchanged. The maximum matches bcrypt's
+effective input boundary: accented letters and emoji can require multiple bytes.
+Passwords are never trimmed, normalized, or silently truncated by validation.
+
+Registration and password reset use the shared backend validator before database
+work or bcrypt hashing. The frontend mirrors it with `TextEncoder`; the backend
+uses `Buffer.byteLength(password, 'utf8')`. Over-limit input receives a clear
+validation error (`400` from the API). HTML `maxLength` is intentionally omitted:
+it counts UTF-16 units rather than UTF-8 bytes and can silently clip pasted input.
+Any future password-change flow must use the same new-password policy.
+
+Login and account-deletion confirmation continue to verify existing passwords
+without applying new-password rules, preserving access for accounts created
+under the previous policy. Existing over-limit hashes retain bcrypt's prefix
+semantics until the password is reset; this change does not migrate stored hashes.
+
 ## Password Reset
 
 Password-reset tokens are separate from authentication sessions. They remain short-lived, single-use values delivered through the reset link and are not stored as browser authentication credentials.

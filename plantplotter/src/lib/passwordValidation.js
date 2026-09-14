@@ -1,7 +1,8 @@
-// Password rules for new account creation. Keep in sync with
+// Password rules for registration and password reset/change. Keep in sync with
 // plantplotter_backend/utils/passwordValidation.js — both must accept/reject
 // the same inputs so backend and frontend never disagree.
 export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_BYTES = 72;
 
 export function validateNewPassword(password) {
   if (typeof password !== 'string' || password.length === 0) {
@@ -9,6 +10,10 @@ export function validateNewPassword(password) {
   }
   if (password.length < PASSWORD_MIN_LENGTH) {
     return `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`;
+  }
+  // Match Node's UTF-8 byte count, including multibyte Unicode input.
+  if (new TextEncoder().encode(password).length > PASSWORD_MAX_BYTES) {
+    return `Password is too long. Use no more than ${PASSWORD_MAX_BYTES} UTF-8 bytes; accented letters and emoji can use multiple bytes.`;
   }
   if (!/[A-Z]/.test(password)) {
     return 'Password must contain at least one uppercase letter';
@@ -22,4 +27,4 @@ export function validateNewPassword(password) {
   return null;
 }
 
-export const PASSWORD_RULES_HINT = 'At least 8 characters, with uppercase, lowercase, and a number.';
+export const PASSWORD_RULES_HINT = `At least ${PASSWORD_MIN_LENGTH} characters, with uppercase, lowercase, and a number. Maximum ${PASSWORD_MAX_BYTES} UTF-8 bytes; accented letters and emoji can use multiple bytes.`;

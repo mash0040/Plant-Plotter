@@ -115,7 +115,7 @@ export default function AuthForm({ initialMode = 'login' }) {
   const displayError = localError;
   const passwordAutocomplete = mode === 'register' ? 'new-password' : 'current-password';
   const passwordPlaceholder = mode === 'register'
-    ? `Create password (${PASSWORD_RULES_HINT.toLowerCase()})`
+    ? 'Create password'
     : 'Password';
 
   return (
@@ -128,7 +128,7 @@ export default function AuthForm({ initialMode = 'login' }) {
       )}
 
       {displayError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+        <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
           <p className="text-red-600 text-sm">{displayError}</p>
         </div>
@@ -193,6 +193,7 @@ export default function AuthForm({ initialMode = 'login' }) {
                 type={showPassword ? 'text' : 'password'}
                 placeholder={passwordPlaceholder}
                 autoComplete={passwordAutocomplete}
+                aria-describedby={mode === 'register' ? 'auth-password-rules' : undefined}
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
@@ -249,7 +250,7 @@ export default function AuthForm({ initialMode = 'login' }) {
                   </button>
                 </div>
               </div>
-              <p className="text-xs text-gray-600">
+              <p id="auth-password-rules" className="text-xs text-gray-600">
                 {PASSWORD_RULES_HINT}
               </p>
             </>
