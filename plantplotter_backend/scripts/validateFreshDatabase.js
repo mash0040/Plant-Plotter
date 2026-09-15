@@ -25,6 +25,23 @@ let backend;
 let backendClosed;
 let created = false;
 let backendOutput = '';
+let validationEnv;
+
+async function runRestore(expectedExit = 0) {
+  let result;
+  try {
+    result = await run(process.execPath, [path.resolve(__dirname, 'restoreDemoData.js')], {
+      cwd: workDir, env: validationEnv, windowsHide: true, timeout: 30000
+    });
+    assert.equal(expectedExit, 0, 'Restore should have refused this fixture');
+    assert.match(result.stdout, /Restore committed: 5 gardens, 65 plants, 23 tasks, 40 activities/);
+  } catch (error) {
+    if (expectedExit === 0) throw error;
+    assert.equal(error.code, expectedExit);
+    assert.match(error.stderr, /Restore failed/);
+    assert.doesNotMatch(error.stdout || '', /Restore committed/);
+  }
+}
 
 async function eventually(check, description) {
   for (let attempt = 0; attempt < 120; attempt += 1) {
@@ -197,6 +214,7 @@ async function validateAuth(port) {
   await request(`/gardens/${ownGarden.body.id}`, {}, newLogin.cookie, 200, 'DELETE');
   await request('/auth/reset-password', { token, password: newPassword, confirmPassword: newPassword }, null, 400);
   console.log('PASS: backend registration, login, password reset, token consumption, and session revocation');
+  await require('./validateDemoRestore')(db, request, runRestore);
 }
 
 async function main() {
@@ -224,13 +242,13 @@ async function main() {
   console.log('PASS: fresh schema and demo seed imported with no migrations');
 
   const apiPort = await freePort();
-  backend = spawn(process.execPath, [path.resolve(__dirname, '../server.js')], {
-    cwd: workDir, windowsHide: true,
-    env: { ...process.env, NODE_ENV: 'test', PORT: String(apiPort), JWT_SECRET: randomBytes(32).toString('hex'),
+  validationEnv = { ...process.env, NODE_ENV: 'test', PORT: String(apiPort), JWT_SECRET: randomBytes(32).toString('hex'),
       DB_HOST: '127.0.0.1', DB_PORT: String(dbPort), DB_USER: 'root', DB_PASSWORD: password,
       DB_NAME: 'garden_plotter', DB_SSL: 'false', DB_SSL_CA_PATH: '', DB_CONNECT_TIMEOUT_MS: '2000',
       EMAIL_PROVIDER: '', EMAIL_FROM: '', RESEND_API_KEY: '', SENDGRID_API_KEY: '',
-      PASSWORD_RESET_BASE_URL: 'http://localhost:3000/reset-password' }
+      PASSWORD_RESET_BASE_URL: 'http://localhost:3000/reset-password' };
+  backend = spawn(process.execPath, [path.resolve(__dirname, '../server.js')], {
+    cwd: workDir, windowsHide: true, env: validationEnv
   });
   backendClosed = once(backend, 'close');
   backend.stdout.on('data', chunk => { backendOutput += chunk; });

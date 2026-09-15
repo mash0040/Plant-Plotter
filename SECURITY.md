@@ -111,7 +111,12 @@ status changes, creation, and logout remain available. Visitor-created records
 and recurring follow-up tasks have no showcase key and can be deleted. Normal
 users retain their existing ownership-based permissions, even if a record has a
 showcase key. This policy prevents record deletion; it does not freeze showcase
-content or replace the manual recovery workflow planned in issue #119.
+content. The [manual demo restore command](plantplotter_db/README.md#restore-the-shared-demo)
+replaces only the stored demo owner's garden/planner/tracker data, including
+visitor-created records. It preserves account credentials, normal-user data,
+and the shared plant catalogue. It restores showcase keys, runs in one
+transaction, refuses inconsistent cross-owner tracker data, and closes its
+connection on success or failure. It is an operator command, not a public API.
 
 Existing databases need the [showcase protection migration](plantplotter_db/README.md#showcase-deletion-protection)
 before deploying this API. No additional environment variable is needed.
