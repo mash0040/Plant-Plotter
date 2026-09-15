@@ -31,6 +31,12 @@ test('fresh schema contains the columns used by current backend flows', () => {
   assert.doesNotMatch(table('users'), /\bpassword_reset_(?:token|expires)\b/);
 });
 
+test('garden deletion cascades to planted items, tasks, and activities', () => {
+  for (const name of ['planted_items', 'garden_tasks', 'garden_activities']) {
+    assert.match(table(name), /FOREIGN KEY \(garden_id\) REFERENCES gardens\(id\) ON DELETE CASCADE/);
+  }
+});
+
 test('fresh reset, session, and notes columns match established upgrade definitions', () => {
   for (const [file, name] of [
     ['password_reset_migration.sql', 'users'],
