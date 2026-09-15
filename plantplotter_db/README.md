@@ -28,6 +28,58 @@ The only seeded account is `demo@plantplotter.com`, explicitly assigned user ID 
 
 The schema does not drop existing data, but its `CREATE TABLE` statements are not an upgrade procedure and will fail on existing tables. Do not rerun the base schema or demo seed against an existing deployment. Configure the backend's `DB_NAME=garden_plotter` and other connection settings using the [backend environment template](../plantplotter_backend/.env.example).
 
+## Restore the shared demo
+
+Run this from the repository root in a terminal when the shared demo has drifted
+or before a recruiter review:
+
+```sh
+npm run demo:restore --workspace=plantplotter_backend
+```
+
+This is a Node command, not a SQL file to run in Workbench. It uses the backend's
+database environment variables, filling missing values from
+`plantplotter_backend/.env`. Existing environment variables take precedence.
+Check that those settings target the intended database; the command prints its
+host and database name. Production uses the backend's existing verified-TLS
+settings. The current schema, including #120's showcase-key migration, is required;
+this command makes no schema changes.
+
+**The command replaces all of the shared demo account's gardens, plants, tasks,
+and activities, including visitor-created records.** Back up first and run during
+a brief maintenance window with application writes paused. It restores the five
+gardens, 65 planted items, 23 tasks, and 40 activities defined by
+`data_instance.sql`, preserving its historical dates and showcase protection keys.
+It does not execute the seed SQL or change accounts, passwords, normal-user data,
+or the shared plant catalogue.
+
+Success prints `Restore committed: 5 gardens, 65 plants, 23 tasks, 40 activities.`
+The command commits or rolls back automatically and closes its connection; no
+Workbench `COMMIT` step is needed. On an error, inspect the reported problem before
+retrying. Missing/ambiguous/inactive demo identities, disabled foreign-key checks,
+non-InnoDB tables, and inconsistent tracker ownership are refused. Lock waits are
+limited to 10 seconds; finish other open transactions before trying again.
+
+The demo owner is resolved from the stored reserved email, not a fixed user ID.
+New database IDs are allocated, and all child garden references are remapped, so
+repeated runs produce the same canonical content without duplicate records or ID
+collisions with normal users. Record IDs and generated timestamps can change;
+reload open demo pages and reopen gardens from My Gardens after a restore.
+
+### Verify a restore
+
+- Sign in with the published demo credentials and confirm five gardens appear.
+- Open their planners and historical tracker entries; check that seed layouts
+  and care records are back, temporary records are gone, and showcase Delete
+  controls remain hidden. Confirm planner edits and task completion still work.
+- Run the command again and refresh: counts and content should stay the same.
+  Confirm a separate normal user's gardens and tracker data are unchanged.
+
+The disposable validator (`node plantplotter_backend/scripts/validateFreshDatabase.js`)
+also executes this command against MySQL, including repeated restores, restoration
+after all demo gardens are deleted, insert-failure rollback, cross-owner refusal,
+normal-user preservation, and demo login/protection checks.
+
 ## Migrations
 
 ### Deferred account-role cleanup
@@ -95,11 +147,10 @@ migration cannot infer that mapping from editable names or reconstruct deleted
 data. Check the protected demo has 5 keyed gardens, 23 keyed tasks, and 40 keyed
 activities; investigate any shortfall rather than applying the broad seed again.
 
-Issue #119's restore workflow is still pending. Its contract is to restore the
-canonical keys alongside content, under the stored demo owner, even when it
-allocates new record IDs. Privileged database restore operations remain possible;
-the protection applies to authenticated application DELETE requests. Permitted
-edits can still cause shared-data drift that requires that future restore.
+The [manual restore command](#restore-the-shared-demo) restores canonical keys
+alongside content under the stored demo owner, allocating new record IDs.
+It remains available because deletion protection applies to application API
+requests; permitted edits can still cause shared-data drift.
 
 For older password-reset schemas:
 
