@@ -292,27 +292,56 @@ const clearPlantedItemsForGarden = async (gardenId, userId) => {
 };
 
 const deleteGardenForUser = async (gardenId, userId) => {
-  const garden = await findGardenForUser(gardenId, userId);
-  if (!garden) return null;
+  const connection = await db.getConnection();
+  let connectionUsable = true;
 
-  const [plantDeleteResult] = await db.execute(
-    'DELETE FROM planted_items WHERE garden_id = ?',
-    [gardenId]
-  );
+  try {
+    await connection.beginTransaction();
+    // Share the planner replacement lock so saves and deletion cannot interleave.
+    const [gardens] = await connection.execute(
+      'SELECT id FROM gardens WHERE id = ? AND user_id = ? FOR UPDATE',
+      [gardenId, userId]
+    );
+    if (gardens.length === 0) {
+      await connection.rollback();
+      return null;
+    }
 
-  const [gardenDeleteResult] = await db.execute(
-    'DELETE FROM gardens WHERE id = ? AND user_id = ?',
-    [gardenId, userId]
-  );
+    // Lock the current rows to keep the reported count accurate during plant edits.
+    const [plantedItems] = await connection.execute(
+      'SELECT id FROM planted_items WHERE garden_id = ? FOR UPDATE',
+      [gardenId]
+    );
+    // Existing foreign keys cascade to planted items, tasks, and activities.
+    const [gardenDeleteResult] = await connection.execute(
+      'DELETE FROM gardens WHERE id = ? AND user_id = ?',
+      [gardenId, userId]
+    );
+    if (gardenDeleteResult.affectedRows === 0) {
+      await connection.rollback();
+      return null;
+    }
 
-  if (gardenDeleteResult.affectedRows === 0) {
-    return null;
+    await connection.commit();
+    return {
+      message: 'Garden deleted successfully',
+      deletedPlants: plantedItems.length
+    };
+  } catch (error) {
+    try {
+      await connection.rollback();
+    } catch (rollbackError) {
+      // Never return a connection with an uncertain transaction to the pool.
+      connectionUsable = false;
+      connection.destroy();
+      console.error('Garden deletion rollback error:', rollbackError.message);
+    }
+    throw error;
+  } finally {
+    if (connectionUsable) {
+      connection.release();
+    }
   }
-
-  return {
-    message: 'Garden deleted successfully',
-    deletedPlants: plantDeleteResult.affectedRows
-  };
 };
 
 const addPlantToGarden = async (gardenId, userId, plantData) => {
