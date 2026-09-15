@@ -52,6 +52,22 @@ const renderEditor = (task = null, onSave = vi.fn().mockResolvedValue(undefined)
 };
 
 describe('TaskEditModal notes', () => {
+  it('keeps showcase editing enabled and hides deletion, including after switching records', async () => {
+    const user = userEvent.setup();
+    const { props, rerender } = renderEditor({ ...savedTask, isDeletionProtected: true });
+    expect(screen.queryByRole('button', { name: 'Delete Task' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Showcase records stay available/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Update Task' })).toBeEnabled();
+    await user.type(screen.getByLabelText('Notes'), 'Demo exploration');
+    await user.click(screen.getByRole('button', { name: 'Update Task' }));
+    await waitFor(() => expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({ notes: 'Demo exploration' })));
+    rerender(<TaskEditModal {...props} task={{ ...savedTask, id: 8, isDeletionProtected: false }} />);
+    await user.click(screen.getByRole('button', { name: 'Delete Task' }));
+    rerender(<TaskEditModal {...props} task={{ ...savedTask, isDeletionProtected: true }} />);
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    expect(props.onDelete).not.toHaveBeenCalled();
+  });
+
   it('submits notes on creation and displays the fetched text when reopened', async () => {
     const user = userEvent.setup();
     const notes = 'Use rain barrel\nCheck café herbs 🌱';

@@ -5,6 +5,7 @@ const { validateGardenPayload } = require("../utils/gardenValidation");
 const { sendDatabaseAwareErrorResponse } = require("../utils/databaseAvailability");
 const { sendErrorResponse } = require("../utils/apiErrorResponse");
 const gardenService = require("../services/gardenService");
+const { requireDeletableDemoRecord } = require('../utils/demoDataProtection');
 
 // GET /api/gardens - Fetch all gardens for authenticated user with summaries
 router.get("/", verifyToken, async (req, res) => {
@@ -201,7 +202,7 @@ router.delete('/:id/plants', verifyToken, async (req, res) => {
 });
 
 // DELETE /api/gardens/:id - Delete garden for user
-router.delete("/:id", verifyToken, async (req, res) => {
+router.delete("/:id", verifyToken, requireDeletableDemoRecord('gardens'), async (req, res) => {
   const gardenId = req.params.id;
   const userId = req.user.id;
 

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
+const { withDemoProtection, requireDeletableDemoRecord } = require('../utils/demoDataProtection');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
 const { getTaskFieldErrors } = require('../utils/taskValidation');
@@ -39,7 +40,7 @@ router.get('/', verifyToken, async (req, res) => {
     query += ' ORDER BY t.due_date ASC';
 
     const [tasks] = await db.execute(query, params);
-    res.json(tasks);
+    res.json(await withDemoProtection(tasks, req.user.id));
   } catch (error) {
     console.error('Error fetching tasks:', error);
     sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to fetch tasks' });
@@ -128,7 +129,7 @@ router.post('/', verifyToken, async (req, res) => {
       [result.insertId, req.user.id]
     );
 
-    res.status(201).json(newTask[0]);
+    res.status(201).json(await withDemoProtection(newTask[0], req.user.id));
   } catch (error) {
     console.error('Error creating task:', error);
     sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to create task' });
@@ -297,7 +298,7 @@ const updateTask = async (req, res) => {
     );
 
     await connection.commit();
-    res.json(updatedTask[0]);
+    res.json(await withDemoProtection(updatedTask[0], req.user.id));
   } catch (error) {
     if (connection) {
       try {
@@ -319,7 +320,7 @@ router.put('/:id', verifyToken, updateTask);
 router.patch('/:id', verifyToken, updateTask);
 
 // DELETE /api/tasks/:id
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', verifyToken, requireDeletableDemoRecord('garden_tasks'), async (req, res) => {
   try {
     const [result] = await db.execute(
       'DELETE FROM garden_tasks WHERE id = ? AND user_id = ?',

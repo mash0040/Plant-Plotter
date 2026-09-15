@@ -144,6 +144,7 @@ const generateRecommendations = (garden, plantedItems = []) => {
 
 const transformGardenForList = (garden, plantedItems = []) => ({
   id: garden.id,
+  isDeletionProtected: garden.isDeletionProtected === true,
   name: garden.name,
   description: garden.description || '',
   width: garden.width,
@@ -167,6 +168,7 @@ const transformGardenForList = (garden, plantedItems = []) => ({
 
 const transformGardenSummary = (garden) => ({
   id: garden.id,
+  isDeletionProtected: garden.isDeletionProtected === true,
   name: garden.name,
   description: garden.description || '',
   width: garden.width,
@@ -189,6 +191,7 @@ const transformGardenSummary = (garden) => ({
 
 const transformGardenWithSummary = (garden, plantedItems = []) => ({
   id: garden.id,
+  isDeletionProtected: garden.isDeletionProtected === true,
   name: garden.name,
   description: garden.description || '',
   width: garden.width,
@@ -227,6 +230,7 @@ const transformDetailedGarden = (garden, plantedItems = []) => {
 
 const transformCreatedGarden = (garden) => ({
   id: garden.id,
+  isDeletionProtected: garden.isDeletionProtected === true,
   name: garden.name,
   description: garden.description || '',
   width: garden.width,
@@ -247,6 +251,7 @@ const transformCreatedGarden = (garden) => ({
 
 const transformUpdatedGarden = (garden) => ({
   id: garden.id,
+  isDeletionProtected: garden.isDeletionProtected === true,
   name: garden.name,
   description: garden.description || '',
   width: garden.width,

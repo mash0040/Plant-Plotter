@@ -1,4 +1,5 @@
 'use client';
+import DemoDeletionNotice from '@/components/DemoDeletionNotice';
 import { useState, useEffect } from 'react';
 import { X, Calendar, Trash2 } from 'lucide-react';
 import apiClient from '@/lib/api';
@@ -175,18 +176,19 @@ export default function LoadGardenModel({ isOpen, onClose, onLoad }) {
                     )}
                   </div>
                 </button>
-                <button
+                {!garden.isDeletionProtected && <button
                   type="button"
                   onClick={(e) => handleDelete(garden.id, e)}
                   aria-label={`Delete ${garden.name}`}
                   className="flex h-10 w-10 flex-shrink-0 items-center justify-center text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
                 >
                   <Trash2 className="w-4 h-4" />
-                </button>
+                </button>}
               </div>
             ))}
           </div>
         )}
+        {gardens.some(garden => garden.isDeletionProtected) && <DemoDeletionNotice className="mt-3" />}
       </div>
       <ConfirmationModal
         isOpen={Boolean(gardenPendingDelete)}

@@ -368,13 +368,13 @@ WHERE id = 'marigold';
 
 
 
-INSERT INTO gardens (id, user_id, name, description, width, height, grid_size, soil_type, location, status, plant_count) VALUES
+INSERT INTO gardens (demo_showcase_key, id, user_id, name, description, width, height, grid_size, soil_type, location, status, plant_count) VALUES
 -- Demo User Gardens (user_id = 1) - Rich sample data
-(1, 1, 'Main Vegetable Garden', 'Large productive vegetable garden with diverse crops and companion planting', 16, 12, 40, 'Loamy', 'Backyard', 'Active', 15),
-(2, 1, 'Mixed Berry & Flower Garden', 'Diverse garden combining berry bushes, flowers, and companion herbs', 14, 10, 40, 'Sandy', 'Front yard', 'Active', 13),
-(3, 1, 'Culinary Herb Collection', 'Comprehensive herb garden with cooking essentials and specialty varieties', 8, 8, 40, 'Loamy', 'Kitchen garden', 'Active', 12),
-(4, 1, 'Young Orchard', 'Developing fruit tree collection with understory plantings', 20, 15, 40, 'Clay', 'Side yard', 'Active', 11),
-(5, 1, 'Intensive Container Garden', 'Maximized small-space gardening with succession planting', 6, 4, 40, 'Loamy', 'Apartment balcony', 'Active', 14);
+('garden-1', 1, 1, 'Main Vegetable Garden', 'Large productive vegetable garden with diverse crops and companion planting', 16, 12, 40, 'Loamy', 'Backyard', 'Active', 15),
+('garden-2', 2, 1, 'Mixed Berry & Flower Garden', 'Diverse garden combining berry bushes, flowers, and companion herbs', 14, 10, 40, 'Sandy', 'Front yard', 'Active', 13),
+('garden-3', 3, 1, 'Culinary Herb Collection', 'Comprehensive herb garden with cooking essentials and specialty varieties', 8, 8, 40, 'Loamy', 'Kitchen garden', 'Active', 12),
+('garden-4', 4, 1, 'Young Orchard', 'Developing fruit tree collection with understory plantings', 20, 15, 40, 'Clay', 'Side yard', 'Active', 11),
+('garden-5', 5, 1, 'Intensive Container Garden', 'Maximized small-space gardening with succession planting', 6, 4, 40, 'Loamy', 'Apartment balcony', 'Active', 14);
 
 
 INSERT INTO planted_items (id, garden_id, plant_id, plant_name, plant_emoji, plant_size, plant_category, x_position, y_position, planted_date, notes) VALUES
@@ -455,85 +455,85 @@ INSERT INTO planted_items (id, garden_id, plant_id, plant_name, plant_emoji, pla
 (65, 5, 'nasturtium', 'Nasturtium', '🌸', 1, 'flowers', 5, 3, '2024-10-18', 'Trailing variety in hanging container');
 
 
-INSERT INTO garden_activities (id, garden_id, user_id, activity_type, plant_name, activity_date, activity_time, notes) VALUES
+INSERT INTO garden_activities (demo_showcase_key, id, garden_id, user_id, activity_type, plant_name, activity_date, activity_time, notes) VALUES
 -- Recent activities (July 2025)
-(1, 1, 1, 'watered', 'Tomato', '2025-07-23', '07:00:00', 'Morning watering for main vegetable garden'),
-(2, 3, 1, 'harvested', 'Basil', '2025-07-23', '18:30:00', 'Fresh basil for dinner'),
-(3, 1, 1, 'planted', 'Lettuce', '2025-07-22', '09:00:00', 'Succession planting for continuous harvest'),
-(4, 2, 1, 'fertilized', 'Strawberry', '2025-07-21', '10:15:00', 'Organic fertilizer for berry garden'),
-(5, 3, 1, 'watered', 'Rosemary', '2025-07-21', '07:30:00', 'Light watering for herb collection'),
-(6, 1, 1, 'harvested', 'Carrot', '2025-07-19', '18:45:00', 'Perfect size carrots ready!'),
-(7, 4, 1, 'watered', 'Apple Tree', '2025-07-19', '19:00:00', 'Deep watering for young orchard'),
-(8, 5, 1, 'planted', 'Cilantro', '2025-07-17', '14:30:00', 'Added to container garden'),
+('activity-1', 1, 1, 1, 'watered', 'Tomato', '2025-07-23', '07:00:00', 'Morning watering for main vegetable garden'),
+('activity-2', 2, 3, 1, 'harvested', 'Basil', '2025-07-23', '18:30:00', 'Fresh basil for dinner'),
+('activity-3', 3, 1, 1, 'planted', 'Lettuce', '2025-07-22', '09:00:00', 'Succession planting for continuous harvest'),
+('activity-4', 4, 2, 1, 'fertilized', 'Strawberry', '2025-07-21', '10:15:00', 'Organic fertilizer for berry garden'),
+('activity-5', 5, 3, 1, 'watered', 'Rosemary', '2025-07-21', '07:30:00', 'Light watering for herb collection'),
+('activity-6', 6, 1, 1, 'harvested', 'Carrot', '2025-07-19', '18:45:00', 'Perfect size carrots ready!'),
+('activity-7', 7, 4, 1, 'watered', 'Apple Tree', '2025-07-19', '19:00:00', 'Deep watering for young orchard'),
+('activity-8', 8, 5, 1, 'planted', 'Cilantro', '2025-07-17', '14:30:00', 'Added to container garden'),
 -- June activities
-(9, 1, 1, 'fertilized', 'Bell Pepper', '2025-06-14', '09:30:00', 'Calcium boost for better fruit set'),
-(10, 2, 1, 'watered', 'Lavender', '2025-06-12', '07:15:00', 'Light watering - drought tolerant'),
-(11, 5, 1, 'harvested', 'Spinach', '2025-06-12', '18:30:00', 'Baby spinach for salads'),
-(12, 4, 1, 'planted', 'Nasturtium', '2025-06-10', '10:00:00', 'Companion planting around fruit trees'),
-(13, 2, 1, 'harvested', 'Strawberry', '2025-06-07', '08:00:00', 'Sweet summer strawberries!'),
+('activity-9', 9, 1, 1, 'fertilized', 'Bell Pepper', '2025-06-14', '09:30:00', 'Calcium boost for better fruit set'),
+('activity-10', 10, 2, 1, 'watered', 'Lavender', '2025-06-12', '07:15:00', 'Light watering - drought tolerant'),
+('activity-11', 11, 5, 1, 'harvested', 'Spinach', '2025-06-12', '18:30:00', 'Baby spinach for salads'),
+('activity-12', 12, 4, 1, 'planted', 'Nasturtium', '2025-06-10', '10:00:00', 'Companion planting around fruit trees'),
+('activity-13', 13, 2, 1, 'harvested', 'Strawberry', '2025-06-07', '08:00:00', 'Sweet summer strawberries!'),
 -- May activities
-(14, 1, 1, 'harvested', 'Tomato', '2025-05-30', '08:00:00', 'Peak harvest season - plenty of ripe tomatoes!'),
-(15, 1, 1, 'watered', 'Bell Pepper', '2025-05-30', '18:30:00', 'Extra water during hot weather'),
-(16, 1, 1, 'fertilized', 'Cucumber', '2025-05-28', '09:15:00', 'Liquid fertilizer for heavy producing vines'),
-(17, 1, 1, 'harvested', 'Zucchini', '2025-05-25', '07:30:00', 'Daily harvest to keep plants producing'),
-(18, 2, 1, 'watered', 'Strawberry', '2025-05-25', '20:00:00', 'Evening watering to avoid heat stress'),
-(19, 5, 1, 'planted', 'Spinach', '2025-05-22', '06:00:00', 'Spring planting for cool weather crop'),
-(20, 2, 1, 'harvested', 'Blueberry', '2025-05-20', '07:45:00', 'Late spring blueberry harvest'),
+('activity-14', 14, 1, 1, 'harvested', 'Tomato', '2025-05-30', '08:00:00', 'Peak harvest season - plenty of ripe tomatoes!'),
+('activity-15', 15, 1, 1, 'watered', 'Bell Pepper', '2025-05-30', '18:30:00', 'Extra water during hot weather'),
+('activity-16', 16, 1, 1, 'fertilized', 'Cucumber', '2025-05-28', '09:15:00', 'Liquid fertilizer for heavy producing vines'),
+('activity-17', 17, 1, 1, 'harvested', 'Zucchini', '2025-05-25', '07:30:00', 'Daily harvest to keep plants producing'),
+('activity-18', 18, 2, 1, 'watered', 'Strawberry', '2025-05-25', '20:00:00', 'Evening watering to avoid heat stress'),
+('activity-19', 19, 5, 1, 'planted', 'Spinach', '2025-05-22', '06:00:00', 'Spring planting for cool weather crop'),
+('activity-20', 20, 2, 1, 'harvested', 'Blueberry', '2025-05-20', '07:45:00', 'Late spring blueberry harvest'),
 -- April activities
-(21, 4, 1, 'fertilized', 'Apple Tree', '2025-04-20', '17:30:00', 'Spring feeding for fruit trees'),
-(22, 3, 1, 'watered', 'Basil', '2025-04-18', '07:00:00', 'Keep herbs well watered'),
-(23, 3, 1, 'harvested', 'Oregano', '2025-04-15', '18:15:00', 'Fresh herbs for cooking'),
-(24, 1, 1, 'planted', 'Radish', '2025-04-15', '08:30:00', 'Quick growing spring crop'),
-(25, 5, 1, 'watered', 'Lettuce', '2025-04-12', '06:30:00', 'Early morning watering'),
+('activity-21', 21, 4, 1, 'fertilized', 'Apple Tree', '2025-04-20', '17:30:00', 'Spring feeding for fruit trees'),
+('activity-22', 22, 3, 1, 'watered', 'Basil', '2025-04-18', '07:00:00', 'Keep herbs well watered'),
+('activity-23', 23, 3, 1, 'harvested', 'Oregano', '2025-04-15', '18:15:00', 'Fresh herbs for cooking'),
+('activity-24', 24, 1, 1, 'planted', 'Radish', '2025-04-15', '08:30:00', 'Quick growing spring crop'),
+('activity-25', 25, 5, 1, 'watered', 'Lettuce', '2025-04-12', '06:30:00', 'Early morning watering'),
 -- March activities
-(26, 2, 1, 'harvested', 'Raspberry', '2025-03-10', '07:00:00', 'Early raspberry harvest'),
-(27, 2, 1, 'fertilized', 'Rose Bush', '2025-03-10', '18:00:00', 'Spring feeding for roses'),
-(28, 1, 1, 'planted', 'Lettuce', '2025-03-08', '07:15:00', 'Cool weather lettuce varieties'),
-(29, 3, 1, 'watered', 'Thyme', '2025-03-05', '08:00:00', 'Minimal water for Mediterranean herbs'),
-(30, 1, 1, 'harvested', 'Cucumber', '2025-03-05', '19:30:00', 'Perfect cucumbers for salads'),
+('activity-26', 26, 2, 1, 'harvested', 'Raspberry', '2025-03-10', '07:00:00', 'Early raspberry harvest'),
+('activity-27', 27, 2, 1, 'fertilized', 'Rose Bush', '2025-03-10', '18:00:00', 'Spring feeding for roses'),
+('activity-28', 28, 1, 1, 'planted', 'Lettuce', '2025-03-08', '07:15:00', 'Cool weather lettuce varieties'),
+('activity-29', 29, 3, 1, 'watered', 'Thyme', '2025-03-05', '08:00:00', 'Minimal water for Mediterranean herbs'),
+('activity-30', 30, 1, 1, 'harvested', 'Cucumber', '2025-03-05', '19:30:00', 'Perfect cucumbers for salads'),
 -- February activities
-(31, 3, 1, 'fertilized', 'Parsley', '2025-02-03', '09:00:00', 'Boost for continuous leaf production'),
-(32, 1, 1, 'planted', 'Broccoli', '2025-02-01', '06:45:00', 'Early planting for cool weather harvest'),
-(33, 4, 1, 'watered', 'Fig Tree', '2025-02-01', '19:45:00', 'Deep watering during dormant season'),
+('activity-31', 31, 3, 1, 'fertilized', 'Parsley', '2025-02-03', '09:00:00', 'Boost for continuous leaf production'),
+('activity-32', 32, 1, 1, 'planted', 'Broccoli', '2025-02-01', '06:45:00', 'Early planting for cool weather harvest'),
+('activity-33', 33, 4, 1, 'watered', 'Fig Tree', '2025-02-01', '19:45:00', 'Deep watering during dormant season'),
 -- January activities
-(34, 4, 1, 'harvested', 'Apple Tree', '2025-01-30', '09:00:00', 'Winter apple storage varieties'),
-(35, 3, 1, 'planted', 'Cilantro', '2025-01-30', '16:00:00', 'Cool weather cilantro planting'),
-(36, 2, 1, 'fertilized', 'Strawberry', '2025-01-28', '08:30:00', 'Winter feeding for next season production'),
-(37, 4, 1, 'harvested', 'Pear Tree', '2025-01-25', '10:15:00', 'Late season pear varieties'),
-(38, 5, 1, 'watered', 'Spinach', '2025-01-25', '07:00:00', 'Winter spinach growing well'),
-(39, 5, 1, 'planted', 'Radish', '2025-01-22', '06:30:00', 'Winter radish succession planting'),
-(40, 4, 1, 'harvested', 'Cherry Tree', '2025-01-20', '08:45:00', 'Preserved cherry varieties');
+('activity-34', 34, 4, 1, 'harvested', 'Apple Tree', '2025-01-30', '09:00:00', 'Winter apple storage varieties'),
+('activity-35', 35, 3, 1, 'planted', 'Cilantro', '2025-01-30', '16:00:00', 'Cool weather cilantro planting'),
+('activity-36', 36, 2, 1, 'fertilized', 'Strawberry', '2025-01-28', '08:30:00', 'Winter feeding for next season production'),
+('activity-37', 37, 4, 1, 'harvested', 'Pear Tree', '2025-01-25', '10:15:00', 'Late season pear varieties'),
+('activity-38', 38, 5, 1, 'watered', 'Spinach', '2025-01-25', '07:00:00', 'Winter spinach growing well'),
+('activity-39', 39, 5, 1, 'planted', 'Radish', '2025-01-22', '06:30:00', 'Winter radish succession planting'),
+('activity-40', 40, 4, 1, 'harvested', 'Cherry Tree', '2025-01-20', '08:45:00', 'Preserved cherry varieties');
 
-INSERT INTO garden_tasks (id, garden_id, user_id, title, description, plant_name, task_type, status, priority, due_date, estimated_duration, is_recurring, recurring_pattern) VALUES
+INSERT INTO garden_tasks (demo_showcase_key, id, garden_id, user_id, title, description, plant_name, task_type, status, priority, due_date, estimated_duration, is_recurring, recurring_pattern) VALUES
 -- Today's tasks (July 23, 2025)
-(1, 1, 1, 'Water tomato plants', 'Morning watering for tomato seedlings', 'Tomato', 'water', 'pending', 'high', '2025-07-23', 15, TRUE, 'daily'),
-(2, 1, 1, 'Check pest damage on lettuce', 'Inspect lettuce leaves for pest damage and treat if necessary', 'Lettuce', 'inspect', 'pending', 'high', '2025-07-23', 10, FALSE, NULL),
-(3, 3, 1, 'Harvest basil leaves', 'Pick fresh basil leaves for drying', 'Basil', 'harvest', 'pending', 'medium', '2025-07-23', 20, FALSE, NULL),
+('task-1', 1, 1, 1, 'Water tomato plants', 'Morning watering for tomato seedlings', 'Tomato', 'water', 'pending', 'high', '2025-07-23', 15, TRUE, 'daily'),
+('task-2', 2, 1, 1, 'Check pest damage on lettuce', 'Inspect lettuce leaves for pest damage and treat if necessary', 'Lettuce', 'inspect', 'pending', 'high', '2025-07-23', 10, FALSE, NULL),
+('task-3', 3, 3, 1, 'Harvest basil leaves', 'Pick fresh basil leaves for drying', 'Basil', 'harvest', 'pending', 'medium', '2025-07-23', 20, FALSE, NULL),
 -- Tomorrow's tasks (July 24, 2025)
-(4, 3, 1, 'Water herb garden', 'Gentle watering for delicate herbs', 'Herbs', 'water', 'pending', 'medium', '2025-07-24', 10, TRUE, 'daily'),
-(5, 2, 1, 'Fertilize strawberry plants', 'Apply organic fertilizer to strawberry bed', 'Strawberry', 'fertilize', 'pending', 'medium', '2025-07-24', 25, FALSE, NULL),
+('task-4', 4, 3, 1, 'Water herb garden', 'Gentle watering for delicate herbs', 'Herbs', 'water', 'pending', 'medium', '2025-07-24', 10, TRUE, 'daily'),
+('task-5', 5, 2, 1, 'Fertilize strawberry plants', 'Apply organic fertilizer to strawberry bed', 'Strawberry', 'fertilize', 'pending', 'medium', '2025-07-24', 25, FALSE, NULL),
 -- This week's tasks
-(6, 1, 1, 'Fertilize carrot bed', 'Apply organic fertilizer to carrot growing area', 'Carrot', 'fertilize', 'pending', 'medium', '2025-07-25', 30, FALSE, NULL),
-(7, 1, 1, 'Water pepper plants', 'Deep watering for pepper plants', 'Bell Pepper', 'water', 'pending', 'medium', '2025-07-26', 15, TRUE, 'every-2-days'),
-(8, 5, 1, 'Harvest container herbs', 'Pick herbs from balcony containers', 'Mixed Herbs', 'harvest', 'pending', 'low', '2025-07-27', 15, FALSE, NULL),
+('task-6', 6, 1, 1, 'Fertilize carrot bed', 'Apply organic fertilizer to carrot growing area', 'Carrot', 'fertilize', 'pending', 'medium', '2025-07-25', 30, FALSE, NULL),
+('task-7', 7, 1, 1, 'Water pepper plants', 'Deep watering for pepper plants', 'Bell Pepper', 'water', 'pending', 'medium', '2025-07-26', 15, TRUE, 'every-2-days'),
+('task-8', 8, 5, 1, 'Harvest container herbs', 'Pick herbs from balcony containers', 'Mixed Herbs', 'harvest', 'pending', 'low', '2025-07-27', 15, FALSE, NULL),
 -- Next week's tasks
-(9, 1, 1, 'Plant new lettuce seeds', 'Start new batch of lettuce for continuous harvest', 'Lettuce', 'plant', 'pending', 'low', '2025-07-30', 45, FALSE, NULL),
-(10, 1, 1, 'Harvest tomatoes', 'Pick ripe tomatoes for kitchen use', 'Tomato', 'harvest', 'pending', 'medium', '2025-08-05', 25, FALSE, NULL),
-(11, 3, 1, 'Prune herb garden', 'Trim overgrown herbs to encourage new growth', 'Various Herbs', 'prune', 'pending', 'low', '2025-08-08', 60, FALSE, NULL),
-(12, 1, 1, 'Weed vegetable beds', 'Remove weeds from main vegetable growing areas', 'All Plants', 'weed', 'pending', 'medium', '2025-08-10', 90, TRUE, 'weekly'),
+('task-9', 9, 1, 1, 'Plant new lettuce seeds', 'Start new batch of lettuce for continuous harvest', 'Lettuce', 'plant', 'pending', 'low', '2025-07-30', 45, FALSE, NULL),
+('task-10', 10, 1, 1, 'Harvest tomatoes', 'Pick ripe tomatoes for kitchen use', 'Tomato', 'harvest', 'pending', 'medium', '2025-08-05', 25, FALSE, NULL),
+('task-11', 11, 3, 1, 'Prune herb garden', 'Trim overgrown herbs to encourage new growth', 'Various Herbs', 'prune', 'pending', 'low', '2025-08-08', 60, FALSE, NULL),
+('task-12', 12, 1, 1, 'Weed vegetable beds', 'Remove weeds from main vegetable growing areas', 'All Plants', 'weed', 'pending', 'medium', '2025-08-10', 90, TRUE, 'weekly'),
 -- Recurring maintenance tasks
-(13, 4, 1, 'Deep water fruit trees', 'Weekly deep watering for young orchard', 'Fruit Trees', 'water', 'pending', 'medium', '2025-07-27', 45, TRUE, 'weekly'),
-(14, 2, 1, 'Deadhead flowers', 'Remove spent blooms to encourage flowering', 'Flowers', 'maintenance', 'pending', 'low', '2025-07-29', 20, TRUE, 'weekly'),
-(15, 5, 1, 'Check container moisture', 'Inspect all containers for proper moisture levels', 'All Container Plants', 'inspect', 'pending', 'medium', '2025-07-24', 10, TRUE, 'daily'),
+('task-13', 13, 4, 1, 'Deep water fruit trees', 'Weekly deep watering for young orchard', 'Fruit Trees', 'water', 'pending', 'medium', '2025-07-27', 45, TRUE, 'weekly'),
+('task-14', 14, 2, 1, 'Deadhead flowers', 'Remove spent blooms to encourage flowering', 'Flowers', 'maintenance', 'pending', 'low', '2025-07-29', 20, TRUE, 'weekly'),
+('task-15', 15, 5, 1, 'Check container moisture', 'Inspect all containers for proper moisture levels', 'All Container Plants', 'inspect', 'pending', 'medium', '2025-07-24', 10, TRUE, 'daily'),
 -- Monthly tasks
-(16, 1, 1, 'Soil amendment', 'Add compost to vegetable beds', 'All Vegetables', 'maintenance', 'pending', 'low', '2025-08-01', 120, TRUE, 'monthly'),
-(17, 2, 1, 'Rose care', 'Prune, fertilize and check for disease', 'Rose Bush', 'maintenance', 'pending', 'medium', '2025-08-15', 60, TRUE, 'monthly'),
-(18, 4, 1, 'Fruit tree inspection', 'Check for pests, disease, and pruning needs', 'All Fruit Trees', 'inspect', 'pending', 'high', '2025-08-01', 90, TRUE, 'monthly'),
+('task-16', 16, 1, 1, 'Soil amendment', 'Add compost to vegetable beds', 'All Vegetables', 'maintenance', 'pending', 'low', '2025-08-01', 120, TRUE, 'monthly'),
+('task-17', 17, 2, 1, 'Rose care', 'Prune, fertilize and check for disease', 'Rose Bush', 'maintenance', 'pending', 'medium', '2025-08-15', 60, TRUE, 'monthly'),
+('task-18', 18, 4, 1, 'Fruit tree inspection', 'Check for pests, disease, and pruning needs', 'All Fruit Trees', 'inspect', 'pending', 'high', '2025-08-01', 90, TRUE, 'monthly'),
 -- Seasonal tasks
-(19, 3, 1, 'Herb seed collection', 'Collect seeds from mature herb plants', 'Various Herbs', 'harvest', 'pending', 'low', '2025-09-15', 45, FALSE, NULL),
-(20, 1, 1, 'Fall planting prep', 'Prepare beds for cool-season crops', 'Fall Vegetables', 'plant', 'pending', 'medium', '2025-08-20', 120, FALSE, NULL),
+('task-19', 19, 3, 1, 'Herb seed collection', 'Collect seeds from mature herb plants', 'Various Herbs', 'harvest', 'pending', 'low', '2025-09-15', 45, FALSE, NULL),
+('task-20', 20, 1, 1, 'Fall planting prep', 'Prepare beds for cool-season crops', 'Fall Vegetables', 'plant', 'pending', 'medium', '2025-08-20', 120, FALSE, NULL),
 -- Completed tasks (examples)
-(21, 1, 1, 'Water morning vegetables', 'Completed morning watering routine', 'Vegetables', 'water', 'completed', 'high', '2025-07-22', 20, TRUE, 'daily'),
-(22, 3, 1, 'Harvest fresh herbs', 'Picked herbs for dinner', 'Basil, Parsley', 'harvest', 'completed', 'medium', '2025-07-22', 15, FALSE, NULL),
-(23, 2, 1, 'Berry bush maintenance', 'Pruned and weeded around berry bushes', 'Berries', 'maintenance', 'completed', 'low', '2025-07-21', 75, FALSE, NULL);
+('task-21', 21, 1, 1, 'Water morning vegetables', 'Completed morning watering routine', 'Vegetables', 'water', 'completed', 'high', '2025-07-22', 20, TRUE, 'daily'),
+('task-22', 22, 3, 1, 'Harvest fresh herbs', 'Picked herbs for dinner', 'Basil, Parsley', 'harvest', 'completed', 'medium', '2025-07-22', 15, FALSE, NULL),
+('task-23', 23, 2, 1, 'Berry bush maintenance', 'Pruned and weeded around berry bushes', 'Berries', 'maintenance', 'completed', 'low', '2025-07-21', 75, FALSE, NULL);
 

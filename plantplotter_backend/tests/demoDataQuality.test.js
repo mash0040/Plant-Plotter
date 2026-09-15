@@ -119,6 +119,19 @@ test('every demo owner and garden reference resolves to an explicitly seeded rec
   }
 });
 
+test('canonical records carry unique stable keys and new records default to unprotected', () => {
+  const schema = fs.readFileSync(path.join(repoRoot, 'plantplotter_db', 'plantPlotterSchema.sql'), 'utf8');
+  for (const [table, prefix, count] of [['gardens', 'garden', 5], ['garden_tasks', 'task', 23], ['garden_activities', 'activity', 40]]) {
+    const rows = seedRows(table);
+    assert.equal(rows.length, count);
+    assert.deepEqual(rows.map(row => row.demo_showcase_key), rows.map(row => `${prefix}-${row.id}`));
+    assert.equal(new Set(rows.map(row => row.demo_showcase_key)).size, count);
+    const definition = schema.match(new RegExp(`CREATE TABLE ${table} \\(([\\s\\S]*?)\\n\\)`))[1];
+    assert.match(definition, /demo_showcase_key VARCHAR\(64\) NULL DEFAULT NULL/);
+    assert.match(definition, /UNIQUE KEY \w+ \(user_id, demo_showcase_key\)/);
+  }
+});
+
 test('each showcase garden retains planted items, tasks, and activities', () => {
   const gardens = seedRows('gardens');
   assert.ok(gardens.length >= 5, 'Preserve the five showcase gardens');

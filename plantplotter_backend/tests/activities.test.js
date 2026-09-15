@@ -83,7 +83,7 @@ for (const method of ['POST', 'PUT']) {
       };
       const response = await request(method, { ...activity, activity_time: input });
       assert.equal(response.status, method === 'POST' ? 201 : 200);
-      assert.deepEqual(response.body, saved);
+      assert.deepEqual(response.body, { ...saved, isDeletionProtected: false });
     });
   }
 
@@ -125,7 +125,7 @@ for (const method of ['POST', 'PUT']) {
       };
       const response = await request(method, { ...activity, activity_type: type });
       assert.equal(response.status, method === 'POST' ? 201 : 200);
-      assert.deepEqual(response.body, saved);
+      assert.deepEqual(response.body, { ...saved, isDeletionProtected: false });
       assert.equal(queries.length, 3);
     });
   }

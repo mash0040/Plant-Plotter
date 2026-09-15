@@ -11,7 +11,7 @@ Explore the app with the shared demo account:
 - Email: demo@plantplotter.com
 - Password: demo123
 
-The demo includes five sample gardens with saved layouts and care history. Its account details are protected; you can still manage gardens, use the planner, and track care. Create your own account for a personal workspace.
+The demo includes five sample gardens with saved layouts and care history. Its account details and showcase records are protected from deletion. You can edit layouts, track care, and create and delete your own demo records. Changes are shared with other visitors; create your own account for a personal workspace.
 
 ## Project Background
 

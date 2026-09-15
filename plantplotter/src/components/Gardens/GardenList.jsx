@@ -1,4 +1,5 @@
 'use client';
+import DemoDeletionNotice from '@/components/DemoDeletionNotice';
 import Link from 'next/link';
 import { Leaf, Plus, Edit, Trash2, Eye, MapPin, Ruler } from 'lucide-react';
 
@@ -169,15 +170,16 @@ export default function GardenList({
                     <Edit className="w-4 h-4" />
                     Edit
                   </button>
-                  <button
+                  {!garden.isDeletionProtected && <button
                     onClick={(e) => handleDelete(garden, e)}
                     className="min-h-10 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center gap-1"
                     aria-label={`Delete ${garden.name}`}
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="sm:hidden lg:inline">Delete</span>
-                  </button>
+                  </button>}
                 </div>
+                {garden.isDeletionProtected && <DemoDeletionNotice className="mt-3" />}
               </div>
             ))}
           </div>
