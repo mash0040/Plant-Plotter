@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const verifyToken = require('../middleware/verifyToken');
+const { withDemoProtection, requireDeletableDemoRecord } = require('../utils/demoDataProtection');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
 const allowedActivityTypes = ['planted', 'watered', 'fertilized', 'harvested', 'pruned', 'weeded'];
@@ -44,7 +45,7 @@ router.get('/', verifyToken, async (req, res) => {
     query += ' ORDER BY a.activity_date DESC, a.activity_time DESC';
 
     const [activities] = await db.execute(query, params);
-    res.json(activities);
+    res.json(await withDemoProtection(activities, req.user.id));
   } catch (error) {
     console.error('Error fetching activities:', error);
     sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to fetch activities' });
@@ -106,7 +107,7 @@ router.post('/', verifyToken, async (req, res) => {
       [result.insertId, req.user.id]
     );
 
-    res.status(201).json(newActivity[0]);
+    res.status(201).json(await withDemoProtection(newActivity[0], req.user.id));
   } catch (error) {
     console.error('Error creating activity:', error);
     sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to create activity' });
@@ -164,7 +165,7 @@ router.put('/:id', verifyToken, async (req, res) => {
       [activityId, req.user.id]
     );
 
-    res.json(updatedActivity[0]);
+    res.json(await withDemoProtection(updatedActivity[0], req.user.id));
   } catch (error) {
     console.error('Error updating activity:', error);
     sendDatabaseAwareErrorResponse(res, error, { error: 'Failed to update activity' });
@@ -172,7 +173,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 });
 
 // DELETE /api/activities/:id - Delete activity
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', verifyToken, requireDeletableDemoRecord('garden_activities'), async (req, res) => {
   try {
     const activityId = req.params.id;
     

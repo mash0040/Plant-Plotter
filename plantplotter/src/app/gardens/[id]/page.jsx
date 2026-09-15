@@ -1,4 +1,5 @@
 'use client';
+import DemoDeletionNotice from '@/components/DemoDeletionNotice';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -1018,7 +1019,7 @@ function GardenDetailPageContent() {
               <div className="space-y-4 sm:space-y-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Garden Settings</h3>
                 
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6">
+                {garden.isDeletionProtected ? <DemoDeletionNotice /> : <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6">
                   <h4 className="font-semibold text-red-800 mb-2">Danger Zone</h4>
                   <p className="text-sm text-red-600 mb-4">
                     Once you delete a garden, there is no going back. Please be certain.
@@ -1029,7 +1030,7 @@ function GardenDetailPageContent() {
                   >
                     Delete Garden
                   </button>
-                </div>
+                </div>}
               </div>
             )}
           </div>

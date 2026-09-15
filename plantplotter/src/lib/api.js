@@ -322,6 +322,7 @@ class ApiClient {
       const transformedGardens = gardens.map(garden => {
         return {
           id: garden.id,
+          isDeletionProtected: garden.isDeletionProtected === true,
           name: garden.name,
           description: garden.description || '',
           // Handle both possible dimension formats
@@ -365,6 +366,7 @@ class ApiClient {
 
       return gardens.map(garden => ({
         id: garden.id,
+        isDeletionProtected: garden.isDeletionProtected === true,
         name: garden.name,
         description: garden.description || '',
         dimensions: {

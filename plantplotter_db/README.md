@@ -57,11 +57,49 @@ These files remain available only for upgrading older databases. Back up the dat
 | `password_reset_migration.sql` | `users.reset_password_token_hash`, `users.reset_password_expires`, or `idx_users_reset_password_token_hash` | Checks names and adds only missing columns/index. |
 | `session_version_migration.sql` | `users.session_version` | Apply once; duplicate column otherwise. |
 | `task_notes_migration.sql` | `garden_tasks.notes` | Apply once; duplicate column otherwise. |
+| `demo_showcase_protection_migration.sql` | `demo_showcase_key` on gardens, tasks, and activities | Apply once; backfills original seed IDs owned by the stored demo identity. |
 | `task_type_options_migration.sql` | `treat` or `other` in `garden_tasks.task_type` | Reapplies the established enum; inspect any custom values first. |
 | `task_recurrence_migration.sql` | `chk_task_recurrence` | Apply once; duplicate constraint otherwise. Normalizes existing recurrence state. |
 | `performance_indexes.sql` | Any of its six named performance indexes | Checks index names and adds only missing indexes. Requires routine creation privileges. |
 
 Inspect `SHOW CREATE TABLE users;`, `SHOW CREATE TABLE garden_tasks;`, and `SHOW INDEX FROM <table>;` for the tables listed in `performance_indexes.sql`. Name checks in repeatable migrations do not repair an existing definition with the wrong type or indexed columns; review such differences separately.
+
+### Showcase deletion protection
+
+For existing installations using the original seed IDs, apply before deploying
+the updated API:
+
+```sh
+mysql -u <user> -p garden_plotter < demo_showcase_protection_migration.sql
+```
+
+Fresh installations already include these columns and keys; skip the migration.
+Back up and inspect the existing data first. The migration adds nullable
+`demo_showcase_key` columns and a unique `(user_id, demo_showcase_key)` index to
+`gardens`, `garden_tasks`, and `garden_activities`. It marks only rows owned by
+the stored `demo@plantplotter.com` identity (case/outer whitespace normalized),
+using the original seed IDs: gardens 1–5, tasks 1–23, activities 1–40. It does not
+assume the demo user's ID is 1 and does not modify normal users' record values.
+Existing timestamps are preserved. This is a one-time migration; inspect partial
+application before retrying because MySQL DDL commits independently.
+
+The keys are `garden-<seed ID>`, `task-<seed ID>`, and `activity-<seed ID>`.
+Names, content, and database IDs can change without changing these keys. The API
+never accepts keys from clients; new records and recurring follow-ups remain
+unmarked and deletable. All seeded gardens/tasks/activities are protected from
+deletion; planner changes, record edits, and task status changes remain allowed.
+
+If a deployment imported the seed under different record IDs, an operator must
+map its actual showcase records to these keys before enabling protection. The
+migration cannot infer that mapping from editable names or reconstruct deleted
+data. Check the protected demo has 5 keyed gardens, 23 keyed tasks, and 40 keyed
+activities; investigate any shortfall rather than applying the broad seed again.
+
+Issue #119's restore workflow is still pending. Its contract is to restore the
+canonical keys alongside content, under the stored demo owner, even when it
+allocates new record IDs. Privileged database restore operations remain possible;
+the protection applies to authenticated application DELETE requests. Permitted
+edits can still cause shared-data drift that requires that future restore.
 
 For older password-reset schemas:
 

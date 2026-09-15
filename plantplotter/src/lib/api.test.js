@@ -19,6 +19,14 @@ const createJsonResponse = ({ status, body, headers = {} }) => ({
 });
 
 describe('apiClient error handling', () => {
+  it.each(['getGardens', 'getGardenSummaries'])('preserves server protection in %s', async (method) => {
+    fetch.mockResolvedValue(createJsonResponse({ status: 200,
+      body: [{ id: 1, name: 'Showcase', isDeletionProtected: true }, { id: 2, name: 'Experiment', isDeletionProtected: false }],
+      headers: { 'content-type': 'application/json' } }));
+    const gardens = await apiClient[method]();
+    expect(gardens.map(garden => garden.isDeletionProtected)).toEqual([true, false]);
+  });
+
   beforeEach(() => {
     localStorage.clear();
     globalThis.fetch = vi.fn();

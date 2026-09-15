@@ -94,7 +94,7 @@ test('completes an owned legacy task with status only and records the timestamp'
   ]);
   const response = await request({ status: 'completed', title: 'Must not overwrite metadata', notes: 'x'.repeat(2001) });
   assert.equal(response.status, 200);
-  assert.deepEqual(response.body, completed);
+  assert.deepEqual(response.body, { ...completed, isDeletionProtected: false });
   connection.assertFinished();
   assert.deepEqual(connection.events, ['begin', 'execute', 'execute', 'execute', 'commit', 'release']);
 });

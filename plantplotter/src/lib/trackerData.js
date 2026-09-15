@@ -109,6 +109,7 @@ export const buildActivityCalendar = (activities, plantedItems = []) => {
 
     calendar[dateKey].push({
       id: activity.id,
+      isDeletionProtected: activity.isDeletionProtected === true,
       activity: activity.activity_type,
       plant: plantName,
       notes: activity.notes || '',

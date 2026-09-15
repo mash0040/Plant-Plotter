@@ -102,6 +102,8 @@ async function validateDemo(request) {
   assert.ok(gardens.length >= 5, 'Demo account must see the showcase gardens');
   const totals = { plants: 0, tasks: 0, activities: 0 };
   for (const garden of gardens) {
+    assert.equal(garden.isDeletionProtected, true);
+    assert.ok(!Object.hasOwn(garden, 'demo_showcase_key'));
     await request(`/gardens/${garden.id}`, null, demo.cookie);
     const plants = (await request(`/gardens/${garden.id}/plants`, null, demo.cookie)).body;
     assert.ok(plants.length > 0, `${garden.name}: planner must have planted items`);
@@ -112,19 +114,34 @@ async function validateDemo(request) {
       assert.ok(records.every(record => record.garden_id === garden.id && record.user_id === users[0].id),
         `${garden.name}: ${route} must belong to the demo user and selected garden`);
       totals[route] += records.length;
+      assert.ok(records.every(record => record.isDeletionProtected === true && !Object.hasOwn(record, 'demo_showcase_key')));
+      const blocked = await request(`/${route}/${records[0].id}`, {}, demo.cookie, 403, 'DELETE');
+      assert.equal(blocked.body.code, 'DEMO_DATA_PROTECTED');
     }
+    const blocked = await request(`/gardens/${garden.id}`, {}, demo.cookie, 403, 'DELETE');
+    assert.equal(blocked.body.code, 'DEMO_DATA_PROTECTED');
   }
   assert.ok(totals.plants >= 65 && totals.tasks >= 23 && totals.activities >= 40,
     'Demo API must expose the populated showcase dataset');
+  const experiment = await request('/gardens', { name: 'Demo experiment', width: 4, height: 4 }, demo.cookie, 201);
+  assert.equal(experiment.body.isDeletionProtected, false);
+  await request(`/gardens/${experiment.body.id}`, {}, demo.cookie, 200, 'DELETE');
+  const summaries = (await request('/gardens/summary', null, demo.cookie)).body;
+  assert.equal(summaries.length, 5);
+  assert.ok(summaries.every(garden => garden.isDeletionProtected));
+  for (const [table, expected] of [['gardens', 5], ['planted_items', 65], ['garden_tasks', 23], ['garden_activities', 40]]) {
+    const [[row]] = await db.query(`SELECT COUNT(*) AS count FROM garden_plotter.${table}`);
+    assert.equal(row.count, expected, `${table}: blocked requests must preserve all canonical data`);
+  }
   await request('/auth/logout', {}, demo.cookie);
   console.log('PASS: documented demo login, unset preferences, and populated garden/planner/tracker API data');
 }
 
 async function validateAuth(port) {
   const api = `http://127.0.0.1:${port}/api`;
-  const request = async (route, body, cookie, expected = 200) => {
+  const request = async (route, body, cookie, expected = 200, method) => {
     const response = await fetch(`${api}${route}`, {
-      method: body ? 'POST' : 'GET',
+      method: method || (body ? 'POST' : 'GET'),
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1', ...(cookie ? { Cookie: cookie } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
       signal: AbortSignal.timeout(5000)
@@ -168,6 +185,16 @@ async function validateAuth(port) {
   await request('/auth/login', { email, password: oldPassword }, null, 401);
   const newLogin = await request('/auth/login', { email, password: newPassword });
   await request('/auth/verify', null, newLogin.cookie);
+  const ownGarden = await request('/gardens', { name: 'Personal experiment', width: 4, height: 4 }, newLogin.cookie, 201);
+  for (const [route, body] of [
+    ['tasks', { garden_id: ownGarden.body.id, title: 'Water basil', due_date: '2099-01-01', task_type: 'water' }],
+    ['activities', { garden_id: ownGarden.body.id, activity_type: 'watered' }]
+  ]) {
+    const created = await request(`/${route}`, body, newLogin.cookie, 201);
+    assert.equal(created.body.isDeletionProtected, false);
+    await request(`/${route}/${created.body.id}`, {}, newLogin.cookie, 200, 'DELETE');
+  }
+  await request(`/gardens/${ownGarden.body.id}`, {}, newLogin.cookie, 200, 'DELETE');
   await request('/auth/reset-password', { token, password: newPassword, confirmPassword: newPassword }, null, 400);
   console.log('PASS: backend registration, login, password reset, token consumption, and session revocation');
 }
@@ -217,6 +244,8 @@ async function main() {
 
   // Reconstruct the established pre-migration definitions inside this owned container.
   let older = schema
+    .replace(/    demo_showcase_key[^\n]*\n/g, '')
+    .replace(/    UNIQUE KEY uq_\w+_demo_showcase[^\n]*\n/g, '')
     .replace(/    (?:session_version|notes VARCHAR\(2000\)|reset_password_token_hash|reset_password_expires)[^\n]*\n/g, '')
     .replace(/    INDEX (?:idx_users_reset_password_token_hash|idx_plant_library_name|idx_plant_library_category_name|idx_gardens_user_updated|idx_planted_items_garden_created|idx_garden_activities_user_garden_date_time|idx_garden_tasks_user_garden_due)[^\n]*\n/g, '')
     .replace(/    CONSTRAINT chk_task_recurrence CHECK \([\s\S]+?\n    \),\r?\n/, '')
@@ -227,7 +256,36 @@ async function main() {
   assert.notEqual(older, schema);
   await db.query('DROP DATABASE garden_plotter'); // Only the newly created container is reachable here.
   await importSql(older);
-  await importSql(read('data_instance.sql'));
+  const legacySeed = read('data_instance.sql')
+    .replace(/demo_showcase_key, /g, '')
+    .replace(/\('(?:garden|task|activity)-\d+', /g, '(');
+  await importSql(legacySeed);
+  // The demo owner need not be user 1. Keep a separate normal account/data set.
+  await db.query("UPDATE garden_plotter.users SET email = 'normal@example.com' WHERE id = 1");
+  await db.query("INSERT INTO garden_plotter.users (id, username, email, password_hash) VALUES (7, 'Demo', '  DEMO@plantplotter.com  ', 'test-only-hash')");
+  for (const table of ['gardens', 'garden_tasks', 'garden_activities']) {
+    await db.query(`UPDATE garden_plotter.${table} SET user_id = 7 WHERE user_id = 1`);
+  }
+  // Include normal-owned IDs inside the seed ranges: IDs alone must never mark them.
+  await db.query('UPDATE garden_plotter.gardens SET user_id = 1 WHERE id = 5');
+  for (const table of ['garden_tasks', 'garden_activities']) {
+    await db.query(`UPDATE garden_plotter.${table} SET user_id = 1 WHERE garden_id = 5`);
+  }
+  await db.query("INSERT INTO garden_plotter.gardens (id, user_id, name, width, height) VALUES (900, 1, 'Normal garden', 4, 4)");
+  await db.query("INSERT INTO garden_plotter.garden_tasks (id, user_id, garden_id, title, due_date, task_type) VALUES (900, 1, 900, 'Normal task', '2026-09-15', 'water')");
+  await db.query("INSERT INTO garden_plotter.garden_activities (id, user_id, garden_id, activity_type, activity_date) VALUES (900, 1, 900, 'watered', '2026-09-15')");
+  const originalRows = {};
+  for (const table of ['gardens', 'garden_tasks', 'garden_activities']) {
+    originalRows[table] = (await db.query(`SELECT id, user_id, created_at, updated_at FROM garden_plotter.${table} ORDER BY id`))[0];
+  }
+  await importSql(read('demo_showcase_protection_migration.sql'));
+  for (const [table, prefix, count] of [['gardens', 'garden', 5], ['garden_tasks', 'task', 23], ['garden_activities', 'activity', 40]]) {
+    const [rows] = await db.query(`SELECT id, user_id, created_at, updated_at, demo_showcase_key FROM garden_plotter.${table} ORDER BY id`);
+    assert.deepEqual(rows.map(({ demo_showcase_key, ...row }) => row), originalRows[table], `${table}: migration preserves ownership and timestamps`);
+    assert.equal(rows.filter(row => row.demo_showcase_key).length, originalRows[table].filter(row => row.user_id === 7 && row.id <= count).length);
+    assert.ok(rows.every(row => row.demo_showcase_key === (row.user_id === 7 ? `${prefix}-${row.id}` : null)));
+  }
+  console.log('PASS: showcase migration scopes to stored demo owner and preserves normal data/timestamps');
   await db.query("UPDATE garden_plotter.users SET password_reset_token = 'legacy-marker' WHERE id = 1");
   await db.query("UPDATE garden_plotter.garden_tasks SET is_recurring = FALSE WHERE recurring_pattern = 'daily'");
   for (const file of ['password_reset_migration.sql', 'session_version_migration.sql', 'task_notes_migration.sql',

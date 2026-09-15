@@ -133,7 +133,7 @@ for (const method of ['POST', 'PUT']) {
       }
       const response = await request(method, task);
       assert.equal(response.status, method === 'POST' ? 201 : 200);
-      assert.deepEqual(response.body, saved);
+      assert.deepEqual(response.body, { ...saved, isDeletionProtected: false });
       assert.equal(steps.length, 0);
     });
   }

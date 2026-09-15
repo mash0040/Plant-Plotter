@@ -1,4 +1,5 @@
 'use client';
+import DemoDeletionNotice from '@/components/DemoDeletionNotice';
 import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Save, Trash2, Calendar, Clock, AlertTriangle } from 'lucide-react';
@@ -713,7 +714,8 @@ export default function TaskEditModal({
         {/* Footer */}
         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6 border-t border-gray-200 bg-gray-50">
           <div>
-            {task && onDelete && (
+            {task?.isDeletionProtected && <DemoDeletionNotice />}
+            {task && !task.isDeletionProtected && onDelete && (
               showDeleteConfirm ? (
                 <div className="space-y-2">
                   <p className="text-sm text-red-700">Delete this task? This cannot be undone.</p>

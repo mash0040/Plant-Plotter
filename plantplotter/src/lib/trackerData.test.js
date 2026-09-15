@@ -66,6 +66,12 @@ describe('tracker garden transformations', () => {
 });
 
 describe('tracker activity transformations', () => {
+  it('retains server protection through activity and task normalization', () => {
+    const activity = { id: 1, activity_date: '2026-09-15', isDeletionProtected: true };
+    expect(createCalendarActivity({ savedActivity: activity }).isDeletionProtected).toBe(true);
+    expect(normalizeTask({ id: 2, isDeletionProtected: true }).isDeletionProtected).toBe(true);
+  });
+
   it('groups activities and identifies plants no longer in the garden', () => {
     const calendar = buildActivityCalendar([
       {

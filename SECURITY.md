@@ -96,9 +96,26 @@ a token or sending email. Existing reset tokens for the demo account are also
 rejected before changing its password.
 
 Profile and login responses include `isProtectedDemo` for the read-only profile
-UI; the API enforces protection independently of that flag. Garden, planner,
-tracker, and logout actions remain available. No schema migration or additional
-environment variable is needed. Protection assumes the seeded demo address is
+UI; the API enforces protection independently of that flag.
+
+The five showcase gardens, 23 seeded tasks, and 40 seeded activities carry
+server-managed `demo_showcase_key` values. Their DELETE endpoints check both the
+persisted key and the owner's stored demo identity before any deletion, including
+garden child deletion. Blocked requests return HTTP `403`, code
+`DEMO_DATA_PROTECTED`. Permission lookup failures deny the action. Request bodies
+and JWT display fields cannot grant deletion or change the keys. API responses
+expose `isDeletionProtected` for the UI and omit the internal keys.
+
+Planner saves (including plant removal/clearing), garden and tracker edits, task
+status changes, creation, and logout remain available. Visitor-created records
+and recurring follow-up tasks have no showcase key and can be deleted. Normal
+users retain their existing ownership-based permissions, even if a record has a
+showcase key. This policy prevents record deletion; it does not freeze showcase
+content or replace the manual recovery workflow planned in issue #119.
+
+Existing databases need the [showcase protection migration](plantplotter_db/README.md#showcase-deletion-protection)
+before deploying this API. No additional environment variable is needed.
+Protection assumes the seeded demo address is
 still assigned to the shared account; this change does not repair an account
 that was already renamed or deleted. Database administrators must preserve the
 reserved identity when maintaining the demo account.

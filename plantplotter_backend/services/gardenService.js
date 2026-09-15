@@ -1,4 +1,5 @@
 const db = require('../config/db.js');
+const { withDemoProtection } = require('../utils/demoDataProtection');
 const {
   buildCompletePlantData,
   buildSinglePlantData,
@@ -12,6 +13,7 @@ const {
 
 const GARDEN_FIELDS = `
   g.id,
+  g.demo_showcase_key,
   g.name,
   g.description,
   g.width,
@@ -76,7 +78,8 @@ const getGardensForUser = async (userId) => {
   );
 
   const plantsByGarden = groupPlantsByGardenId(allPlantedItems);
-  return gardens.map((garden) => transformGardenForList(garden, plantsByGarden[garden.id] || []));
+  const decorated = await withDemoProtection(gardens, userId);
+  return decorated.map((garden) => transformGardenForList(garden, plantsByGarden[garden.id] || []));
 };
 
 const getGardenSummariesForUser = async (userId) => {
@@ -89,6 +92,7 @@ const getGardenSummariesForUser = async (userId) => {
      WHERE g.user_id = ?
      GROUP BY
       g.id,
+      g.demo_showcase_key,
       g.name,
       g.description,
       g.width,
@@ -102,7 +106,7 @@ const getGardenSummariesForUser = async (userId) => {
     [userId]
   );
 
-  return gardens.map(transformGardenSummary);
+  return (await withDemoProtection(gardens, userId)).map(transformGardenSummary);
 };
 
 const findGardenForUser = async (gardenId, userId) => {
@@ -113,7 +117,7 @@ const findGardenForUser = async (gardenId, userId) => {
     [gardenId, userId]
   );
 
-  return gardens[0] || null;
+  return gardens[0] ? withDemoProtection(gardens[0], userId) : null;
 };
 
 const getPlantedItemsForGarden = async (gardenId) => {
@@ -168,7 +172,7 @@ const createGardenForUser = async (userId, gardenData) => {
     [result.insertId, userId]
   );
 
-  return transformCreatedGarden(newGarden[0]);
+  return transformCreatedGarden(await withDemoProtection(newGarden[0], userId));
 };
 
 const updateGardenForUser = async (gardenId, userId, gardenData) => {
@@ -198,7 +202,7 @@ const updateGardenForUser = async (gardenId, userId, gardenData) => {
     [gardenId, userId]
   );
 
-  return transformUpdatedGarden(updatedGarden[0]);
+  return transformUpdatedGarden(await withDemoProtection(updatedGarden[0], userId));
 };
 
 const insertPlantedItem = async (plantData, connection = db) => {

@@ -12,6 +12,22 @@ const garden = {
 };
 
 describe('GardenList page actions', () => {
+  it('keeps showcase navigation/editing and only offers deletion for temporary records', async () => {
+    const onDelete = vi.fn();
+    const onEdit = vi.fn();
+    const user = userEvent.setup();
+    const showcase = { ...garden, isDeletionProtected: true };
+    const temporary = { ...garden, id: 2, name: 'My Experiment', isDeletionProtected: false };
+    render(<GardenList gardens={[showcase, temporary]} onDelete={onDelete} onEdit={onEdit} />);
+    expect(screen.queryByRole('button', { name: 'Delete Kitchen Garden' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Showcase records stay available/)).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Plan' })).toHaveLength(2);
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    expect(onEdit).toHaveBeenCalledWith(showcase);
+    await user.click(screen.getByRole('button', { name: 'Delete My Experiment' }));
+    expect(onDelete).toHaveBeenCalledExactlyOnceWith(temporary);
+  });
+
   it('uses the standard empty-state heading and creation action', async () => {
     const user = userEvent.setup();
     const handleAddNew = vi.fn();
