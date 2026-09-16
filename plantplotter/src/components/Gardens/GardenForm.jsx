@@ -142,6 +142,15 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
     fieldElement.focus({ preventScroll: true });
   };
 
+  const scheduleErrorFocus = (errors) => {
+    const activeElement = document.activeElement;
+    requestAnimationFrame(() => {
+      // Preserve a new focus choice made while waiting for the errors to render.
+      if (document.activeElement !== activeElement) return;
+      scrollToFirstError(errors);
+    });
+  };
+
   const validateField = (field, value) => {
     if (!['name', 'width', 'height'].includes(field)) return;
 
@@ -268,7 +277,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
     const errors = validateForm();
 
     if (Object.keys(errors).length > 0) {
-      requestAnimationFrame(() => scrollToFirstError(errors));
+      scheduleErrorFocus(errors);
       return;
     }
 
@@ -316,7 +325,7 @@ export default function GardenForm({ garden, onSave, onClose, isOpen }) {
             return fields;
           }, {})
         }));
-        requestAnimationFrame(() => scrollToFirstError(apiErrors));
+        scheduleErrorFocus(apiErrors);
       } else {
         setFormError(getActionErrorMessage(
           error,

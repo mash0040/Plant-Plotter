@@ -51,6 +51,9 @@ export default function useAccessibleDialog({
       : null;
 
     const frameId = requestAnimationFrame(() => {
+      // Opening focus must not interrupt someone already interacting with the dialog.
+      if (dialogRef.current?.contains(document.activeElement)) return;
+
       const focusTarget = initialFocusRef?.current || dialogRef.current;
       focusTarget?.focus({ preventScroll: true });
     });

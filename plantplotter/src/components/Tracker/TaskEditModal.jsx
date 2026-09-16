@@ -200,14 +200,10 @@ export default function TaskEditModal({
 
     if (showDeleteConfirm) {
       wasDeleteConfirmOpenRef.current = true;
-      const frameId = requestAnimationFrame(() => deleteCancelRef.current?.focus());
-      return () => cancelAnimationFrame(frameId);
-    }
-
-    if (wasDeleteConfirmOpenRef.current) {
+      deleteCancelRef.current?.focus();
+    } else if (wasDeleteConfirmOpenRef.current) {
       wasDeleteConfirmOpenRef.current = false;
-      const frameId = requestAnimationFrame(() => deleteButtonRef.current?.focus());
-      return () => cancelAnimationFrame(frameId);
+      deleteButtonRef.current?.focus();
     }
 
     return undefined;
