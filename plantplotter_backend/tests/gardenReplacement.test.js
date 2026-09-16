@@ -53,6 +53,10 @@ const replacements = [
     planted_date: '2026-09-11', notes: 'First row' }
 ];
 const databaseError = (code = 'ER_TEST_FAILURE') => Object.assign(new Error('Simulated database failure'), { code });
+const previousGarden = { id: 4, name: 'Herbs', description: '', width: 10, height: 8,
+  soil_type: 'Loamy', location: null, status: 'Planning' };
+const plannerGarden = { name: 'Kitchen garden', description: 'Expanded', width: 15, height: 12,
+  soil_type: 'Clay', location: 'Backyard', status: 'Active' };
 
 // Stateful transaction double: SQL mutates a private working copy, commit publishes
 // it, and rollback discards it. This exercises the real service and HTTP route;
@@ -60,6 +64,8 @@ const databaseError = (code = 'ER_TEST_FAILURE') => Object.assign(new Error('Sim
 const transactionConnection = (options = {}) => {
   let persisted = structuredClone([...previousLayout, ...otherGardenLayout]);
   let pending;
+  let persistedGarden = { ...previousGarden, ...options.garden };
+  let pendingGarden;
   let inserts = 0;
   const events = [];
   const failAt = phase => {
@@ -68,14 +74,35 @@ const transactionConnection = (options = {}) => {
   return {
     events,
     get persisted() { return structuredClone(persisted); },
+    get persistedGarden() { return structuredClone(persistedGarden); },
     async beginTransaction() {
       events.push('begin');
       failAt('begin');
       pending = structuredClone(persisted);
+      pendingGarden = structuredClone(persistedGarden);
     },
     async execute(sql, params) {
       assert.ok(pending, 'SQL must execute inside the transaction');
       const normalized = sql.replace(/\s+/g, ' ').trim();
+      if (normalized.startsWith('UPDATE gardens')) {
+        events.push('metadata');
+        failAt('metadata');
+        assert.equal(normalized, 'UPDATE gardens SET name = ?, description = ?, width = ?, height = ?, soil_type = ?, location = ?, status = ?, updated_at = NOW() WHERE id = ? AND user_id = ?');
+        assert.deepEqual(params.slice(-2), ['4', 12]);
+        const fields = ['name', 'description', 'width', 'height', 'soil_type', 'location', 'status'];
+        Object.assign(pendingGarden, Object.fromEntries(fields.map((field, index) => [field, params[index]])));
+        return [{ affectedRows: 1 }];
+      }
+      if (normalized === 'SELECT * FROM gardens WHERE id = ? AND user_id = ?') {
+        events.push('readback');
+        failAt('readback');
+        return [[structuredClone(pendingGarden)]];
+      }
+      if (normalized === 'SELECT id, email FROM users WHERE id = ?') {
+        events.push('protection');
+        failAt('protection');
+        return [[{ id: 12, email: 'demo@plantplotter.com' }]];
+      }
       if (normalized.startsWith('SELECT')) {
         events.push('ownership');
         assert.equal(normalized, 'SELECT id FROM gardens WHERE id = ? AND user_id = ? FOR UPDATE');
@@ -104,6 +131,7 @@ const transactionConnection = (options = {}) => {
       events.push('commit');
       failAt('commit');
       persisted = pending;
+      persistedGarden = pendingGarden;
       pending = undefined;
     },
     async rollback() {
@@ -116,14 +144,14 @@ const transactionConnection = (options = {}) => {
   };
 };
 
-const request = async (plantedItems, { userId = 12, gardenId = 4, csrf = true } = {}) => {
+const request = async (plantedItems, { userId = 12, gardenId = 4, csrf = true, planner = false, garden = plannerGarden } = {}) => {
   const headers = { 'Content-Type': 'application/json' };
   if (csrf) headers['X-CSRF-Protection'] = '1';
   if (userId !== null) {
     headers.Cookie = `${getAuthCookieName()}=${jwt.sign({ id: userId, sessionVersion: 0 }, process.env.JWT_SECRET, { expiresIn: '1h' })}`;
   }
-  const response = await fetch(`${baseUrl}/${gardenId}/complete`, {
-    method: 'PUT', headers, body: JSON.stringify({ plantedItems })
+  const response = await fetch(`${baseUrl}/${gardenId}/${planner ? 'planner' : 'complete'}`, {
+    method: 'PUT', headers, body: JSON.stringify(planner ? { garden, plantedItems } : { plantedItems })
   });
   return { status: response.status, body: await response.json(), headers: response.headers };
 };
@@ -137,6 +165,93 @@ beforeEach(() => {
 const assertOriginalLayout = () => {
   assert.deepEqual(connection.persisted, [...previousLayout, ...otherGardenLayout]);
 };
+
+for (const plants of [replacements, []]) {
+  test(`planner commits metadata with ${plants.length} plants in one transaction`, async () => {
+    const response = await request(plants, { planner: true });
+    assert.equal(response.status, 200);
+    assert.equal(acquisitions, 1);
+    assert.deepEqual(connection.persistedGarden, { id: 4, ...plannerGarden });
+    assert.deepEqual(connection.persisted, [...otherGardenLayout, ...plants.map(plant => ({ garden_id: 4, ...plant }))]);
+    assert.deepEqual(response.body.garden.dimensions, { width: 15, height: 12 });
+    assert.equal(response.body.garden.name, plannerGarden.name);
+    assert.equal(response.body.garden.plantCount, plants.length);
+    assert.deepEqual(connection.events, ['begin', 'ownership', 'metadata', 'delete',
+      ...plants.map((_, index) => `insert:${index + 1}`), 'readback', 'commit', 'release']);
+  });
+}
+
+for (const phase of ['begin', 'ownership', 'metadata', 'delete', 'insert:1', 'insert:2', 'readback', 'commit']) {
+  test(`planner ${phase} failure preserves both metadata and layout`, async () => {
+    connection = transactionConnection({ failAt: phase });
+    const response = await request(replacements, { planner: true });
+    assert.equal(response.status, 500);
+    assert.equal(response.body.message, 'Failed to save garden layout');
+    assertOriginalLayout();
+    assert.deepEqual(connection.persistedGarden, previousGarden);
+    assert.deepEqual(connection.events.slice(-2), ['rollback', 'release']);
+    if (phase === 'metadata') assert.ok(!connection.events.includes('delete'));
+  });
+}
+
+for (const garden of [null, {}, { ...plannerGarden, width: 0 }, { ...plannerGarden, name: '' }]) {
+  test(`planner rejects invalid metadata ${JSON.stringify(garden)} before a transaction`, async () => {
+    const response = await request(replacements, { planner: true, garden });
+    assert.equal(response.status, 400);
+    assert.equal(response.body.code, 'VALIDATION_ERROR');
+    assert.equal(acquisitions, 0);
+    assertOriginalLayout();
+    assert.deepEqual(connection.persistedGarden, previousGarden);
+  });
+}
+
+for (const plants of [undefined, null, {}, [null], ['invalid'], [[]]]) {
+  test(`planner rejects malformed or omitted layout ${JSON.stringify(plants)}`, async () => {
+    const response = await request(plants, { planner: true });
+    assert.equal(response.status, 400);
+    assert.equal(acquisitions, 0);
+    assertOriginalLayout();
+  });
+}
+
+for (const [options, status] of [
+  [{ userId: 99 }, 404], [{ gardenId: 999 }, 404], [{ userId: null }, 401], [{ csrf: false }, 403]
+]) {
+  test(`planner enforces access ${JSON.stringify(options)}`, async () => {
+    const response = await request(replacements, { planner: true, ...options });
+    assert.equal(response.status, status);
+    assertOriginalLayout();
+    assert.deepEqual(connection.persistedGarden, previousGarden);
+    assert.ok(!connection.events.includes('metadata'));
+  });
+}
+
+test('planner rolls back both halves on a temporary insert failure', async () => {
+  connection = transactionConnection({ failAt: 'insert:2', error: databaseError('ECONNRESET') });
+  const response = await request(replacements, { planner: true });
+  assert.equal(response.status, 503);
+  assert.equal(response.body.code, 'SERVICE_UNAVAILABLE');
+  assert.equal(response.headers.get('Retry-After'), '60');
+  assertOriginalLayout();
+  assert.deepEqual(connection.persistedGarden, previousGarden);
+});
+
+test('planner preserves showcase protection and reads permissions before committing', async () => {
+  connection = transactionConnection({ garden: { demo_showcase_key: 'showcase' } });
+  const response = await request([], { planner: true });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.garden.isDeletionProtected, true);
+  assert.equal(response.body.garden.demo_showcase_key, undefined);
+  assert.deepEqual(connection.events.slice(-3), ['protection', 'commit', 'release']);
+});
+
+test('planner rolls back if preparing the protected garden response fails', async () => {
+  connection = transactionConnection({ garden: { demo_showcase_key: 'showcase' }, failAt: 'protection' });
+  const response = await request([], { planner: true });
+  assert.equal(response.status, 500);
+  assertOriginalLayout();
+  assert.deepEqual(connection.persistedGarden, { ...previousGarden, demo_showcase_key: 'showcase' });
+});
 
 test('successful replacement commits every requested plant and preserves other gardens', async () => {
   const response = await request(replacements);

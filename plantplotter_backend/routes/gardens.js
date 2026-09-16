@@ -156,6 +156,43 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
+// PUT /api/gardens/:id/planner - Save metadata and the entire layout atomically
+router.put('/:id/planner', verifyToken, async (req, res) => {
+  const { garden, plantedItems } = req.body || {};
+
+  try {
+    const validation = validateGardenPayload(garden || {});
+    if (!validation.isValid) {
+      return sendErrorResponse(res, 400, 'Invalid garden data', {
+        code: 'VALIDATION_ERROR', errors: validation.errors
+      });
+    }
+    if (!Array.isArray(plantedItems) || plantedItems.some(plant => (
+      !plant || typeof plant !== 'object' || Array.isArray(plant)
+    ))) {
+      return sendErrorResponse(res, 400, 'Provide a plant layout, or an empty list to clear it', {
+        code: 'VALIDATION_ERROR'
+      });
+    }
+
+    const result = await gardenService.savePlannerForUser(
+      req.params.id, req.user.id, validation.data, plantedItems
+    );
+    if (!result) {
+      return sendErrorResponse(res, 404, 'Garden not found', { code: 'GARDEN_NOT_FOUND' });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error('Planner saving failed:', error);
+    if (error.code === 'ER_DATA_TOO_LONG') {
+      return sendErrorResponse(res, 400, 'One or more garden fields are too long', {
+        code: 'VALIDATION_ERROR'
+      });
+    }
+    sendDatabaseAwareErrorResponse(res, error, { message: 'Failed to save garden layout' });
+  }
+});
+
 // PUT /api/gardens/:id/complete - Replace planted items for a garden
 router.put('/:id/complete', verifyToken, async (req, res) => {
   const gardenId = req.params.id;

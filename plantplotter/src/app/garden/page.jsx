@@ -621,7 +621,8 @@ function GardenPlannerPageContent() {
         return;
       }
 
-      const updatedGarden = await apiClient.updateGarden(currentGarden.id, {
+      const plantedItems = getPlannerPlantedItemsPayload();
+      const updatedGarden = await apiClient.savePlanner(currentGarden.id, {
         name: currentGarden.name,
         description: currentGarden.description || '',
         width: dimensions.width,
@@ -629,10 +630,7 @@ function GardenPlannerPageContent() {
         soil_type: currentGarden.soil_type || currentGarden.soilType || 'Loamy',
         location: currentGarden.location || null,
         status: currentGarden.status || 'Planning'
-      });
-
-      const plantedItems = getPlannerPlantedItemsPayload();
-      await apiClient.saveGardenPlantedItems(currentGarden.id, plantedItems);
+      }, plantedItems);
 
       setCurrentGarden(prev => ({
         ...prev,
