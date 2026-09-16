@@ -5,8 +5,8 @@ Plant Plotter uses a signed JWT inside an httpOnly authentication cookie. The br
 ## Authentication Session
 
 - Login and registration are handled by the Express API in `plantplotter_backend/controllers/userController.js`.
-- A successful login or registration signs a JWT with `jsonwebtoken` and sets it as an httpOnly cookie. The token is not included in the JSON response.
-- The JWT payload includes the user id, email, username, role, and `sessionVersion`.
+- A successful login or signup-code verification signs a JWT with `jsonwebtoken` and sets it as an httpOnly cookie. Starting registration does not create a user or authentication session. The token is not included in the JSON response.
+- The JWT payload includes the user id, email, username, and `sessionVersion`.
 - `JWT_EXPIRES_IN` controls both the JWT expiry and the cookie lifetime; the backend defaults to `24h` when it is unset.
 - Local development uses the host-only `plantplotter_session` cookie with `SameSite=Lax` and `Path=/`.
 - Production uses `__Host-plantplotter_session`, which is host-only, `Secure`, httpOnly, `SameSite=Lax`, and has `Path=/`.
@@ -61,6 +61,89 @@ Login and account-deletion confirmation continue to verify existing passwords
 without applying new-password rules, preserving access for accounts created
 under the previous policy. Existing over-limit hashes retain bcrypt's prefix
 semantics until the password is reset; this change does not migrate stored hashes.
+
+## New Account Email Verification
+
+New registrations use `POST /api/auth/register` to validate the established display-name,
+email, and password rules and create a temporary signup. A `202` response carries
+`pending` metadata, never a user or authentication token. `pending.delivery` is
+`sent` only after provider acceptance; `failed` means the user must explicitly retry.
+Provider acceptance does not prove inbox delivery. Existing accounts, including
+legacy unverified addresses and the shared demo, retain their login/session behavior.
+
+The separate signup cookie is a random 256-bit credential with the same httpOnly,
+Secure-in-production, host-only, SameSite=Lax policy as the session cookie. Its name
+is `plantplotter_signup` locally and `__Host-plantplotter_signup` in production.
+It grants access only to that pending signup, never to protected application data.
+Only its SHA-256 hash is stored. `GET /api/auth/register/pending` restores the
+verification screen after refresh with `Cache-Control: no-store`; passwords and
+signup credentials are never placed in browser storage or URLs.
+
+`POST /api/auth/register/verify`, `/resend`, and `/change-email` require the signup
+cookie, the matching `attemptId` and `revision`, and the existing CSRF protection.
+Changing an address updates only the pending attempt and requires a new code.
+Starting another signup from the same cookie invalidates the old pending attempt.
+An email address alone cannot read or change someone else's pending credentials.
+
+Six-digit codes use `crypto.randomInt`, expire after 10 minutes, and allow at most
+five incorrect submissions, including malformed codes. A domain-separated HMAC-SHA256
+key derived from `JWT_SECRET` protects verifiers, binding each to its attempt,
+address and revision. All API instances must share this secret; rotating it invalidates
+outstanding codes as well as existing JWTs. Pending passwords are bcrypt hashes.
+Passwords, cookie credentials, and provider/SQL errors containing them are never
+logged by the signup path. Codes are not logged in email mode (the default).
+
+For explicit local testing only, set both `NODE_ENV=development` and
+`SIGNUP_EMAIL_MODE=console` in the backend environment. This prints each newly
+issued code in the backend terminal instead of contacting the email provider,
+allowing the normal verification flow to complete without a real inbox. It does
+not prove mailbox ownership and must be used only with a local development
+database. The signup service treats terminal output as delivery in this mode;
+the user-facing flow and warning wording are unchanged. Expiry, single-use codes,
+guess limits, resend cooldowns, and shared budgets still apply.
+
+Console mode is rejected before logging or delivery in production, test, and when
+`NODE_ENV` is unset. It is never selected automatically for missing configuration
+or provider failures. Production must use `SIGNUP_EMAIL_MODE=email` (or omit it)
+and a configured email provider. Never run a deployed API with `NODE_ENV=development`.
+Passwords and signup-cookie credentials are not printed even in console mode.
+
+MySQL row locks serialize code verification, resend, and address changes. Verification
+inserts one verified user and consumes the attempt in one transaction. The unique
+user email constraint remains authoritative. Consumption erases the pending password
+hash and code verifier. Replays never issue another session. If the verification
+response is lost after commit, the user can sign in with their chosen password;
+the pending-status endpoint reports completion. No legacy user is marked verified.
+Successful login, sign-out and account deletion clear the signup cookie so it does not linger into
+a later registration flow.
+
+Sending reserves a new revision and budgets before contacting the provider outside
+the transaction. Only that revision can be finalized as sent. A provider failure,
+timeout, or process interruption leaves no authenticated account and permits a
+resend after the cooldown. An older code is invalidated when a resend is reserved;
+it remains invalid if that send fails. Retry requests must be explicit. The existing
+Resend/SendGrid configuration is reused, with a 10-second provider timeout.
+
+Signup limits are persisted in MySQL and apply across API instances and restarts:
+
+| Limit | Bound |
+| --- | --- |
+| Resend/address change per attempt | Once per 60 seconds |
+| Sends per normalized email | Once per 60 seconds, 5 per hour, 10 per day |
+| Sends per normalized IP / IPv6 subnet | 20 per hour, 100 per day |
+| Verification submissions across attempts per email | 25 per hour |
+| Verification submissions across attempts per IP / IPv6 subnet | 100 per hour |
+
+Windows start with the first counted request; failed sends consume sending budget.
+Resend and new attempts cannot reset shared guessing limits. `429` responses include
+`Retry-After`. Existing general API and registration request limits also apply.
+IP normalization uses the established proxy/IP configuration; deploy behind only
+the trusted proxy described above. Budget identities are hashed.
+
+Attempts expire after 24 hours and never reserve an email in `users`. Each signup
+start deletes at most 100 expired attempts and 100 expired budget rows using expiry
+indexes. Rows may remain at rest while there is no signup traffic; expiry is checked
+on every operation. See the database documentation for migration/deployment order.
 
 ## Password Reset
 

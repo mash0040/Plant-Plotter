@@ -9,10 +9,21 @@ process.env.JWT_SECRET = 'test-only-display-name-secret';
 process.env.NODE_ENV = 'test';
 
 let users;
+let signupDb;
+const signupDatabase = require('./helpers/signupDatabase');
 let queries;
 const dbPath = require.resolve('../config/db');
 require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
+  getConnection: async () => {
+    const connection = await signupDb.getConnection();
+    const execute = connection.execute;
+    connection.execute = async (sql, params) => { queries.push({ sql, params }); return execute(sql, params); };
+    const commit = connection.commit;
+    connection.commit = async () => { await commit(); users = signupDb.state.users; };
+    return connection;
+  },
   execute: async (sql, params) => {
+    if (sql.includes('pending_signups') || sql.includes('signup_limits')) return signupDb.execute(sql, params);
     queries.push({ sql, params });
     if (sql.startsWith('SELECT') && sql.includes('WHERE email = ?')) {
       return [users.filter(user => user.email === params[0])];
@@ -33,6 +44,8 @@ require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
     assert.fail(`Unexpected query: ${sql}`);
   }
 } };
+const emailPath = require.resolve('../utils/emailService');
+require.cache[emailPath] = { id: emailPath, filename: emailPath, loaded: true, exports: { sendSignupCodeEmail: async () => ({ sent: true }) } };
 const { registerUser } = require('../controllers/userController');
 const userRouter = require('../routes/users');
 const { getAuthCookieName } = require('../utils/authCookie');
@@ -52,6 +65,7 @@ after(async () => { await new Promise(resolve => server.close(resolve)); });
 beforeEach(() => {
   users = [{ id: 1, username: 'Gardener', email: 'existing@example.com', session_version: 0, is_active: true }];
   queries = [];
+  signupDb = signupDatabase(users);
 });
 
 async function request(flow, username, overrides = {}) {
@@ -106,12 +120,18 @@ for (const flow of ['registration', 'profile']) {
     test(`${flow} accepts ${label} and persists only the trimmed name`, async () => {
       assert.equal(validateDisplayName(name), null);
       const response = await request(flow, name);
-      assert.equal(response.status, flow === 'registration' ? 201 : 200);
-      assert.equal(response.body.user.username, name.trim());
-      assert.equal(users[flow === 'registration' ? 1 : 0].username, name.trim());
-      const writes = queries.filter(({ sql }) => /^(INSERT|UPDATE)/.test(sql));
-      assert.equal(writes.length, 1);
-      assert.equal(writes[0].params[0], name.trim());
+      assert.equal(response.status, flow === 'registration' ? 202 : 200);
+      assert.equal(flow === 'registration' ? signupDb.state.attempts[0].username : response.body.user.username, name.trim());
+      if (flow === 'registration') {
+        assert.equal(users.length, 1, 'Validation must persist pending credentials, not an active user');
+        const write = queries.find(({ sql }) => sql.startsWith('INSERT INTO pending_signups'));
+        assert.equal(write.params[2], name.trim());
+      } else {
+        assert.equal(users[0].username, name.trim());
+        const writes = queries.filter(({ sql }) => /^(INSERT|UPDATE)/.test(sql));
+        assert.equal(writes.length, 1);
+        assert.equal(writes[0].params[0], name.trim());
+      }
     });
   }
 

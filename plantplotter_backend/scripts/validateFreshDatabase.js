@@ -26,6 +26,7 @@ let backendClosed;
 let created = false;
 let backendOutput = '';
 let validationEnv;
+const signupEmails = [];
 
 async function runRestore(expectedExit = 0) {
   let result;
@@ -178,8 +179,19 @@ async function validateAuth(port) {
   const email = 'schema-check@example.com';
   const oldPassword = 'SchemaCheck!2026';
   const newPassword = 'SchemaChanged!2026';
-  const registered = await request('/auth/register', { username: 'Schema Check', email, password: oldPassword }, null, 201);
-  assert.ok(registered.cookie, 'Registration must issue a session cookie');
+  const pending = await request('/auth/register', { username: 'Schema Check', email, password: oldPassword }, null, 202);
+  assert.ok(pending.cookie.startsWith('plantplotter_signup='));
+  const [[count]] = await db.query('SELECT COUNT(*) AS count FROM garden_plotter.users WHERE email = ?', [email]);
+  assert.equal(count.count, 0, 'Signup must not create a user before verification');
+  await request('/auth/verify', null, pending.cookie, 401);
+  await request('/auth/login', { email, password: oldPassword }, null, 401);
+  await eventually(() => signupEmails.some(message => message.to === email), 'mock signup delivery');
+  const code = signupEmails.find(message => message.to === email).code;
+  const registered = await request('/auth/register/verify', { ...pending.body.pending, code }, pending.cookie, 201);
+  assert.ok(registered.cookie.startsWith('plantplotter_session='));
+  await request('/auth/register/verify', { ...pending.body.pending, code }, pending.cookie, 400);
+  const [[verified]] = await db.query('SELECT email_verified FROM garden_plotter.users WHERE email = ?', [email]);
+  assert.equal(verified.email_verified, 1);
   const loggedIn = await request('/auth/login', { email, password: oldPassword });
   assert.ok(loggedIn.cookie, 'Login must issue a session cookie');
   await request('/auth/verify', null, loggedIn.cookie);
@@ -247,21 +259,24 @@ async function main() {
       DB_NAME: 'garden_plotter', DB_SSL: 'false', DB_SSL_CA_PATH: '', DB_CONNECT_TIMEOUT_MS: '2000',
       EMAIL_PROVIDER: '', EMAIL_FROM: '', RESEND_API_KEY: '', SENDGRID_API_KEY: '',
       PASSWORD_RESET_BASE_URL: 'http://localhost:3000/reset-password' };
-  backend = spawn(process.execPath, [path.resolve(__dirname, '../server.js')], {
-    cwd: workDir, windowsHide: true, env: validationEnv
+  backend = spawn(process.execPath, ['--require', path.resolve(__dirname, 'fixtures/validationEmail.js'), path.resolve(__dirname, '../server.js')], {
+    cwd: workDir, windowsHide: true, env: validationEnv, stdio: ['ignore', 'pipe', 'pipe', 'ipc']
   });
+  backend.on('message', message => { if (message.type === 'signup-email') signupEmails.push(message); });
   backendClosed = once(backend, 'close');
   backend.stdout.on('data', chunk => { backendOutput += chunk; });
   backend.stderr.on('data', chunk => { backendOutput += chunk; });
   await validateAuth(apiPort);
   await stopBackend();
+  await require('./validateSignup')(db, validationEnv);
 
-  const repeatable = ['password_reset_migration.sql', 'performance_indexes.sql', 'task_type_options_migration.sql'];
+  const repeatable = ['email_verification_migration.sql', 'password_reset_migration.sql', 'performance_indexes.sql', 'task_type_options_migration.sql'];
   for (const file of repeatable) await importSql(read(file));
   assert.deepEqual(await snapshot(), expected, 'Repeatable upgrades must preserve fresh definitions');
 
   // Reconstruct the established pre-migration definitions inside this owned container.
   let older = schema
+    .replace(/CREATE TABLE (?:pending_signups|signup_limits) \([\s\S]*?\) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;/g, '')
     .replace(/    demo_showcase_key[^\n]*\n/g, '')
     .replace(/    UNIQUE KEY uq_\w+_demo_showcase[^\n]*\n/g, '')
     .replace(/    (?:session_version|notes VARCHAR\(2000\)|reset_password_token_hash|reset_password_expires)[^\n]*\n/g, '')
@@ -306,7 +321,7 @@ async function main() {
   console.log('PASS: showcase migration scopes to stored demo owner and preserves normal data/timestamps');
   await db.query("UPDATE garden_plotter.users SET password_reset_token = 'legacy-marker' WHERE id = 1");
   await db.query("UPDATE garden_plotter.garden_tasks SET is_recurring = FALSE WHERE recurring_pattern = 'daily'");
-  for (const file of ['password_reset_migration.sql', 'session_version_migration.sql', 'task_notes_migration.sql',
+  for (const file of ['email_verification_migration.sql', 'password_reset_migration.sql', 'session_version_migration.sql', 'task_notes_migration.sql',
     'task_type_options_migration.sql', 'task_recurrence_migration.sql', 'performance_indexes.sql']) {
     await importSql(read(file));
   }

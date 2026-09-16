@@ -173,28 +173,21 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setLoading(true);
       
-      const response = await apiClient.register(name, email, password);
-      
-      // After successful registration, fetch fresh profile data
-      const freshUser = await fetchUserProfile(true);
-      
-      if (!freshUser) {
-        // Fallback to response data
-        const userWithDisplayName = {
-          ...response.user,
-          displayName: response.user.username || response.user.name || name,
-          username: response.user.username || response.user.name || name
-        };
-        setUser(userWithDisplayName);
-      }
-      
-      return response;
+      // Pending signup is not an authenticated user.
+      return await apiClient.register(name, email, password);
     } catch (error) {
       setError(getUserFacingErrorMessage(error));
       throw error;
     } finally {
       setLoading(false);
     }
+  };
+
+  const verifySignup = async (pending, code) => {
+    const response = await apiClient.verifySignup(pending, code);
+    setUser(getUserWithDisplayName(response.user));
+    setError(null);
+    return response;
   };
 
   const updateProfile = async (profileData) => {
@@ -260,6 +253,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     register,
+    verifySignup,
     updateProfile,
     deleteAccount,
     logout,

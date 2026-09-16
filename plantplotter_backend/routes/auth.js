@@ -3,12 +3,17 @@ const router = express.Router();
 const userController = require('../controllers/userController.js');
 const verifyToken = require('../middleware/verifyToken');
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiters');
+const signup = require('../controllers/signupController');
 
 // POST /api/auth/login
 router.post('/login', authLimiter, userController.loginUser);
 
 // POST /api/auth/register  
 router.post('/register', authLimiter, userController.registerUser);
+router.get('/register/pending', signup.signupStatus);
+router.post('/register/verify', signup.verifySignup);
+router.post('/register/resend', signup.resendSignup);
+router.post('/register/change-email', signup.changeSignupEmail);
 
 // POST /api/auth/logout
 router.post('/logout', userController.logoutUser);

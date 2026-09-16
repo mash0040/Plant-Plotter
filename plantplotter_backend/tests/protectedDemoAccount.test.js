@@ -312,6 +312,7 @@ test('normal account deletion commits and clears the session without affecting t
   assert.deepEqual(users.map(user => user.id), [7]);
   assert.deepEqual(gardens, [{ id: 1, user_id: 7 }]);
   assert.match(response.cookie, /Expires=Thu, 01 Jan 1970/);
+  assert.match(response.cookie, /plantplotter_signup=;/);
   assert.ok(queries.every(query => query.params[0] === 12));
 });
 

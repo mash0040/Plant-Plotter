@@ -336,13 +336,9 @@ describe('apiClient error handling', () => {
     localStorage.setItem('token', 'stale-token');
     localStorage.setItem('authToken', 'older-stale-token');
     fetch.mockResolvedValue(createJsonResponse({
-      status: 201,
+      status: 202,
       body: {
-        user: {
-          id: 2,
-          username: 'New User',
-          email: 'new@example.com'
-        }
+        pending: { attemptId: 'test-signup', revision: 1, email: 'new@example.com' }
       },
       headers: {
         'content-type': 'application/json'
@@ -360,6 +356,24 @@ describe('apiClient error handling', () => {
         'X-CSRF-Protection': '1'
       })
     }));
+  });
+
+  it('sends signup credentials only through cookies and includes CSRF on every verification write', async () => {
+    fetch.mockResolvedValue(createJsonResponse({ status: 200, body: { pending: null }, headers: { 'content-type': 'application/json' } }));
+    const pending = { attemptId: 'attempt', revision: 2, email: 'private@example.com' };
+    await apiClient.getPendingSignup();
+    await apiClient.verifySignup(pending, '012345');
+    await apiClient.resendSignup(pending);
+    await apiClient.changeSignupEmail(pending, 'correct@example.com');
+    expect(fetch.mock.calls[0][1]).toMatchObject({ cache: 'no-store', credentials: 'include' });
+    for (const [, options] of fetch.mock.calls.slice(1)) {
+      expect(options.credentials).toBe('include');
+      expect(options.headers['X-CSRF-Protection']).toBe('1');
+      expect(JSON.parse(options.body)).toMatchObject({ attemptId: 'attempt', revision: 2 });
+      expect(JSON.parse(options.body)).not.toHaveProperty('password');
+    }
+    expect(JSON.parse(fetch.mock.calls[1][1].body).code).toBe('012345');
+    expect(JSON.parse(fetch.mock.calls[3][1].body).email).toBe('correct@example.com');
   });
 
   it('uses the session cookie instead of legacy bearer headers on protected requests', async () => {

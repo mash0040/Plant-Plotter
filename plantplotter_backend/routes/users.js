@@ -5,7 +5,7 @@ const requireMutableAccount = require('../middleware/requireMutableAccount');
 const { isProtectedDemoAccount } = require('../utils/protectedDemoAccount');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
-const { clearAuthCookie } = require('../utils/authCookie');
+const { clearAuthCookie, clearSignupCookie } = require('../utils/authCookie');
 const { validateDisplayName } = require('../utils/displayNameValidation');
 
 // GET /api/users/profile - Get user profile with preferences
@@ -147,6 +147,7 @@ router.delete('/account', verifyToken, requireMutableAccount, async (req, res) =
 
     await connection.commit();
     clearAuthCookie(res);
+    clearSignupCookie(res);
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
     if (connection) {

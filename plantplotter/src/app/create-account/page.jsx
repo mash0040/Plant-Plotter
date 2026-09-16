@@ -1,6 +1,6 @@
 'use client';
 import { useEffect } from 'react';
-import AuthForm from '@/components/Login/AuthForm';
+import SignupFlow from '@/components/Login/SignupFlow';
 import { Leaf } from 'lucide-react';
 
 export default function CreateAccountPage() {
@@ -21,7 +21,7 @@ export default function CreateAccountPage() {
           <p className="text-gray-700">Start planning and tracking your gardens.</p>
         </div>
 
-        <AuthForm initialMode="register" />
+        <SignupFlow />
       </div>
     </div>
   );
