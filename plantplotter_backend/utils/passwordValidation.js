@@ -12,7 +12,7 @@ const validatePassword = (password) => {
   }
   // bcrypt only processes the first 72 UTF-8 bytes. Reject, never truncate.
   if (Buffer.byteLength(password, 'utf8') > MAX_BYTES) {
-    return `Password is too long. Use no more than ${MAX_BYTES} UTF-8 bytes; accented letters and emoji can use multiple bytes.`;
+    return 'Password is too long. Try a shorter password.';
   }
   if (!/[A-Z]/.test(password)) {
     return 'Password must contain at least one uppercase letter';

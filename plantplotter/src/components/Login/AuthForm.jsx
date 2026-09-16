@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, User, Info } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useAuth, SESSION_EXPIRED_FLAG } from '@/hooks/useAuth';
 import { getActionErrorMessage } from '@/lib/apiErrors';
 import { validateNewPassword, PASSWORD_RULES_HINT } from '@/lib/passwordValidation';
 import { validateEmail } from '@/lib/emailValidation';
+import { validateDisplayName, DISPLAY_NAME_RULES_HINT } from '@/lib/displayNameValidation';
 
 const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '' };
 
@@ -20,7 +21,17 @@ export default function AuthForm({ initialMode = 'login' }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [sessionNotice, setSessionNotice] = useState('');
+  const formRef = useRef(null);
+  const fieldToFocus = useRef(null);
+
+  useEffect(() => {
+    if (fieldToFocus.current && !isSubmitting && !loading) {
+      formRef.current?.elements.namedItem(fieldToFocus.current)?.focus();
+      fieldToFocus.current = null;
+    }
+  }, [fieldErrors, isSubmitting, loading]);
 
   // One-time session-expired notice: only shown when the user lost an active
   // session (set by AuthProvider). Manual nav to /login should never see this.
@@ -41,6 +52,8 @@ export default function AuthForm({ initialMode = 'login' }) {
 
   useEffect(() => {
     setFormData(EMPTY_FORM);
+    setFieldErrors({});
+    fieldToFocus.current = null;
     setLocalError('');
     setSessionNotice('');
     setShowPassword(false);
@@ -49,39 +62,51 @@ export default function AuthForm({ initialMode = 'login' }) {
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setFieldErrors(prev => ({
+      ...prev,
+      [field]: '',
+      ...(field === 'password' && value === formData.confirmPassword ? { confirmPassword: '' } : {})
+    }));
     setLocalError('');
     setSessionNotice('');
   };
 
+  const showFieldErrors = (errors) => {
+    fieldToFocus.current = Object.keys(errors)[0];
+    setFieldErrors(errors);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting || loading) return;
     setLocalError('');
     setSessionNotice('');
 
-    // Custom empty-field checks (form has noValidate, so the browser will
-    // not show its own "Please fill out this field" bubble).
+    // Show every invalid field together, in the same order as the form.
+    const errors = {};
     const trimmedEmail = formData.email.trim();
-    if (mode === 'register' && !formData.name.trim()) {
-      setLocalError('Display name is required');
-      return;
-    }
-    if (!trimmedEmail) {
-      setLocalError('Email is required');
-      return;
+    if (mode === 'register') {
+      const nameError = validateDisplayName(formData.name);
+      if (nameError) errors.name = nameError;
     }
     const emailError = validateEmail(trimmedEmail);
-    if (emailError) {
-      setLocalError(emailError);
+    if (emailError) errors.email = emailError;
+    const passwordError = mode === 'register'
+      ? validateNewPassword(formData.password)
+      : (!formData.password ? 'Password is required' : null);
+    if (passwordError) errors.password = passwordError;
+    if (mode === 'register') {
+      if (!formData.confirmPassword) {
+        errors.confirmPassword = 'Please confirm your password';
+      } else if (formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = 'Passwords do not match';
+      }
+    }
+    if (Object.keys(errors).length > 0) {
+      showFieldErrors(errors);
       return;
     }
-    if (!formData.password) {
-      setLocalError('Password is required');
-      return;
-    }
-    if (mode === 'register' && !formData.confirmPassword) {
-      setLocalError('Please confirm your password');
-      return;
-    }
+    setFieldErrors({});
 
     setIsSubmitting(true);
     try {
@@ -89,17 +114,28 @@ export default function AuthForm({ initialMode = 'login' }) {
         await login(trimmedEmail, formData.password);
         router.push('/gardens');
       } else {
-        const passwordError = validateNewPassword(formData.password);
-        if (passwordError) {
-          throw new Error(passwordError);
-        }
-        if (formData.password !== formData.confirmPassword) {
-          throw new Error('Passwords do not match');
-        }
         await register(formData.name.trim(), trimmedEmail, formData.password);
         router.push('/gardens');
       }
     } catch (err) {
+      if (mode === 'register') {
+        const apiErrors = err.fieldErrors || err.errors || {};
+        const errors = {};
+        for (const [apiField, field] of [
+          ['username', 'name'], ['email', 'email'], ['password', 'password'], ['confirmPassword', 'confirmPassword']
+        ]) {
+          if (typeof apiErrors[apiField] === 'string' && apiErrors[apiField]) {
+            errors[field] = apiErrors[apiField];
+          }
+        }
+        if (err.code === 'EMAIL_ALREADY_REGISTERED') {
+          errors.email = 'Email already registered. Sign in or use another email address.';
+        }
+        if (Object.keys(errors).length > 0) {
+          showFieldErrors(errors);
+          return;
+        }
+      }
       const actionMessage = mode === 'login'
         ? 'Sign in could not be completed.'
         : 'Your account could not be created.';
@@ -134,7 +170,7 @@ export default function AuthForm({ initialMode = 'login' }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" noValidate>
         <div className="space-y-4">
           {mode === 'register' && (
             <div>
@@ -147,15 +183,25 @@ export default function AuthForm({ initialMode = 'login' }) {
                 </div>
                 <input
                   id="auth-display-name"
+                  name="name"
                   type="text"
                   placeholder="Display name"
                   autoComplete="name"
+                  required
+                  aria-invalid={Boolean(fieldErrors.name)}
+                  aria-describedby={`auth-display-name-help${fieldErrors.name ? ' auth-display-name-error' : ''}`}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   disabled={isSubmitting || loading}
                 />
               </div>
+              <p id="auth-display-name-help" className="mt-1 text-sm text-gray-600">
+                {DISPLAY_NAME_RULES_HINT}
+              </p>
+              {fieldErrors.name && (
+                <p id="auth-display-name-error" role="alert" className="mt-1 text-sm text-red-600">{fieldErrors.name}</p>
+              )}
             </div>
           )}
 
@@ -169,15 +215,22 @@ export default function AuthForm({ initialMode = 'login' }) {
               </div>
               <input
                 id="auth-email"
+                name="email"
                 type="email"
                 placeholder="Email address"
                 autoComplete="email"
+                required
+                aria-invalid={Boolean(fieldErrors.email)}
+                aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 disabled={isSubmitting || loading}
               />
             </div>
+            {fieldErrors.email && (
+              <p id="auth-email-error" role="alert" className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
+            )}
           </div>
 
           <div>
@@ -190,10 +243,16 @@ export default function AuthForm({ initialMode = 'login' }) {
               </div>
               <input
                 id="auth-password"
+                name="password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder={passwordPlaceholder}
                 autoComplete={passwordAutocomplete}
-                aria-describedby={mode === 'register' ? 'auth-password-rules' : undefined}
+                required
+                aria-invalid={Boolean(fieldErrors.password)}
+                aria-describedby={[
+                  mode === 'register' && 'auth-password-rules',
+                  fieldErrors.password && 'auth-password-error'
+                ].filter(Boolean).join(' ') || undefined}
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
@@ -213,6 +272,14 @@ export default function AuthForm({ initialMode = 'login' }) {
                 )}
               </button>
             </div>
+            {mode === 'register' && (
+              <p id="auth-password-rules" className="mt-1 text-sm text-gray-600">
+                {PASSWORD_RULES_HINT}
+              </p>
+            )}
+            {fieldErrors.password && (
+              <p id="auth-password-error" role="alert" className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
+            )}
           </div>
 
           {mode === 'register' && (
@@ -227,9 +294,13 @@ export default function AuthForm({ initialMode = 'login' }) {
                   </div>
                   <input
                     id="auth-confirm-password"
+                    name="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="Confirm password"
                     autoComplete="new-password"
+                    required
+                    aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                    aria-describedby={fieldErrors.confirmPassword ? 'auth-confirm-password-error' : undefined}
                     className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
@@ -249,10 +320,10 @@ export default function AuthForm({ initialMode = 'login' }) {
                     )}
                   </button>
                 </div>
+                {fieldErrors.confirmPassword && (
+                  <p id="auth-confirm-password-error" role="alert" className="mt-1 text-sm text-red-600">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
-              <p id="auth-password-rules" className="text-xs text-gray-600">
-                {PASSWORD_RULES_HINT}
-              </p>
             </>
           )}
         </div>

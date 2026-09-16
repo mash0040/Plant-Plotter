@@ -143,7 +143,7 @@ export default function Navbar() {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-white hover:bg-green-800 transition-colors"
               >
-                <div className="w-8 h-8 bg-green-700 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 shrink-0 bg-green-700 rounded-full flex items-center justify-center">
                   {user.avatar ? (
                     <Image 
                       src={user.avatar} 
@@ -156,7 +156,7 @@ export default function Navbar() {
                     <User className="w-4 h-4" />
                   )}
                 </div>
-                <span className="text-sm font-medium">{displayName}</span>
+                <span className="max-w-24 lg:max-w-48 truncate text-sm font-medium" title={displayName}>{displayName}</span>
               </button>
 
               {/* User Dropdown */}
@@ -166,7 +166,7 @@ export default function Navbar() {
                   className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
                 >
                   <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate" title={displayName}>{displayName}</p>
                     <p className="text-sm text-gray-500 truncate" title={user.email}>{user.email}</p>
                   </div>
                   
@@ -247,7 +247,7 @@ export default function Navbar() {
             {user ? (
               <>
                 <div className="flex items-center gap-3 px-3 py-2 text-white">
-                  <div className="w-8 h-8 bg-green-700 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 shrink-0 bg-green-700 rounded-full flex items-center justify-center">
                     {user.avatar ? (
                       <Image 
                         src={user.avatar} 
@@ -260,8 +260,8 @@ export default function Navbar() {
                       <User className="w-4 h-4" />
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium truncate">{displayName}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate" title={displayName}>{displayName}</p>
                     <p className="text-xs text-green-200 truncate" title={user.email}>{user.email}</p>
                   </div>
                 </div>

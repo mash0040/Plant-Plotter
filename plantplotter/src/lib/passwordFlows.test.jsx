@@ -70,7 +70,7 @@ for (const flow of flows) {
       render(flow.component);
       fillForm(flow, password);
       fireEvent.click(screen.getByRole('button', { name: flow.submitLabel }));
-      expect(await screen.findByRole('alert')).toHaveTextContent(/too long.*72 UTF-8 bytes/);
+      expect(await screen.findByRole('alert')).toHaveTextContent('Password is too long. Try a shorter password.');
       expect(flow.call).not.toHaveBeenCalled();
       expect(screen.getByLabelText(flow.passwordLabel)).toHaveValue(password);
       expect(screen.getByLabelText(flow.passwordLabel)).not.toHaveAttribute('maxlength');

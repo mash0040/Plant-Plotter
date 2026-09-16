@@ -125,6 +125,7 @@ function ResetPasswordContent() {
                     )}
                   </button>
                 </div>
+                <p id="reset-password-rules" className="mt-1 text-sm text-gray-600">{PASSWORD_RULES_HINT}</p>
               </div>
 
               <div>
@@ -164,7 +165,6 @@ function ResetPasswordContent() {
                 </div>
               </div>
 
-              <p id="reset-password-rules" className="text-xs text-gray-600">{PASSWORD_RULES_HINT}</p>
             </div>
 
             <button
