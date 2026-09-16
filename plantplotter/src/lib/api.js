@@ -544,6 +544,14 @@ class ApiClient {
     }
   }
 
+  async savePlanner(gardenId, garden, plantedItems) {
+    const response = await this.request(`/gardens/${gardenId}/planner`, {
+      method: 'PUT',
+      body: JSON.stringify({ garden, plantedItems }),
+    });
+    return response.garden;
+  }
+
   async saveGardenPlantedItems(gardenId, plantedItems = []) {
     try {
       return await this.request(`/gardens/${gardenId}/complete`, {

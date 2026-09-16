@@ -175,11 +175,8 @@ const createGardenForUser = async (userId, gardenData) => {
   return transformCreatedGarden(await withDemoProtection(newGarden[0], userId));
 };
 
-const updateGardenForUser = async (gardenId, userId, gardenData) => {
-  const existingGarden = await findGardenForUser(gardenId, userId);
-  if (!existingGarden) return null;
-
-  await db.execute(
+const updateGardenMetadata = async (gardenId, userId, gardenData, connection = db) => {
+  await connection.execute(
     `UPDATE gardens
      SET name = ?, description = ?, width = ?, height = ?,
          soil_type = ?, location = ?, status = ?, updated_at = NOW()
@@ -196,6 +193,13 @@ const updateGardenForUser = async (gardenId, userId, gardenData) => {
       userId
     ]
   );
+};
+
+const updateGardenForUser = async (gardenId, userId, gardenData) => {
+  const existingGarden = await findGardenForUser(gardenId, userId);
+  if (!existingGarden) return null;
+
+  await updateGardenMetadata(gardenId, userId, gardenData);
 
   const [updatedGarden] = await db.execute(
     'SELECT * FROM gardens WHERE id = ? AND user_id = ?',
@@ -227,7 +231,7 @@ const insertPlantedItem = async (plantData, connection = db) => {
   return result;
 };
 
-const replacePlantedItemsForGarden = async (gardenId, userId, plantedItems = []) => {
+const saveGardenContents = async (gardenId, userId, plantedItems, gardenData) => {
   const connection = await db.getConnection();
   let connectionUsable = true;
 
@@ -243,6 +247,10 @@ const replacePlantedItemsForGarden = async (gardenId, userId, plantedItems = [])
       return null;
     }
 
+    if (gardenData) {
+      await updateGardenMetadata(gardenId, userId, gardenData, connection);
+    }
+
     await connection.execute(
       'DELETE FROM planted_items WHERE garden_id = ?',
       [gardenId]
@@ -253,12 +261,23 @@ const replacePlantedItemsForGarden = async (gardenId, userId, plantedItems = [])
       await insertPlantedItem(safePlant, connection);
     }
 
-    await connection.commit();
-    return {
+    const result = {
       message: 'Plants saved successfully',
       plantsAdded: plantedItems.length,
       totalPlants: plantedItems.length
     };
+    if (gardenData) {
+      const [updatedGardens] = await connection.execute(
+        'SELECT * FROM gardens WHERE id = ? AND user_id = ?',
+        [gardenId, userId]
+      );
+      const garden = await withDemoProtection(updatedGardens[0], userId, connection);
+      result.garden = transformUpdatedGarden({ ...garden, plant_count: plantedItems.length });
+      result.message = 'Garden layout saved successfully';
+    }
+
+    await connection.commit();
+    return result;
   } catch (error) {
     try {
       await connection.rollback();
@@ -275,6 +294,14 @@ const replacePlantedItemsForGarden = async (gardenId, userId, plantedItems = [])
     }
   }
 };
+
+const replacePlantedItemsForGarden = (gardenId, userId, plantedItems = []) => (
+  saveGardenContents(gardenId, userId, plantedItems)
+);
+
+const savePlannerForUser = (gardenId, userId, gardenData, plantedItems) => (
+  saveGardenContents(gardenId, userId, plantedItems, gardenData)
+);
 
 const clearPlantedItemsForGarden = async (gardenId, userId) => {
   const garden = await findGardenForUser(gardenId, userId);
@@ -424,6 +451,7 @@ module.exports = {
   getTransformedPlantedItemsForGarden,
   removePlantFromGarden,
   replacePlantedItemsForGarden,
+  savePlannerForUser,
   updateGardenForUser,
   updatePlantInGarden
 };

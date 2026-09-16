@@ -32,6 +32,25 @@ describe('apiClient error handling', () => {
     globalThis.fetch = vi.fn();
   });
 
+  it.each([[], [{ plant_id: 'basil', x_position: 2, y_position: 3 }]])('saves planner metadata and layout in one request (%j)', async plantedItems => {
+    const garden = { name: 'Herbs', width: 15, height: 12 };
+    const saved = { id: 4, ...garden };
+    fetch.mockResolvedValue(createJsonResponse({ status: 200, body: { garden: saved },
+      headers: { 'content-type': 'application/json' } }));
+    await expect(apiClient.savePlanner(4, garden, plantedItems)).resolves.toEqual(saved);
+    expect(fetch).toHaveBeenCalledExactlyOnceWith(expect.stringMatching(/\/gardens\/4\/planner$/), expect.objectContaining({
+      method: 'PUT', credentials: 'include', body: JSON.stringify({ garden, plantedItems }),
+      headers: expect.objectContaining({ 'X-CSRF-Protection': '1' })
+    }));
+  });
+
+  it.each([400, 500, 503])('propagates planner save failures without retry (%s)', async status => {
+    fetch.mockResolvedValue(createJsonResponse({ status, body: { message: 'Failed to save garden layout' } }));
+    await expect(apiClient.savePlanner(4, { name: 'Herbs', width: 15, height: 12 }, []))
+      .rejects.toMatchObject({ status });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('handles HTTP 503 separately from other failures', async () => {
     fetch.mockResolvedValue(createJsonResponse({
       status: 503,

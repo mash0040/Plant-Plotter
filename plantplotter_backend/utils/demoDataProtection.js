@@ -8,12 +8,12 @@ const TABLES = new Set(['gardens', 'garden_tasks', 'garden_activities']);
 
 // Only persisted keys and the stored account identity determine protection.
 // Public responses expose a capability, never the internal seed key.
-const withDemoProtection = async (records, userId) => {
+const withDemoProtection = async (records, userId, connection = db) => {
   const isList = Array.isArray(records);
   const rows = isList ? records : [records];
   let protectedAccount = false;
   if (rows.some(row => row?.demo_showcase_key != null)) {
-    const [users] = await db.execute('SELECT id, email FROM users WHERE id = ?', [userId]);
+    const [users] = await connection.execute('SELECT id, email FROM users WHERE id = ?', [userId]);
     if (!users.length) throw new Error('Demo permissions could not be checked');
     protectedAccount = isProtectedDemoAccount(users[0]);
   }
