@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import GardenForm from './GardenForm';
@@ -38,6 +38,50 @@ const submitForm = async (user) => {
 };
 
 describe('GardenForm validation', () => {
+  it.each(['client', 'server'])('preserves a new field focus before delayed %s validation focus', async source => {
+    const frames = [];
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+    const flushFrames = () => act(() => {
+      frames.splice(0).forEach(callback => callback(0));
+    });
+    const onSave = vi.fn().mockRejectedValue({ errors: { name: 'Choose another garden name.' } });
+    const { user } = renderGardenForm({ onSave });
+    flushFrames();
+    if (source === 'server') await fillRequiredFields(user);
+    const submit = screen.getByRole('button', { name: /create garden/i });
+    submit.focus();
+    await act(async () => fireEvent.submit(submit.closest('form')));
+    expect(screen.getByText(source === 'server' ? 'Choose another garden name.' : 'Garden name is required.')).toBeVisible();
+
+    const description = screen.getByLabelText('Description');
+    await user.type(description, 'Before');
+    flushFrames();
+    expect(description).toHaveFocus();
+    await user.keyboard(' after');
+    expect(description).toHaveValue('Before after');
+  });
+
+  it('still focuses the first invalid field when the user has not moved focus', async () => {
+    const frames = [];
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+    renderGardenForm();
+    act(() => frames.splice(0).forEach(callback => callback(0)));
+    const submit = screen.getByRole('button', { name: /create garden/i });
+    submit.focus();
+    fireEvent.submit(submit.closest('form'));
+    act(() => frames.splice(0).forEach(callback => callback(0)));
+
+    expect(screen.getByLabelText('Garden Name *')).toHaveFocus();
+  });
+
   it('opens as a named modal dialog and moves focus to the garden name', async () => {
     const { user, onClose } = renderGardenForm();
 

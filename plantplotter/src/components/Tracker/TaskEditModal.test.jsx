@@ -73,6 +73,7 @@ describe('TaskEditModal notes', () => {
     const notes = 'Use rain barrel\nCheck café herbs 🌱';
     const { props, rerender } = renderEditor();
     await user.type(screen.getByLabelText('Notes'), notes);
+    expect(screen.getByLabelText('Notes')).toHaveValue(notes);
     fireEvent.submit(screen.getByLabelText('Notes').closest('form'));
     await waitFor(() => expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({ notes })));
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
