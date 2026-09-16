@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = require('../config/jwtSecret');
 const { validatePassword } = require('../utils/passwordValidation');
 const { validateEmail } = require('../utils/emailValidation');
+const { validateDisplayName } = require('../utils/displayNameValidation');
 const { requestPasswordReset, resetPassword } = require('../utils/passwordResetService');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
@@ -19,17 +20,17 @@ const registerUser = async (req, res) => {
   const trimmedUsername = typeof username === 'string' ? username.trim() : '';
   const trimmedEmail = normalizeEmail(email);
 
-  // Check for missing fields
-  if (!trimmedUsername || !trimmedEmail || !password) {
-    return sendErrorResponse(res, 400, 'Please fill in all fields', {
-      code: 'VALIDATION_ERROR'
+  const displayNameError = validateDisplayName(username);
+  if (displayNameError) {
+    return sendErrorResponse(res, 400, displayNameError, {
+      code: 'VALIDATION_ERROR', errors: { username: displayNameError }
     });
   }
 
   const emailError = validateEmail(trimmedEmail);
   if (emailError) {
     return sendErrorResponse(res, 400, emailError, {
-      code: 'VALIDATION_ERROR'
+      code: 'VALIDATION_ERROR', errors: { email: emailError }
     });
   }
 
@@ -37,7 +38,7 @@ const registerUser = async (req, res) => {
   const passwordError = validatePassword(password);
   if (passwordError) {
     return sendErrorResponse(res, 400, passwordError, {
-      code: 'VALIDATION_ERROR'
+      code: 'VALIDATION_ERROR', errors: { password: passwordError }
     });
   }
 

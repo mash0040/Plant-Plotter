@@ -21,7 +21,7 @@ test('rejects over-limit ASCII and Unicode, including identical 72-byte prefixes
     'Aa1xx' + '\ud83c\udf31'.repeat(17), 'Aa1' + '\ud83c\udf31'.repeat(18)
   ]) {
     assert.ok(Buffer.byteLength(password, 'utf8') > 72);
-    assert.match(validatePassword(password), /too long.*72 UTF-8 bytes/);
+    assert.equal(validatePassword(password), 'Password is too long. Try a shorter password.');
   }
 });
 

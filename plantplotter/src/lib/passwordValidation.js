@@ -13,7 +13,7 @@ export function validateNewPassword(password) {
   }
   // Match Node's UTF-8 byte count, including multibyte Unicode input.
   if (new TextEncoder().encode(password).length > PASSWORD_MAX_BYTES) {
-    return `Password is too long. Use no more than ${PASSWORD_MAX_BYTES} UTF-8 bytes; accented letters and emoji can use multiple bytes.`;
+    return 'Password is too long. Try a shorter password.';
   }
   if (!/[A-Z]/.test(password)) {
     return 'Password must contain at least one uppercase letter';
@@ -27,4 +27,4 @@ export function validateNewPassword(password) {
   return null;
 }
 
-export const PASSWORD_RULES_HINT = `At least ${PASSWORD_MIN_LENGTH} characters, with uppercase, lowercase, and a number. Maximum ${PASSWORD_MAX_BYTES} UTF-8 bytes; accented letters and emoji can use multiple bytes.`;
+export const PASSWORD_RULES_HINT = `At least ${PASSWORD_MIN_LENGTH} characters, including uppercase and lowercase letters and a number.`;

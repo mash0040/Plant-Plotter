@@ -6,6 +6,7 @@ const { isProtectedDemoAccount } = require('../utils/protectedDemoAccount');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
 const { clearAuthCookie } = require('../utils/authCookie');
+const { validateDisplayName } = require('../utils/displayNameValidation');
 
 // GET /api/users/profile - Get user profile with preferences
 router.get('/profile', verifyToken, async (req, res) => {
@@ -53,9 +54,10 @@ router.put('/profile', verifyToken, requireMutableAccount, async (req, res) => {
     const db = require('../config/db');
     const trimmedUsername = typeof username === 'string' ? username.trim() : '';
 
-    if (!trimmedUsername) {
-      return sendErrorResponse(res, 400, 'Username is required', {
-        code: 'VALIDATION_ERROR'
+    const displayNameError = validateDisplayName(username);
+    if (displayNameError) {
+      return sendErrorResponse(res, 400, displayNameError, {
+        code: 'VALIDATION_ERROR', errors: { username: displayNameError }
       });
     }
 

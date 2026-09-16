@@ -132,7 +132,7 @@ for (const [label, password] of [
       await reset(token, password)
     ]) {
       assert.equal(response.status, 400);
-      assert.match(response.body.message, /too long.*72 UTF-8 bytes/);
+      assert.equal(response.body.message, 'Password is too long. Try a shorter password.');
     }
     assert.equal(hash.mock.callCount(), 0);
     assert.equal(compare.mock.callCount(), 0);

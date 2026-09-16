@@ -6,10 +6,10 @@ const require = createRequire(import.meta.url);
 const { MAX_BYTES, validatePassword } = require('../../../plantplotter_backend/utils/passwordValidation');
 
 describe('new password policy', () => {
-  it('documents the same 72-byte maximum in both workspaces', () => {
+  it('keeps the same 72-byte maximum while giving plain-language guidance', () => {
     expect(PASSWORD_MAX_BYTES).toBe(72);
     expect(PASSWORD_MAX_BYTES).toBe(MAX_BYTES);
-    expect(PASSWORD_RULES_HINT).toContain('Maximum 72 UTF-8 bytes');
+    expect(PASSWORD_RULES_HINT).toBe('At least 8 characters, including uppercase and lowercase letters and a number.');
   });
 
   it.each([

@@ -215,7 +215,7 @@ test('normal profile requires a nonblank display name without requiring email', 
     const response = await request('/users/profile', 'PUT', body, { userId: 12 });
     assert.equal(response.status, 400);
     assert.equal(response.body.code, 'VALIDATION_ERROR');
-    assert.equal(response.body.message, 'Username is required');
+    assert.equal(response.body.message, 'Display name is required');
   }
   assert.deepEqual(users, original);
   assert.ok(queries.every(query => query.sql.startsWith('SELECT')));

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { User, Mail, Save, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getActionErrorMessage } from '@/lib/apiErrors';
+import { validateDisplayName, DISPLAY_NAME_RULES_HINT } from '@/lib/displayNameValidation';
 
 export default function ProfileForm() {
   const { user, updateProfile, deleteAccount, loading } = useAuth();
@@ -44,11 +45,8 @@ export default function ProfileForm() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.username.trim()) {
-      newErrors.username = 'Display name is required';
-    } else if (formData.username.length < 2) {
-      newErrors.username = 'Display name must be at least 2 characters';
-    }
+    const displayNameError = validateDisplayName(formData.username);
+    if (displayNameError) newErrors.username = displayNameError;
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -188,18 +186,20 @@ export default function ProfileForm() {
               }`}
               placeholder="How your name appears in PlantPlotter"
               autoComplete="name"
+              required
               readOnly={isProtectedDemo}
-              aria-describedby={isProtectedDemo ? 'demo-account-notice' : 'profile-display-name-help'}
+              aria-invalid={Boolean(errors.username)}
+              aria-describedby={isProtectedDemo ? 'demo-account-notice' : `profile-display-name-help${errors.username ? ' profile-display-name-error' : ''}`}
               disabled={isSubmitting}
             />
           </div>
           {!isProtectedDemo && (
             <p id="profile-display-name-help" className="mt-1 text-sm text-gray-600">
-              Update your display name.
+              {DISPLAY_NAME_RULES_HINT}
             </p>
           )}
           {errors.username && (
-            <p className="mt-1 text-sm text-red-600">{errors.username}</p>
+            <p id="profile-display-name-error" role="alert" className="mt-1 text-sm text-red-600">{errors.username}</p>
           )}
         </div>
 
