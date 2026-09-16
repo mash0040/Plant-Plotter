@@ -11,7 +11,9 @@ const {
   getAuthCookieName,
   getAuthCookieOptions,
   getTokenMaxAge,
-  setAuthCookie
+  setAuthCookie,
+  setSignupCookie,
+  clearSignupCookie
 } = require('../utils/authCookie');
 
 const originalNodeEnv = process.env.NODE_ENV;
@@ -93,4 +95,16 @@ test('clears the cookie with the same security attributes', () => {
       path: '/'
     }
   ]]);
+});
+
+test('pending signup uses a separate secure cookie, expires after one day and clears with matching options', () => {
+  process.env.NODE_ENV = 'production';
+  const calls = [];
+  const response = { cookie: (...args) => calls.push(args), clearCookie: (...args) => calls.push(args) };
+  setSignupCookie(response, 'test-credential');
+  clearSignupCookie(response);
+  assert.deepEqual(calls, [
+    ['__Host-plantplotter_signup', 'test-credential', { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 86400000 }],
+    ['__Host-plantplotter_signup', { httpOnly: true, secure: true, sameSite: 'lax', path: '/' }]
+  ]);
 });

@@ -84,7 +84,7 @@ describe('create-account validation', () => {
     fillValidForm();
     submit();
     await waitFor(() => expect(mocks.register).toHaveBeenCalledExactlyOnceWith('Gardener', 'gardener@example.com', 'ValidPass123'));
-    expect(mocks.push).toHaveBeenCalledWith('/gardens');
+    expect(mocks.push).not.toHaveBeenCalled();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -154,14 +154,14 @@ describe('create-account validation', () => {
     render(<AuthForm initialMode="register" />);
     fillValidForm();
     submit();
-    expect(screen.getByRole('button', { name: 'Creating account...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Sending code...' })).toBeDisabled();
     for (const label of ['Display name', 'Email address', 'Password', 'Confirm password']) {
       expect(screen.getByLabelText(label)).toBeDisabled();
     }
     submit();
     expect(mocks.register).toHaveBeenCalledTimes(1);
     await act(async () => finish({}));
-    expect(mocks.push).toHaveBeenCalledWith('/gardens');
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 });
 

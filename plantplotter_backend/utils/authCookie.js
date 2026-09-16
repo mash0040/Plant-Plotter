@@ -40,6 +40,12 @@ const clearAuthCookie = (res) => {
   res.clearCookie(getAuthCookieName(), getAuthCookieOptions());
 };
 
+const getSignupCookieName = () => isProduction() ? '__Host-plantplotter_signup' : 'plantplotter_signup';
+const setSignupCookie = (res, credential) => res.cookie(getSignupCookieName(), credential, {
+  ...getAuthCookieOptions(), maxAge: 24 * 60 * 60 * 1000
+});
+const clearSignupCookie = res => res.clearCookie(getSignupCookieName(), getAuthCookieOptions());
+
 module.exports = {
   DEVELOPMENT_AUTH_COOKIE_NAME,
   PRODUCTION_AUTH_COOKIE_NAME,
@@ -47,5 +53,8 @@ module.exports = {
   getAuthCookieName,
   getAuthCookieOptions,
   getTokenMaxAge,
-  setAuthCookie
+  setAuthCookie,
+  getSignupCookieName,
+  setSignupCookie,
+  clearSignupCookie
 };

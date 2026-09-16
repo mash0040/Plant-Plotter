@@ -106,6 +106,7 @@ These files remain available only for upgrading older databases. Back up the dat
 
 | Upgrade file | Apply when the existing database is missing | Repeat behavior |
 | --- | --- | --- |
+| `email_verification_migration.sql` | `pending_signups` and `signup_limits` | Creates missing tables; inspect existing definitions before reapplying. Does not modify users. |
 | `password_reset_migration.sql` | `users.reset_password_token_hash`, `users.reset_password_expires`, or `idx_users_reset_password_token_hash` | Checks names and adds only missing columns/index. |
 | `session_version_migration.sql` | `users.session_version` | Apply once; duplicate column otherwise. |
 | `task_notes_migration.sql` | `garden_tasks.notes` | Apply once; duplicate column otherwise. |
@@ -115,6 +116,56 @@ These files remain available only for upgrading older databases. Back up the dat
 | `performance_indexes.sql` | Any of its six named performance indexes | Checks index names and adds only missing indexes. Requires routine creation privileges. |
 
 Inspect `SHOW CREATE TABLE users;`, `SHOW CREATE TABLE garden_tasks;`, and `SHOW INDEX FROM <table>;` for the tables listed in `performance_indexes.sql`. Name checks in repeatable migrations do not repair an existing definition with the wrong type or indexed columns; review such differences separately.
+
+### Email verification before account creation
+
+Apply `email_verification_migration.sql` to an existing database before deploying
+issue #129's API. Fresh installations already contain both tables and skip this
+migration. Back up first and inspect `SHOW CREATE TABLE pending_signups;` and
+`SHOW CREATE TABLE signup_limits;` if either exists: `IF NOT EXISTS` does not
+repair a mismatched definition. Both tables must use InnoDB.
+
+```sh
+mysql -u <user> -p garden_plotter < email_verification_migration.sql
+```
+
+The migration adds temporary signup attempts and shared sending/guessing budgets.
+It does not update existing users, `email_verified` values, passwords, or sessions.
+The legacy `users.email_verification_token` column remains unused. A pending email
+is not unique or reserved; only successful verification inserts into `users`, using
+its existing unique email constraint.
+
+Deploy the API with working `EMAIL_PROVIDER`, `EMAIL_FROM`, and provider credentials,
+then deploy the matching frontend in the same release window. Registration now
+returns pending verification instead of an authenticated user; an older frontend
+cannot finish the new flow. Keep a consistent `JWT_SECRET` across API instances.
+No new provider dependency or separate signing-secret configuration is required.
+Rolling back to the old API restores unverified registration and is a product/security
+rollback; do not drop the new tables while any verification API instance is running.
+
+Abandoned attempts expire after 24 hours. Signup starts remove at most 100 expired
+attempts and 100 expired limit rows per request, using indexed expiry columns.
+Expired attempts cannot be used even before cleanup runs. No scheduled database
+event or production migration runs automatically. A failed send retains an attempt
+for retry and consumes sending budget. Without an email provider, signup fails
+unless explicit local console delivery is enabled as described below.
+
+For local development against a local database, set `NODE_ENV=development` and
+`SIGNUP_EMAIL_MODE=console` in `plantplotter_backend/.env`, then restart the backend.
+Create an account or use **Resend code** after its cooldown; copy the latest
+`[development] Signup verification code:` from the backend terminal into the form.
+No email is sent in this mode. All expiry, guess, and resend limits still apply.
+An already-failed attempt requires a resend; changing configuration does not
+reactivate its code. Console mode is refused outside explicit development mode.
+Production uses `SIGNUP_EMAIL_MODE=email` (the default) and configured email delivery.
+
+Run the disposable validator below to exercise fresh/upgrade parity, account/session
+preservation, mocked email delivery, real MySQL concurrent guesses/verification,
+resend races, duplicate emails, and transaction rollback. Its explicit test-process
+email fixture passes signup messages over IPC; it does not contact Resend or log
+verification codes. Verify real inbox delivery separately in a configured test
+environment. See [verification security](../SECURITY.md#new-account-email-verification)
+for exact limits and retry behavior.
 
 ### Showcase deletion protection
 
@@ -209,8 +260,8 @@ With Docker running, validate the SQL and authentication paths against disposabl
 node plantplotter_backend/scripts/validateFreshDatabase.js
 ```
 
-This check creates an isolated container, imports only the active schema and seed, and starts the backend with temporary local settings. It verifies the documented demo login, unset preferences, and populated garden/planner/tracker API data, then exercises registration, login, reset-token persistence/consumption, session revocation, and invalid/reused reset links. It captures the development reset link locally without sending email. It also checks upgrades from a representative older schema and reruns the migrations documented as repeatable. The container is removed afterward; no existing database or local environment file is used.
+This check creates an isolated container, imports only the active schema and seed, and starts the backend with temporary local settings. It verifies the documented demo login, unset preferences, and populated garden/planner/tracker API data, then exercises pending signup, code verification, login, reset-token persistence/consumption, session revocation, and invalid/reused reset links. It captures the development reset link locally without sending email. It also checks upgrades from a representative older schema and reruns the migrations documented as repeatable. The container is removed afterward; no existing database or local environment file is used.
 
 For manual demo validation, sign in with the documented demo account after a fresh schema and seed import. Confirm all five showcase gardens are listed, open each planner to see its saved plants, and switch between gardens in Tracker to inspect tasks and activity history. Seed dates are fixed historical examples, so look in overdue/completed tasks and the matching historical calendar months rather than expecting activity today. Confirm Account Settings shows the protected demo profile without Preferences, save, or account-deletion controls.
 
-For manual UI validation, connect the app to a fresh local setup, register a new account, sign out and back in, request a reset link, reset the password, and confirm the old password and previously signed-in session no longer work. Sign in with the new password and confirm reusing the reset link fails. Use a new account rather than the protected demo account. Email delivery requires the provider settings in the [backend environment template](../plantplotter_backend/.env.example); with those settings blank in local development, the backend logs the reset link instead.
+For manual UI validation, connect the app to a fresh local setup, register a new account, verify the emailed code (or terminal code in explicit local console mode), sign out and back in, request a reset link, reset the password, and confirm the old password and previously signed-in session no longer work. Sign in with the new password and confirm reusing the reset link fails. Use a new account rather than the protected demo account. Real email delivery requires the provider settings in the [backend environment template](../plantplotter_backend/.env.example). With those settings blank in local development, password-reset links are logged; signup codes are printed only with the explicit local console mode described above.

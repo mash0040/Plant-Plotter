@@ -9,6 +9,8 @@ process.env.JWT_SECRET = 'test-only-session-revocation-secret';
 process.env.NODE_ENV = 'test';
 
 let users;
+let signupDb;
+const signupDatabase = require('./helpers/signupDatabase');
 let sentEmails;
 let passwordHash;
 let pauseLogin;
@@ -16,7 +18,14 @@ const dbPath = require.resolve('../config/db');
 // Stateful SQL double with real controllers, hashing, JWTs, cookie and CSRF middleware.
 // The reset models one conditional atomic UPDATE; no live database is changed.
 require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
+  getConnection: async () => {
+    const connection = await signupDb.getConnection();
+    const commit = connection.commit;
+    connection.commit = async () => { await commit(); users = signupDb.state.users; };
+    return connection;
+  },
   execute: async (sql, params) => {
+    if (sql.includes('pending_signups') || sql.includes('signup_limits')) return signupDb.execute(sql, params);
     if (sql.startsWith('SELECT session_version FROM users')) {
       assert.equal(sql, 'SELECT session_version FROM users WHERE id = ? AND is_active = TRUE');
       return [users.filter(user => user.id === params[0] && user.is_active)
@@ -58,7 +67,7 @@ require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
 } };
 const emailPath = require.resolve('../utils/emailService');
 require.cache[emailPath] = { id: emailPath, filename: emailPath, loaded: true,
-  exports: { sendPasswordResetEmail: async email => { sentEmails.push(email); } } };
+  exports: { sendPasswordResetEmail: async email => { sentEmails.push(email); }, sendSignupCodeEmail: async email => { sentEmails.push(email); return { sent: true }; } } };
 const authRouter = require('../routes/auth');
 const { requireCsrfProtection } = require('../middleware/csrfProtection');
 
@@ -77,6 +86,7 @@ after(async () => { await new Promise(resolve => server.close(resolve)); });
 beforeEach(() => {
   users = [1, 2].map(id => ({ id, username: `Gardener ${id}`, email: `user${id}@example.com`,
     password_hash: passwordHash, is_active: true, session_version: 0 }));
+  signupDb = signupDatabase(users);
   sentEmails = [];
   pauseLogin = null;
 });
@@ -106,7 +116,9 @@ for (const [label, password] of [
   test(`registration and reset accept 72-byte ${label} passwords that can sign in`, async () => {
     const email = 'boundary@example.com';
     assert.equal(Buffer.byteLength(password, 'utf8'), 72);
-    assert.equal((await request('register', { username: 'Boundary gardener', email, password })).status, 201);
+    const pending = await request('register', { username: 'Boundary gardener', email, password });
+    assert.equal(pending.status, 202);
+    assert.equal((await request('register/verify', { ...pending.body.pending, code: sentEmails.at(-1).code }, pending.cookie)).status, 201);
     assert.equal((await login(password, email)).status, 200);
     const token = await getResetToken();
     assert.equal((await reset(token, password)).status, 200);
@@ -212,7 +224,11 @@ test('invalid, expired and validation-failing resets preserve the password and e
 });
 
 test('registration issues a versioned cookie that can access protected endpoints', async () => {
-  const response = await request('register', { username: 'New gardener', email: 'new@example.com', password: 'NewPass123' });
+  const pending = await request('register', { username: 'New gardener', email: 'new@example.com', password: 'NewPass123' });
+  assert.equal(pending.status, 202);
+  assert.equal(users.length, 2);
+  assert.equal((await verify(pending.cookie)).status, 401);
+  const response = await request('register/verify', { ...pending.body.pending, code: sentEmails.at(-1).code }, pending.cookie);
   assert.equal(response.status, 201);
   assert.equal(Object.hasOwn(response.body.user, 'role'), false);
   assert.equal(Object.hasOwn(claims(response.cookie), 'role'), false);

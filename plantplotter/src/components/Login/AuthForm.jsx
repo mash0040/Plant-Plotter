@@ -11,11 +11,12 @@ import { validateDisplayName, DISPLAY_NAME_RULES_HINT } from '@/lib/displayNameV
 
 const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '' };
 
-export default function AuthForm({ initialMode = 'login' }) {
+export default function AuthForm({ initialMode = 'login', onPending }) {
   const router = useRouter();
   const { login, register, loading, clearError } = useAuth();
 
   const mode = initialMode === 'register' ? 'register' : 'login';
+  const previousModeRef = useRef(mode);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -51,6 +52,10 @@ export default function AuthForm({ initialMode = 'login' }) {
   }, [clearError]);
 
   useEffect(() => {
+    // Initial state is already empty. Do not erase early input/autofill when
+    // this form mounts after the pending-signup lookup finishes.
+    if (previousModeRef.current === mode) return;
+    previousModeRef.current = mode;
     setFormData(EMPTY_FORM);
     setFieldErrors({});
     fieldToFocus.current = null;
@@ -114,8 +119,9 @@ export default function AuthForm({ initialMode = 'login' }) {
         await login(trimmedEmail, formData.password);
         router.push('/gardens');
       } else {
-        await register(formData.name.trim(), trimmedEmail, formData.password);
-        router.push('/gardens');
+        const response = await register(formData.name.trim(), trimmedEmail, formData.password);
+        setFormData(EMPTY_FORM);
+        onPending?.(response.pending);
       }
     } catch (err) {
       if (mode === 'register') {
@@ -347,7 +353,7 @@ export default function AuthForm({ initialMode = 'login' }) {
           {isSubmitting || loading ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              {mode === 'login' ? 'Signing in...' : 'Creating account...'}
+              {mode === 'login' ? 'Signing in...' : 'Sending code...'}
             </>
           ) : (
             mode === 'login' ? 'Sign In' : 'Create Account'

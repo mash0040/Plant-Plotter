@@ -263,6 +263,28 @@ class ApiClient {
     }
   }
 
+  async getPendingSignup() {
+    return this.request('/auth/register/pending', { cache: 'no-store' });
+  }
+
+  async verifySignup({ attemptId, revision }, code) {
+    return this.request('/auth/register/verify', {
+      method: 'POST', body: JSON.stringify({ attemptId, revision, code })
+    });
+  }
+
+  async resendSignup({ attemptId, revision }) {
+    return this.request('/auth/register/resend', {
+      method: 'POST', body: JSON.stringify({ attemptId, revision })
+    });
+  }
+
+  async changeSignupEmail({ attemptId, revision }, email) {
+    return this.request('/auth/register/change-email', {
+      method: 'POST', body: JSON.stringify({ attemptId, revision, email })
+    });
+  }
+
   async forgotPassword(email) {
     try {
       return await this.request('/auth/forgot-password', {

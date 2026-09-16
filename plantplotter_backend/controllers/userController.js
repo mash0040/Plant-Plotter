@@ -8,7 +8,7 @@ const { validateDisplayName } = require('../utils/displayNameValidation');
 const { requestPasswordReset, resetPassword } = require('../utils/passwordResetService');
 const { sendDatabaseAwareErrorResponse } = require('../utils/databaseAvailability');
 const { sendErrorResponse } = require('../utils/apiErrorResponse');
-const { clearAuthCookie, setAuthCookie } = require('../utils/authCookie');
+const { clearAuthCookie, setAuthCookie, clearSignupCookie } = require('../utils/authCookie');
 const { isProtectedDemoAccount } = require('../utils/protectedDemoAccount');
 
 const normalizeEmail = (email) => (
@@ -16,8 +16,7 @@ const normalizeEmail = (email) => (
 );
 
 const registerUser = async (req, res) => {
-  const { username, email, password } = req.body;
-  const trimmedUsername = typeof username === 'string' ? username.trim() : '';
+  const { username, email, password } = req.body || {};
   const trimmedEmail = normalizeEmail(email);
 
   const displayNameError = validateDisplayName(username);
@@ -42,55 +41,7 @@ const registerUser = async (req, res) => {
     });
   }
 
-  try {
-    // Email is the unique login identifier; display name (username column) is NOT unique.
-    const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [trimmedEmail]);
-    if (existing.length > 0) {
-      return sendErrorResponse(res, 409, 'Email already registered', {
-        code: 'EMAIL_ALREADY_REGISTERED'
-      });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert user into database
-    const [result] = await db.execute(
-      'INSERT INTO users (username, email, password_hash, is_active, session_version, created_at, updated_at) VALUES (?, ?, ?, ?, 0, NOW(), NOW())',
-      [trimmedUsername, trimmedEmail, hashedPassword, true]
-    );
-
-    const userId = result.insertId;
-
-    // Generate the JWT stored in the httpOnly session cookie.
-    const tokenPayload = { 
-      id: userId, 
-      email: trimmedEmail,
-      username: trimmedUsername,
-      sessionVersion: 0
-    };
-
-    const token = jwt.sign(
-      tokenPayload,
-      JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-    );
-
-    setAuthCookie(res, token);
-
-    res.status(201).json({ 
-      message: 'User registered successfully',
-      user: {
-        id: userId,
-        username: trimmedUsername,
-        email: trimmedEmail,
-        isProtectedDemo: isProtectedDemoAccount({ email: trimmedEmail })
-      }
-    });
-  } catch (err) {
-    console.error('Registration error:', err);
-    sendDatabaseAwareErrorResponse(res, err, { message: 'Server error' });
-  }
+  return require('./signupController').startSignup(req, res);
 };
 
 const loginUser = async (req, res) => {
@@ -144,6 +95,7 @@ const loginUser = async (req, res) => {
     );
 
     setAuthCookie(res, token);
+    clearSignupCookie(res);
 
     res.json({
       message: 'Login successful',
@@ -193,6 +145,7 @@ const resetUserPassword = async (req, res) => {
 
 const logoutUser = (req, res) => {
   clearAuthCookie(res);
+  clearSignupCookie(res);
   res.json({ message: 'Signed out successfully' });
 };
 
