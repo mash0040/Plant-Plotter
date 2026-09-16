@@ -112,7 +112,7 @@ describe('create-account validation', () => {
     submit();
     await screen.findByText(message);
     expectFieldError(label, message);
-    expect(screen.getByLabelText(label)).toHaveFocus();
+    await waitFor(() => expect(screen.getByLabelText(label)).toHaveFocus());
     expect(screen.getAllByRole('alert')).toHaveLength(1);
     expect(screen.getByLabelText('Password')).toHaveValue('ValidPass123');
   });
@@ -125,7 +125,7 @@ describe('create-account validation', () => {
     const message = 'Email already registered. Sign in or use another email address.';
     await screen.findByText(message);
     expectFieldError('Email address', message);
-    expect(screen.getByLabelText('Email address')).toHaveFocus();
+    await waitFor(() => expect(screen.getByLabelText('Email address')).toHaveFocus());
     change('Email address', 'another@example.com');
     submit();
     await waitFor(() => expect(mocks.register).toHaveBeenNthCalledWith(2, 'Gardener', 'another@example.com', 'ValidPass123'));
