@@ -8,8 +8,6 @@ Plant Plotter uses a signed JWT inside an httpOnly authentication cookie. The br
 - A successful login or signup-code verification signs a JWT with `jsonwebtoken` and sets it as an httpOnly cookie. Starting registration does not create a user or authentication session. The token is not included in the JSON response.
 - The JWT payload includes the user id, email, username, and `sessionVersion`.
 - `JWT_EXPIRES_IN` controls both the JWT expiry and the cookie lifetime; the backend defaults to `24h` when it is unset.
-- Local development uses the host-only `plantplotter_session` cookie with `SameSite=Lax` and `Path=/`.
-- Production uses `__Host-plantplotter_session`, which is host-only, `Secure`, httpOnly, `SameSite=Lax`, and has `Path=/`.
 - Protected backend routes read and verify the cookie in `plantplotter_backend/middleware/verifyToken.js`, then compare its version with the active user's `users.session_version` on every request. Missing/inactive accounts and mismatched or missing versions receive `401 INVALID_TOKEN` and the cookie is cleared.
 - Session verification requires one indexed user lookup per protected request. Database failures deny access without clearing the cookie; temporary outages use the existing `503 SERVICE_UNAVAILABLE` response.
 - The frontend uses `credentials: include` for API requests and never reads the authentication cookie.
@@ -17,17 +15,26 @@ Plant Plotter uses a signed JWT inside an httpOnly authentication cookie. The br
 - Invalid or expired cookies are also cleared when authentication verification fails.
 - Protected-route `401` responses notify the app and redirect an established session to login with user-friendly expired-session copy.
 
-The previous `localStorage` bearer-token model is no longer accepted by protected endpoints. The frontend removes stale `token`, `authToken`, and cached auth-user values left by earlier builds. Users with one of those older sessions must sign in once after this change is deployed.
+Protected endpoints accept the authentication cookie, not bearer tokens from browser storage. The frontend clears legacy token and cached auth-user entries from `localStorage`.
 
 ## Cookie Policy
 
 The authentication cookie is strictly necessary for account login and protected application features. Plant Plotter does not currently set advertising or analytics cookies. The authentication cookie is not a consent or tracking cookie, and adding non-essential cookies in the future requires a separate privacy and consent review.
 
-## SameSite And Deployment
+## Cookie Configuration And Deployment
 
-Production uses `SameSite=Lax` because the canonical frontend (`https://www.plantplotter.me`) and API (`https://api.plantplotter.me`) are separate origins under the same HTTPS site. The cookie is not assigned a `Domain`, so it remains scoped to the API host instead of every `plantplotter.me` subdomain.
+Both authentication cookie variants are httpOnly, host-only (no `Domain`), and use `SameSite=Lax` with `Path=/`:
+
+| Environment | Cookie name | `Secure` |
+| --- | --- | --- |
+| Local development | `plantplotter_session` | No |
+| Production (`NODE_ENV=production`) | `__Host-plantplotter_session` | Yes |
+
+The canonical frontend (`https://www.plantplotter.me`) and API (`https://api.plantplotter.me`) are separate origins under the same HTTPS site, allowing `SameSite=Lax` authentication. The cookie remains scoped to the API host.
 
 Vercel must use `NEXT_PUBLIC_API_URL=https://api.plantplotter.me/api`. Render must set `NODE_ENV=production` and configure `FRONTEND_URL` with the exact canonical frontend origin. Credentialed CORS must never use a wildcard origin.
+
+The production API trusts one proxy hop (`trust proxy: 1`). Keep the deployment's proxy path consistent with this setting so client-IP rate limits use the intended address.
 
 Vercel preview domains are cross-site with `api.plantplotter.me` and are not part of the production cookie contract. Test production authentication through the canonical custom domain.
 
@@ -40,7 +47,15 @@ Vercel preview domains are cross-site with `api.plantplotter.me` and are not par
 - Requests without the required header receive `403 CSRF_VALIDATION_FAILED` before route handlers can change data.
 - `SameSite=Lax` provides an additional browser-level restriction but is not treated as the only CSRF defense.
 
-API tools used for manual testing must send both the authentication cookie and the CSRF header for unsafe endpoints. Safe methods such as `GET`, `HEAD`, and `OPTIONS` do not require the header.
+The header requirement is independent of authentication:
+
+| Unsafe endpoints | Required credentials in addition to `X-CSRF-Protection: 1` |
+| --- | --- |
+| Login, registration start, forgot-password, reset-password, and logout | No pre-existing authenticated session. Reset-password requires the reset token in the request body. |
+| Signup verification, resend, and change-email | The separate signup cookie and matching `attemptId` and `revision`; no authenticated session. |
+| Protected account, garden, and tracker mutations | A valid authentication cookie. |
+
+API tools used for manual testing must send the header and any credentials required by the endpoint. Safe methods (`GET`, `HEAD`, and `OPTIONS`) do not require the CSRF header; protected reads still require authentication.
 
 ## Password Policy
 
@@ -143,17 +158,21 @@ the trusted proxy described above. Budget identities are hashed.
 Attempts expire after 24 hours and never reserve an email in `users`. Each signup
 start deletes at most 100 expired attempts and 100 expired budget rows using expiry
 indexes. Rows may remain at rest while there is no signup traffic; expiry is checked
-on every operation. See the database documentation for migration/deployment order.
+on every operation. See the [signup migration and deployment instructions](plantplotter_db/README.md#email-verification-before-account-creation).
 
 ## Password Reset
 
-Password-reset tokens are separate from authentication sessions. They remain short-lived, single-use values delivered through the reset link and are not stored as browser authentication credentials.
+Password-reset tokens are separate from authentication sessions. They expire after 30 minutes, are single-use, and are stored only as SHA-256 hashes in the database. The reset link carries the raw token; it is not a browser authentication credential.
+
+If email-provider configuration is missing or invalid and `NODE_ENV` is anything other than `production`, the email service intentionally prints the reset link in the backend terminal and skips email delivery. This fallback supports local development/testing, including environments where `NODE_ENV` is unset. It does not run after a configured provider rejects or fails a send. The API response remains generic and never includes the reset link.
+
+Production requires `NODE_ENV=production`, configured email delivery, and an HTTPS `PASSWORD_RESET_BASE_URL`. Reset tokens and links must not appear in production logs or diagnostic output. Missing email configuration raises an error instead of printing a link; configuration/send errors are logged while the reset request retains its generic response. Never run a deployed API with a non-production `NODE_ENV`.
 
 A successful reset increments `users.session_version` in the same conditional database update that changes the password hash and consumes the reset token. All previously issued sessions for that account are rejected on their next protected request. Requests already authenticated before the reset completes may finish. Resetting a password does not automatically sign in; signing in with the new password issues a cookie with the current version. Other accounts remain signed in.
 
 Requesting a reset link, invalid/expired/reused links, validation failures, and failed password updates do not increment the version. Any future password-changing flow must increment it atomically with the password change as well.
 
-Before deploying this API to an existing database, apply [session_version_migration.sql](plantplotter_db/session_version_migration.sql) once; fresh schemas already include the column. Cookies issued before this deployment lack a version and require a one-time sign-in. Deploy the API consistently across instances: an older API instance does not enforce revocation. See [database migration instructions](plantplotter_db/README.md#migrations).
+See the [database migration instructions](plantplotter_db/README.md#migrations) for existing-database upgrades and deployment order. All API instances must enforce session-version checks; cookies without a version require a new sign-in.
 
 ## Account Deletion
 
@@ -208,13 +227,13 @@ still assigned to the shared account; this change does not repair an account
 that was already renamed or deleted. Database administrators must preserve the
 reserved identity when maintaining the demo account.
 
-## Known Limitation
+## Session Limitations
 
 Refresh tokens, individual-session revocation, and a server-side session store are not implemented. Password resets revoke sessions at the account level. Session JWTs still expire according to `JWT_EXPIRES_IN`; signing out only removes that browser's cookie and does not invalidate a copied JWT. Changing `JWT_SECRET` invalidates all outstanding sessions.
 
 ## Developer Guidance
 
-- Do not log JWTs, password-reset tokens, cookies, authorization headers, or raw credential payloads.
+- Do not log JWTs, cookies, authorization headers, or raw credential payloads. Password-reset tokens and links must not be logged except through the intentional non-production fallback described in [Password Reset](#password-reset); do not add other token logging.
 - Do not display session credentials in user-facing UI.
 - Avoid unsafe HTML injection. Prefer React text rendering for user-provided content.
 - Treat any future use of `dangerouslySetInnerHTML`, `innerHTML`, markdown rendering, rich text rendering, or third-party embeds as a security review point.
@@ -229,10 +248,16 @@ The frontend security headers are defined in `plantplotter/next.config.js` and a
 - `https://api.open-meteo.com` for tracker weather requests.
 - WebSocket origins in development only for Next.js Fast Refresh.
 
-The policy blocks plugins and objects, framing, cross-origin frames, base URL changes, and inline script event handlers. It also includes `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, and a `Permissions-Policy` that disables camera and microphone access while preserving same-origin geolocation.
+The policy blocks plugins and objects, embedded frames, framing of the application, and inline script event handlers. `base-uri 'self'` restricts base URLs to the same origin; it does not forbid all base-element changes. Images additionally allow `blob:` and `data:`, and workers allow `blob:`. Outside development, the policy includes `upgrade-insecure-requests`.
+
+Other response headers include `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, and a `Permissions-Policy` that disables camera and microphone access while preserving same-origin geolocation.
 
 Next.js currently requires inline framework scripts for hydration, and the planner uses React inline style attributes for dynamic dimensions and plant placement. The policy therefore permits inline scripts and styles, while separately blocking inline script attributes with `script-src-attr 'none'`. Development additionally requires `unsafe-eval` for React diagnostics. These exceptions must not be expanded to third-party origins without review.
 
-A nonce-based CSP is intentionally deferred. Next.js requires nonce-protected pages to be dynamically rendered, which disables static optimization and normal CDN caching. Revisit nonces, CSP hashes, or stable Subresource Integrity support if the app's rendering strategy changes or stricter compliance requirements justify that performance tradeoff.
+The current CSP does not use nonces or hashes to authorize individual inline scripts, so it does not block injected inline script elements. This remains a limitation of the current rendering setup.
 
 After changing frontend dependencies or external services, run a production build and manually test login, gardens, planner, tracker weather, profile, and password-reset flows with the browser console open for CSP violations. Confirm the response headers on the page's document request in DevTools Network.
+
+## Vulnerability Reporting
+
+A private vulnerability-reporting contact is pending; no private reporting route has been selected for this project. Do not publish sensitive vulnerability details, credentials, or exploit instructions in public issues.
