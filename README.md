@@ -63,7 +63,11 @@ Prerequisites: Node.js 22, npm, and MySQL 8 with a user able to create and use t
 
    In Windows PowerShell, use `Copy-Item` in place of `cp`.
 
-3. Set your MySQL credentials and a private `JWT_SECRET` in `plantplotter_backend/.env`. Keep the templates' localhost URLs for local development. Email settings can stay blank locally; password-reset links then appear in the backend terminal. See the [backend environment template](plantplotter_backend/.env.example) for email and production TLS settings. Keep real secrets out of Git and frontend variables.
+3. Set your MySQL credentials and a private `JWT_SECRET` in `plantplotter_backend/.env`. Keep the templates' localhost URLs for local development. Keep real secrets out of Git and frontend variables.
+
+   For signup, configure `EMAIL_PROVIDER`, `EMAIL_FROM`, and the selected provider's credentials using the [backend environment template](plantplotter_backend/.env.example). Alternatively, against a local development database, set both `NODE_ENV=development` and `SIGNUP_EMAIL_MODE=console` in `plantplotter_backend/.env`, then restart the backend. Signup verification codes appear in the backend terminal instead of being emailed. For an already-failed attempt, select **Resend code** after the cooldown; changing configuration does not reactivate the previous code. See [email verification before account creation](plantplotter_db/README.md#email-verification-before-account-creation) for details.
+
+   Signup console delivery requires explicit development mode. Password reset has a separate non-production fallback that prints reset links when email configuration is missing or invalid; it does not apply to signup. Production uses configured provider email.
 
 4. Follow the [database setup instructions](plantplotter_db/README.md#fresh-installation) to import the schema and optional local/demo seed. Fresh installations must skip all upgrade migrations. Existing databases should follow the [migration guide](plantplotter_db/README.md#migrations).
 
