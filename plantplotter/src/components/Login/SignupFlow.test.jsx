@@ -134,10 +134,47 @@ it('makes pending-status network failures retryable without discarding the signu
   await screen.findByRole('heading', { name: 'Verify your email' });
 });
 
-it('waits for the initial session lookup before verification can establish a new session', async () => {
+it('allows verification while initial session detection is still running', async () => {
   mocks.authLoading = true;
   await open();
-  expect(screen.getByRole('button', { name: 'Please wait...' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Verify email' })).toBeEnabled();
   change('Verification code', '123456'); submitCode();
-  expect(mocks.verifySignup).not.toHaveBeenCalled();
+  await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/gardens'));
+  expect(mocks.verifySignup).toHaveBeenCalledExactlyOnceWith(pending, '123456');
+});
+
+it.each(['pending', 'completed', 'failure'])('keeps early account details when the startup signup lookup returns %s', async outcome => {
+  let resolve, reject;
+  mocks.getPendingSignup.mockReturnValueOnce(new Promise((done, fail) => { resolve = done; reject = fail; }));
+  mocks.authLoading = true;
+  render(<SignupFlow />);
+  expect(screen.getByRole('button', { name: 'Create Account' })).toBeEnabled();
+  expect(screen.queryByText(/Checking|Please wait|Sending code/)).not.toBeInTheDocument();
+  change('Display name', 'My draft');
+  await act(async () => {
+    if (outcome === 'failure') reject(new Error('Check your connection.'));
+    else resolve(outcome === 'pending' ? { pending } : { completed: true });
+  });
+  expect(screen.getByLabelText('Display name')).toHaveValue('My draft');
+  expect(screen.getByRole('button', { name: 'Create Account' })).toBeEnabled();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+it.each(['before', 'after'])('ignores startup signup metadata arriving %s a new registration completes', async timing => {
+  let restore, finish;
+  mocks.getPendingSignup.mockReturnValueOnce(new Promise(resolve => { restore = resolve; }));
+  mocks.register.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  render(<SignupFlow />);
+  for (const [label, value] of [['Display name', 'Gardener'], ['Email address', 'new@example.com'], ['Password', 'ValidPass123'], ['Confirm password', 'ValidPass123']]) change(label, value);
+  fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+  if (timing === 'before') {
+    await act(async () => restore({ pending }));
+    expect(screen.getByRole('button', { name: 'Sending code...' })).toBeDisabled();
+  }
+  const newPending = { ...pending, attemptId: 'new-attempt', email: 'new@example.com' };
+  await act(async () => finish({ pending: newPending }));
+  if (timing === 'after') await act(async () => restore({ pending }));
+  expect(screen.getByText('new@example.com')).toBeInTheDocument();
+  change('Verification code', '123456'); submitCode();
+  await waitFor(() => expect(mocks.verifySignup).toHaveBeenCalledExactlyOnceWith(newPending, '123456'));
 });

@@ -283,6 +283,23 @@ describe('apiClient error handling', () => {
     window.removeEventListener('plantplotter:auth-expired', authExpiredListener);
   });
 
+  it('cancels a startup profile fetch without reporting a session failure', async () => {
+    const controller = new AbortController();
+    const abortError = new DOMException('Aborted', 'AbortError');
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    fetch.mockImplementation((url, { signal }) => new Promise((resolve, reject) => {
+      signal.addEventListener('abort', () => reject(abortError), { once: true });
+    }));
+    const request = apiClient.getProfile({ suppressAuthExpired: true, signal: controller.signal });
+    const rejection = expect(request).rejects.toBe(abortError);
+    controller.abort();
+    await rejection;
+    expect(fetch).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('/users/profile'), expect.objectContaining({
+      signal: controller.signal, credentials: 'include'
+    }));
+    expect(log).not.toHaveBeenCalled();
+  });
+
   it('keeps login 401 responses as invalid-credentials errors', async () => {
     localStorage.setItem('token', 'existing-token');
 

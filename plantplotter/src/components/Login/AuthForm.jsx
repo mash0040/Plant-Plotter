@@ -11,9 +11,9 @@ import { validateDisplayName, DISPLAY_NAME_RULES_HINT } from '@/lib/displayNameV
 
 const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '' };
 
-export default function AuthForm({ initialMode = 'login', onPending }) {
+export default function AuthForm({ initialMode = 'login', onPending, onInteraction }) {
   const router = useRouter();
-  const { login, register, loading, clearError } = useAuth();
+  const { login, register, clearError } = useAuth();
 
   const mode = initialMode === 'register' ? 'register' : 'login';
   const previousModeRef = useRef(mode);
@@ -21,6 +21,7 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitting = useRef(false);
   const [localError, setLocalError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [sessionNotice, setSessionNotice] = useState('');
@@ -28,11 +29,11 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
   const fieldToFocus = useRef(null);
 
   useEffect(() => {
-    if (fieldToFocus.current && !isSubmitting && !loading) {
+    if (fieldToFocus.current && !isSubmitting) {
       formRef.current?.elements.namedItem(fieldToFocus.current)?.focus();
       fieldToFocus.current = null;
     }
-  }, [fieldErrors, isSubmitting, loading]);
+  }, [fieldErrors, isSubmitting]);
 
   // One-time session-expired notice: only shown when the user lost an active
   // session (set by AuthProvider). Manual nav to /login should never see this.
@@ -66,6 +67,7 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
   }, [mode]);
 
   const handleInputChange = (field, value) => {
+    onInteraction?.();
     setFormData(prev => ({ ...prev, [field]: value }));
     setFieldErrors(prev => ({
       ...prev,
@@ -83,7 +85,8 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting || loading) return;
+    if (submitting.current) return;
+    onInteraction?.();
     setLocalError('');
     setSessionNotice('');
 
@@ -113,6 +116,7 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
     }
     setFieldErrors({});
 
+    submitting.current = true;
     setIsSubmitting(true);
     try {
       if (mode === 'login') {
@@ -150,6 +154,7 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
         : 'Review your details and try again.';
       setLocalError(getActionErrorMessage(err, actionMessage, recoveryMessage));
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
@@ -199,7 +204,7 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  disabled={isSubmitting || loading}
+                  disabled={isSubmitting}
                 />
               </div>
               <p id="auth-display-name-help" className="mt-1 text-sm text-gray-600">
@@ -231,7 +236,7 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                disabled={isSubmitting || loading}
+                disabled={isSubmitting}
               />
             </div>
             {fieldErrors.email && (
@@ -262,13 +267,13 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
-                disabled={isSubmitting || loading}
+                disabled={isSubmitting}
               />
               <button
                 type="button"
                 className="absolute inset-y-0 right-0 flex items-center rounded-r-xl pr-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-green-600"
                 onClick={() => setShowPassword(!showPassword)}
-                disabled={isSubmitting || loading}
+                disabled={isSubmitting}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
@@ -310,13 +315,13 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
                     className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 transition-all"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    disabled={isSubmitting || loading}
+                    disabled={isSubmitting}
                   />
                   <button
                     type="button"
                     className="absolute inset-y-0 right-0 flex items-center rounded-r-xl pr-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-green-600"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    disabled={isSubmitting || loading}
+                    disabled={isSubmitting}
                     aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                   >
                     {showConfirmPassword ? (
@@ -347,10 +352,10 @@ export default function AuthForm({ initialMode = 'login', onPending }) {
 
         <button
           type="submit"
-          disabled={isSubmitting || loading}
+          disabled={isSubmitting}
           className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center"
         >
-          {isSubmitting || loading ? (
+          {isSubmitting ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
               {mode === 'login' ? 'Signing in...' : 'Sending code...'}
