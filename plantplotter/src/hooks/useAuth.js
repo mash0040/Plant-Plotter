@@ -20,6 +20,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const initialAuthRequest = useRef(null);
+
+  // A user action supersedes the startup lookup, including its loading state.
+  const cancelInitialAuth = () => {
+    initialAuthRequest.current?.abort();
+    initialAuthRequest.current = null;
+  };
   // Tracks whether the user was authenticated during this tab's lifetime.
   // We only show "Your session expired" if a real, established session was lost —
   // not on the initial cookie check for an anonymous visitor.
@@ -89,24 +96,36 @@ export const AuthProvider = ({ children }) => {
   }, [router]);
 
   useEffect(() => {
-    // Initialize auth on mount
+    const controller = new AbortController();
+    initialAuthRequest.current = controller;
+
+    // Startup detection is silent and may only update state while still current.
     const initializeAuth = async () => {
       try {
-        if (typeof window !== 'undefined') {
-          apiClient.clearLegacyAuthStorage();
-          await fetchUserProfile(false, true);
+        apiClient.clearLegacyAuthStorage();
+        const userData = await apiClient.getProfile({
+          suppressAuthExpired: true,
+          signal: controller.signal
+        });
+        if (!controller.signal.aborted && userData) {
+          setUser(getUserWithDisplayName(userData));
         }
       } catch (err) {
-        if (typeof window !== 'undefined') {
-          apiClient.clearUserSessionStorage();
+        if (!controller.signal.aborted && isAuthenticationError(err)) {
+          setUser(null);
+          hadActiveSessionRef.current = false;
         }
-        setUser(null);
-        setLoading(false);
+      } finally {
+        if (!controller.signal.aborted) {
+          initialAuthRequest.current = null;
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
-  }, [fetchUserProfile]);
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -144,6 +163,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   const login = async (email, password) => {
+    cancelInitialAuth();
     try {
       setError(null);
       setLoading(true);
@@ -169,6 +189,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (name, email, password) => {
+    cancelInitialAuth();
     try {
       setError(null);
       setLoading(true);
@@ -184,10 +205,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const verifySignup = async (pending, code) => {
-    const response = await apiClient.verifySignup(pending, code);
-    setUser(getUserWithDisplayName(response.user));
-    setError(null);
-    return response;
+    cancelInitialAuth();
+    setLoading(true);
+    try {
+      const response = await apiClient.verifySignup(pending, code);
+      setUser(getUserWithDisplayName(response.user));
+      setError(null);
+      return response;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateProfile = async (profileData) => {

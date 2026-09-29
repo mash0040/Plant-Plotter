@@ -4,21 +4,99 @@ import { PASSWORD_RULES_HINT } from '@/lib/passwordValidation';
 import { EMAIL_VALIDATION_MESSAGE } from '@/lib/emailValidation';
 import AuthForm from './AuthForm';
 
-const mocks = vi.hoisted(() => ({ register: vi.fn(), login: vi.fn(), push: vi.fn(), clearError: vi.fn() }));
+const mocks = vi.hoisted(() => ({ register: vi.fn(), login: vi.fn(), push: vi.fn(), clearError: vi.fn(), loading: false }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('@/hooks/useAuth', () => ({
   SESSION_EXPIRED_FLAG: 'test-session-expired',
-  useAuth: () => ({ ...mocks, loading: false })
+  useAuth: () => mocks
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.loading = false;
+  sessionStorage.clear();
   mocks.register.mockResolvedValue({});
   mocks.login.mockResolvedValue({});
 });
 
 const change = (label, value) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const submit = () => fireEvent.submit(screen.getByLabelText('Email address').closest('form'));
+
+describe.each([
+  ['login', 'Sign In', 'Signing in...'],
+  ['register', 'Create Account', 'Sending code...']
+])('%s loading states', (mode, label, pendingLabel) => {
+  it('allows input, visibility controls, validation and submission during startup loading', async () => {
+    mocks.loading = true;
+    let finish;
+    mocks[mode].mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const onPending = vi.fn();
+    const { container } = render(<AuthForm initialMode={mode} onPending={onPending} />);
+    expect(screen.getByRole('button', { name: label })).toBeEnabled();
+    expect(screen.queryByText(/Signing in\.\.\.|Sending code\.\.\.|Checking session|Please wait/)).not.toBeInTheDocument();
+    expect(container.querySelector('.animate-spin')).toBeNull();
+    for (const control of container.querySelectorAll('input, button')) expect(control).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'text');
+    if (mode === 'register') {
+      fireEvent.click(screen.getByRole('button', { name: 'Show confirm password' }));
+      expect(screen.getByLabelText('Confirm password')).toHaveAttribute('type', 'text');
+    }
+    submit();
+    expect(screen.getByLabelText(mode === 'register' ? 'Display name' : 'Email address')).toHaveFocus();
+    expect(mocks[mode]).not.toHaveBeenCalled();
+    if (mode === 'register') fillValidForm();
+    else {
+      change('Email address', 'gardener@example.com');
+      change('Password', 'ValidPass123');
+    }
+    // Two submits in one render batch must still send only one request.
+    act(() => { submit(); submit(); });
+    expect(mocks[mode]).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: pendingLabel })).toBeDisabled();
+    for (const control of container.querySelectorAll('input, button')) expect(control).toBeDisabled();
+    expect(container.querySelector('.animate-spin')).not.toBeNull();
+    const pending = { attemptId: 'new-signup' };
+    await act(async () => finish({ pending }));
+    expect(screen.getByRole('button', { name: label })).toBeEnabled();
+    expect(container.querySelector('.animate-spin')).toBeNull();
+    if (mode === 'login') expect(mocks.push).toHaveBeenCalledExactlyOnceWith('/gardens');
+    else {
+      expect(onPending).toHaveBeenCalledExactlyOnceWith(pending);
+      expect(mocks.push).not.toHaveBeenCalled();
+    }
+  });
+
+  it('restores the form after failure and allows retry independently of global loading', async () => {
+    mocks.loading = true;
+    let fail;
+    mocks[mode].mockReturnValueOnce(new Promise((resolve, reject) => { fail = reject; }));
+    render(<AuthForm initialMode={mode} />);
+    if (mode === 'register') fillValidForm();
+    else {
+      change('Email address', 'gardener@example.com');
+      change('Password', 'ValidPass123');
+    }
+    submit();
+    await act(async () => fail(new Error('Check your details and try again.')));
+    expect(screen.getByRole('alert')).toHaveTextContent('Check your details and try again.');
+    expect(screen.getByRole('button', { name: label })).toBeEnabled();
+    expect(screen.getByLabelText('Password')).toHaveValue('ValidPass123');
+    submit();
+    await waitFor(() => expect(mocks[mode]).toHaveBeenCalledTimes(2));
+  });
+});
+
+it('preserves the one-time session-expired notice during startup loading', () => {
+  mocks.loading = true;
+  sessionStorage.setItem('test-session-expired', '1');
+  const { unmount } = render(<AuthForm />);
+  expect(screen.getByText('Your session expired. Please sign in again.')).toBeInTheDocument();
+  expect(sessionStorage.getItem('test-session-expired')).toBeNull();
+  unmount();
+  render(<AuthForm />);
+  expect(screen.queryByText('Your session expired. Please sign in again.')).not.toBeInTheDocument();
+});
 function fillValidForm() {
   change('Display name', '  Gardener  ');
   change('Email address', 'gardener@example.com');

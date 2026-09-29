@@ -13,9 +13,9 @@ const buttonClass = 'w-full rounded-xl bg-green-600 px-4 py-3 font-semibold text
 
 export default function SignupFlow() {
   const router = useRouter();
-  const { verifySignup, loading: authLoading } = useAuth();
+  const { verifySignup } = useAuth();
   const [pending, setPending] = useState(null);
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState('');
   const [completed, setCompleted] = useState(false);
   const [code, setCode] = useState('');
@@ -30,6 +30,12 @@ export default function SignupFlow() {
   const codeRef = useRef(null);
   const emailRef = useRef(null);
   const submitting = useRef(false);
+  const initialRestoreCancelled = useRef(false);
+
+  function keepAccountDetails() {
+    initialRestoreCancelled.current = true;
+    setCheckError('');
+  }
 
   function acceptPending(next) {
     setPending(next);
@@ -57,12 +63,12 @@ export default function SignupFlow() {
   useEffect(() => {
     let active = true;
     apiClient.getPendingSignup().then(result => {
-      if (!active) return;
+      if (!active || initialRestoreCancelled.current) return;
       acceptPending(result.pending);
       setCompleted(Boolean(result.completed));
     }).catch(err => {
-      if (active) setCheckError(getActionErrorMessage(err, 'Your signup could not be loaded.'));
-    }).finally(() => { if (active) setChecking(false); });
+      if (active && !initialRestoreCancelled.current) setCheckError(getActionErrorMessage(err, 'Your signup could not be loaded.'));
+    });
     return () => { active = false; };
   }, []);
   useEffect(() => {
@@ -74,7 +80,7 @@ export default function SignupFlow() {
   }, [checking, pending, changingEmail, busy]);
 
   async function perform(action) {
-    if (submitting.current || (action === 'verify' && authLoading)) return;
+    if (submitting.current) return;
     setError('');
     setFieldError('');
     setNotice('');
@@ -128,9 +134,10 @@ export default function SignupFlow() {
   }
 
   if (checking) return <p role="status" className="text-gray-700">Checking your signup...</p>;
-  if (checkError) return <div className="space-y-4"><p role="alert" className="text-red-700">{checkError}</p><button className={buttonClass} onClick={restore}>Try again</button></div>;
+  const restoreError = checkError && <div className="mb-4 space-y-4"><p role="alert" className="text-red-700">{checkError}</p><button className={buttonClass} onClick={restore}>Try again</button></div>;
+  if (checkError && pending) return restoreError;
   if (completed) return <div className="space-y-4"><p role="status">Your account has been created. Sign in to continue.</p><Link className="font-semibold text-green-700 underline" href="/login">Sign in</Link></div>;
-  if (!pending) return <>{notice && <p role="status" className="mb-4 text-gray-700">{notice}</p>}<AuthForm initialMode="register" onPending={acceptPending} /></>;
+  if (!pending) return <>{restoreError}{notice && <p role="status" className="mb-4 text-gray-700">{notice}</p>}<AuthForm initialMode="register" onPending={acceptPending} onInteraction={keepAccountDetails} /></>;
 
   return <section className="space-y-5" aria-labelledby="verify-heading">
     <div>
@@ -162,7 +169,7 @@ export default function SignupFlow() {
           {fieldError && <p id="signup-field-error" role="alert" className="mt-2 text-sm text-red-700">{fieldError}</p>}
         </div>
         {pending.exhausted && !fieldError && <p role="alert" className="text-sm text-red-700">Too many incorrect codes. Request a new code.</p>}
-        <button className={buttonClass} disabled={busy || authLoading || pending.exhausted || pending.delivery !== 'sent'}>{busy || authLoading ? 'Please wait...' : 'Verify email'}</button>
+        <button className={buttonClass} disabled={busy || pending.exhausted || pending.delivery !== 'sent'}>{busy ? 'Please wait...' : 'Verify email'}</button>
       </form>
       <div className="flex flex-wrap justify-between gap-3">
         <button type="button" className="min-h-11 font-medium text-green-700 underline disabled:text-gray-500 disabled:no-underline" disabled={busy || seconds > 0} onClick={() => perform('resend')}>Resend code</button>

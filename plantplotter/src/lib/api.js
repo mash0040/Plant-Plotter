@@ -203,6 +203,7 @@ class ApiClient {
         return { success: true };
       }
     } catch (error) {
+      if (error.name === 'AbortError') throw error;
       console.error(`API request failed: ${endpoint}`, error);
       
       // Handle network errors
@@ -310,11 +311,12 @@ class ApiClient {
   }
 
   // Get user profile with preferences
-  async getProfile({ suppressAuthExpired = false } = {}) {
+  async getProfile({ suppressAuthExpired = false, signal } = {}) {
     try {
       const response = await this.request('/users/profile', {
         method: 'GET',
-        suppressAuthExpired
+        suppressAuthExpired,
+        signal
       });
       
       return response;
